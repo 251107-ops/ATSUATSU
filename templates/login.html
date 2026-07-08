@@ -1,15 +1,39 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>ログイン</title>
 </head>
 <body>
-    ユーザー名：<input type="text"id="username"><br>
-    パスワード：<input type="password" id="password"><br>
-    <input type="button" value="ログイン" onclick="login()"><br>
-    <a href="register1.html">新規登録画面へ</a>
+
+<h1>ログイン画面</h1>
+
+{% if error_message %}
+<p style="color:red">{{ error_message }}</p>
+{% endif %}
+
+<form method="POST">
+    <table border="1">
+        <tr>
+            <th>メールアドレス</th>
+            <td>
+                <input type="text" name="email" value="{{ email }}">
+            </td>   
+        </tr>
+        <tr>
+            <th>パスワード</th>
+            <td>
+                <input type="password" name="password">
+            </td>                 
+        </tr>
+    </table>
+    <br>
+    <input type="submit" value="ログイン">
+</form>
+
+<br>
+<a href="/register1" role="button">新規ユーザ登録</a>
+
 </body>
-<script src="script.js"></script>
 </html>
