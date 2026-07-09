@@ -1,25 +1,15 @@
 import os
 import sqlite3
-from flask import Flask, render_template, g, redirect, request, session
+from flask import Blueprint, render_template, g, redirect, request, session
 from werkzeug.security import generate_password_hash, check_password_hash
 
 DATABASE = os.path.join(os.path.dirname(__file__), "..", "nikuman.db")
 
-# 💡 routesフォルダ内に置く場合は template_folder の指定が必要です
-auth = Flask(__name__, template_folder='../templates')
-auth.secret_key = os.urandom(24) # セッション情報の暗号化に必要な秘密鍵
+
+auth = Blueprint('auth', __name__, template_folder='../templates')
 
 
 # --- ルーティング設定 ---
-
-# トップページ（インデックス）
-@auth.route("/")
-def top():
-    # セッションにユーザーのメールアドレスがない場合はログイン画面へリダイレクト
-    if 'user_email' not in session:
-        return redirect('/login')
-    
-    return render_template('index.html')
 
 # ログイン画面
 @auth.route("/login", methods=['GET', 'POST'])
@@ -110,7 +100,3 @@ def get_db():
 def close_db(error):
     if hasattr(g, 'sqlite_db'):
         g.sqlite_db.close()
-
-
-if __name__ == "__main__":
-    auth.run(debug=True)
