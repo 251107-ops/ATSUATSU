@@ -1,0 +1,250 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: "Hiragino Sans", "Yu Gothic", sans-serif;
+    background: #f7f8fa;
+    color: #1a1a2e;
+}
+
+/* ヘッダー */
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 40px;
+    background: white;
+    border-bottom: 1px solid #eee;
+}
+
+.logo {
+    font-size: 20px;
+    font-weight: bold;
+    color: #2b3a67;
+}
+
+.nav {
+    display: flex;
+    gap: 24px;
+}
+
+.nav a {
+    text-decoration: none;
+    color: #444;
+    font-size: 14px;
+}
+
+.btn-outline {
+    background: white;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 8px 16px;
+    cursor: pointer;
+}
+
+/* ヒーロー */
+.hero {
+    text-align: center;
+    padding: 60px 20px 40px;
+}
+
+.hero h1 {
+    font-size: 32px;
+    color: #2b3a67;
+    margin-bottom: 12px;
+}
+
+.hero p {
+    color: #666;
+    font-size: 14px;
+}
+
+/* 検索エリア */
+.search-area {
+    max-width: 900px;
+    margin: 0 auto 40px;
+    padding: 0 20px;
+}
+
+.search-bar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.search-bar input {
+    flex: 1;
+    padding: 12px 16px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 14px;
+}
+
+.btn-primary {
+    background: #2b3a67;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 24px;
+    cursor: pointer;
+}
+
+.filters {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.filter-btn {
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 999px;
+    padding: 8px 16px;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+.filter-btn.active {
+    background: #2b3a67;
+    color: white;
+    border-color: #2b3a67;
+}
+
+.filters select {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 13px;
+}
+
+/* スキル一覧セクション */
+.skills-section {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 20px 60px;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.section-header h2 {
+    font-size: 18px;
+}
+
+.sort-select {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 13px;
+}
+
+/* カード */
+.cards {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+}
+
+.card {
+    background: white;
+    border: 1px solid #eee;
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    position: relative;
+}
+
+.card-top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.card-top img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #eee;
+    display: block;
+}
+
+.name {
+    display: block;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.meta {
+    display: block;
+    font-size: 12px;
+    color: #888;
+}
+
+.tags {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+}
+
+.tag {
+    border: 1px solid #ddd;
+    border-radius: 999px;
+    padding: 3px 10px;
+    font-size: 11px;
+    color: #555;
+}
+
+.badge {
+    border-radius: 999px;
+    padding: 3px 10px;
+    font-size: 11px;
+}
+
+.badge.teach {
+    background: #e6f7ee;
+    color: #1a9e5c;
+}
+
+.badge.learn {
+    background: #e7f1fc;
+    color: #1a73c9;
+}
+
+.body {
+    font-size: 13px;
+    color: #444;
+    line-height: 1.5;
+    margin-bottom: 12px;
+}
+
+.fav {
+    font-size: 13px;
+    color: #888;
+}
+
+/* レスポンシブ */
+/* @media (max-width: 900px) {
+    .cards {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 500px) {
+    .cards {
+        grid-template-columns: 1fr;
+    }
+    .nav {
+        display: none;
+    }
+} */
