@@ -3,37 +3,57 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ログイン</title>
+    <title>SkillLink ログイン</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
 </head>
 <body>
 
-<h1>ログイン画面</h1>
+<div class="login-box">
 
-{% if error_message %}
-<p style="color:red">{{ error_message }}</p>
-{% endif %}
+    <img src="{{ url_for('static', filename='img/logo.png') }}"
+         alt="SkillLink"
+         class="logo">
 
-<form method="POST">
-    <table border="1">
-        <tr>
-            <th>メールアドレス</th>
-            <td>
-                <input type="text" name="email" value="{{ email }}">
-            </td>   
-        </tr>
-        <tr>
-            <th>パスワード</th>
-            <td>
-                <input type="password" name="password">
-            </td>                 
-        </tr>
-    </table>
-    <br>
-    <input type="submit" value="ログイン">
-</form>
+    {% if error_message %}
+        <p class="error">{{ error_message }}</p>
+    {% endif %}
 
-<br>
-<a href="/register1" role="button">新規ユーザ登録</a>
+    <form method="POST">
+
+        <label>メールアドレス</label>
+        <input
+            type="text"
+            name="email"
+            placeholder="メールアドレス"
+            value="{{ email }}">
+
+        <label>パスワード</label>
+        <input
+            type="password"
+            name="password"
+            placeholder="パスワード">
+
+        <a href="#" class="forgot">パスワードを忘れましたか？</a>
+
+        <input
+            type="submit"
+            value="ログイン"
+            class="login-btn">
+
+    </form>
+
+    <div class="or">
+        <span></span>
+        OR
+        <span></span>
+    </div>
+
+    <div class="signup">
+        アカウントをお持ちでないですか？
+        <a href="/register1">新規登録</a>
+    </div>
+
+</div>
 
 </body>
 </html>
