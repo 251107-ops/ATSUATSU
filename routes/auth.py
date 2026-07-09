@@ -1,12 +1,14 @@
 import os
 import sqlite3
-from flask import Flask, render_template, g, redirect, request, session
+from flask import Flask, render_template, g, redirect, request, session, Blueprint
 from werkzeug.security import generate_password_hash, check_password_hash
+from argon2 import PasswordHasher
+ph = PasswordHasher()
 
 DATABASE = os.path.join(os.path.dirname(__file__), "..", "nikuman.db")
 
 # 💡 routesフォルダ内に置く場合は template_folder の指定が必要です
-auth = Flask(__name__, template_folder='../templates')
+auth = Blueprint('auth', __name__, template_folder='../templates')
 auth.secret_key = os.urandom(24) # セッション情報の暗号化に必要な秘密鍵
 
 
@@ -38,7 +40,7 @@ def login():
         ).fetchone()
         
         # ⭕ ハッシュ化されたパスワードの検証
-        if user_data is not None and check_password_hash(user_data['password'], password):
+        if user_data is not None and ph.verify(user_data['password'], password):
             session['user_email'] = email  # セッションにメールアドレスを保存（ログイン完了）
             return redirect('/')
         
@@ -55,7 +57,7 @@ def register1():
         password = request.form.get('password', '')
         
         # ⭕ method='sha256' を削除（自動で最新の安全なアルゴリズムが使われます）
-        pass_hash = generate_password_hash(password)
+        pass_hash = ph.hash(password)
         return render_template('register2.html', name=name, email=email, password=pass_hash)
 
     return render_template('register1.html')
@@ -105,11 +107,11 @@ def get_db():
         g.sqlite_db = connect_db()
     return g.sqlite_db
 
-# リクエスト終了時に自動でデータベースを閉じる
-@auth.teardown_appcontext
-def close_db(error):
-    if hasattr(g, 'sqlite_db'):
-        g.sqlite_db.close()
+# # リクエスト終了時に自動でデータベースを閉じる
+# @auth.teardown_appcontext
+# def close_db(error):
+#     if hasattr(g, 'sqlite_db'):
+#         g.sqlite_db.close()
 
 
 if __name__ == "__main__":
