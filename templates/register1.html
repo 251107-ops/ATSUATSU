@@ -6,16 +6,17 @@
     <title>Document</title>
 </head>
 <body>
+    <p style="color:red">{{error_message}}</p>
     <form method="POST" action="/register1">
             
-        氏名：<input type="text" name="name"><br>
-        メール：<input type="text" name="email"><br>
-        パスワード：<input type="password" id="password1" name="password"><br>
-        パスワード確認：<input type="password" id="password2" name="password_confirm"><br>
+        氏名：<input type="text" name="name" required><br>
+        メール：<input type="text" name="email" required><br>
+        パスワード：<input type="password" id="password1" name="password" required><br>
+        パスワード確認：<input type="password" id="password2" name="password_confirm" required><br>
         <input type="submit" value="次のページへ" onclick="pass_confirm()"><br>
 
     </form>
-    <a href="login.html">ログイン画面へ</a>
+    <a href="/login">ログイン画面へ</a>
 
 </body>
 <script src="script.js"></script>
