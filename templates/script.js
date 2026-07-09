@@ -25,9 +25,8 @@ function pass_confirm(){
     let pass1 = document.getElementById("password1").value
     let pass2 = document.getElementById("password2").value
 
-    if(pass1==pass2){
-        window.location.href = "register2.html"
-    }else{
-        alert("パスワードが一致してない")
+    if(pass1!=pass2){
+       alert("パスワードが一致してない")
     }
+    
 }

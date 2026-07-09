@@ -6,10 +6,15 @@
     <title>Document</title>
 </head>
 <body>
-    メール：<input type="text"><br>
-    パスワード：<input type="password" id="password1"><br>
-    パスワード確認：<input type="password" id="password2"><br>
-    <input type="button" value="登録" onclick="pass_confirm()"><br>
+    <form method="POST" action="/register1">
+            
+        氏名：<input type="text" name="name"><br>
+        メール：<input type="text" name="email"><br>
+        パスワード：<input type="password" id="password1" name="password"><br>
+        パスワード確認：<input type="password" id="password2" name="password_confirm"><br>
+        <input type="submit" value="次のページへ" onclick="pass_confirm()"><br>
+
+    </form>
     <a href="login.html">ログイン画面へ</a>
 
 </body>
