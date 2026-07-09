@@ -2,11 +2,14 @@ import os
 import sqlite3
 from flask import Blueprint, render_template, g, redirect, request, session
 from werkzeug.security import generate_password_hash, check_password_hash
+from argon2 import PasswordHasher
+ph = PasswordHasher()
 
 DATABASE = os.path.join(os.path.dirname(__file__), "..", "nikuman.db")
 
-
+# 💡 routesフォルダ内に置く場合は template_folder の指定が必要です
 auth = Blueprint('auth', __name__, template_folder='../templates')
+auth.secret_key = os.urandom(24) # セッション情報の暗号化に必要な秘密鍵
 
 
 # --- ルーティング設定 ---
@@ -28,7 +31,7 @@ def login():
         ).fetchone()
         
         # ⭕ ハッシュ化されたパスワードの検証
-        if user_data is not None and check_password_hash(user_data['password'], password):
+        if user_data is not None and ph.verify(user_data['password'], password):
             session['user_email'] = email  # セッションにメールアドレスを保存（ログイン完了）
             return redirect('/')
         
@@ -45,7 +48,7 @@ def register1():
         password = request.form.get('password', '')
         
         # ⭕ method='sha256' を削除（自動で最新の安全なアルゴリズムが使われます）
-        pass_hash = generate_password_hash(password)
+        pass_hash = ph.hash(password)
         return render_template('register2.html', name=name, email=email, password=pass_hash)
 
     return render_template('register1.html')
