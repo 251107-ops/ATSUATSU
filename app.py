@@ -67,6 +67,7 @@ def register2():
     icon_path = request.form.get('icon_path', '')
 
     db = get_db()
+    user_check = db.execute("select user_id from users where user_id = ?", (user_id,)).fetchone()
     db.execute(
         "INSERT INTO users (name, email, password, grade, department, introduction, icon_path) VALUES (?, ?, ?, ?, ?, ?, ?)",
         (name, email, password, grade, department, introduction, icon_path)
