@@ -13,5 +13,4 @@ app.secret_key = os.urandom(24)
 app.register_blueprint(auth)
 app.register_blueprint(posts)
 if __name__ == "__main__":
-    # 大元からアプリを起動
     app.run(debug=True)
