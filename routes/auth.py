@@ -99,7 +99,7 @@ def get_db():
     return g.sqlite_db
 
 # リクエスト終了時に自動でデータベースを閉じる
-@auth.teardown_appcontext
-def close_db(error):
-    if hasattr(g, 'sqlite_db'):
-        g.sqlite_db.close()
+# @auth.teardown_appcontext
+# def close_db(error):
+#     if hasattr(g, 'sqlite_db'):
+#         g.sqlite_db.close()
