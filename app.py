@@ -2,6 +2,7 @@ import os
 from flask import Flask
 # routes フォルダの auth.py から auth（Blueprint）をインポート
 from routes.auth import auth
+from routes.posts import posts
 
 app = Flask(__name__)
 
@@ -10,6 +11,6 @@ app.secret_key = os.urandom(24)
 
 # 🔌 ここで Blueprint をアプリケーション本体に登録（合体！）
 app.register_blueprint(auth)
-
+app.register_blueprint(posts)
 if __name__ == "__main__":
     app.run(debug=True)

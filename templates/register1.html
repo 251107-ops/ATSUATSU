@@ -13,6 +13,7 @@
     <img src="{{ url_for('static', filename='img/logo.png') }}" alt="SkillLink" class="logo">
 
     <form method="POST" action="/register1">
+        <p style="color:red">{{error_message}}</p>
         
         <label>氏名</label>
         <input type="text" name="name" placeholder="氏名を入力してください" required>

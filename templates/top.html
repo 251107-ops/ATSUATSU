@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/top.css') }}">
+</head>
+<body>
+    <header class="header">
+        <div class="logo">SkillLink</div>
+        <nav class="nav">
+            <a href="#">ホーム</a>
+            <a href="#">通知</a>
+            <a href="#">お気に入り</a>
+            <a href="#">チャット</a>
+            <a href="#">投稿作成</a>
+            <a href="/profile">マイページ</a>
+        </nav>
+        <button class="btn-outline">ログアウト</button>
+    </header>
+
+    <section class="hero">
+        <h1>教えあい、学びあい、成長しよう</h1>
+        <p>学内のスキルをシェアして、お互いに高め合えるコミュニティ</p>
+    </section>
+
+    <section class="search-area">
+        <div class="search-bar">
+            <input type="text" placeholder="スキル名・学科・学年で検索">
+            <button class="btn-primary">検索</button>
+        </div>
+        <div class="filters">
+            <button class="filter-btn active">すべて</button>
+            <button class="filter-btn">教えたい</button>
+            <button class="filter-btn">学びたい</button>
+            <select>
+                <option>学科：すべて</option>
+            </select>
+            <select>
+                <option>学年：すべて</option>
+            </select>
+        </div>
+    </section>
+
+    <section class="skills-section">
+        <div class="section-header">
+            <h2>注目のスキル</h2>
+            <select class="sort-select">
+                <option>新着順</option>
+                <option>人気順</option>
+            </select>
+        </div>
+
+        <div class="cards">
+            {% for post in posts %}
+            <div class="card">
+                <div class="card-top">
+                    <img src="{{ post.profile_photo }}" alt="">
+                    <div>
+                        <span class="name">{{ post.username }}</span>
+                        <span class="meta">{{ post.department }} {{ post.grade }}</span>
+                    </div>
+                </div>
+                <div class="tags">
+                    <span class="tag">{{ post.category_name }}</span>
+                    <span class="tag">{{ post.skill_name }}</span>
+                    <span class="badge {{ 'teach' if post.type == '教えたい' else 'learn' }}">{{ post.type }}</span>
+                </div>
+                <p class="body">{{ post.body }}</p>
+                <span class="fav">{{ post.favorite_count }} ♥</span>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+</body>
+</html>

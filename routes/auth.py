@@ -1,6 +1,6 @@
 import os
 import sqlite3
-from flask import Flask, render_template, g, redirect, request, session, Blueprint
+from flask import Blueprint, render_template, g, redirect, request, session
 from werkzeug.security import generate_password_hash, check_password_hash
 from argon2 import PasswordHasher
 ph = PasswordHasher()
@@ -13,15 +13,6 @@ auth.secret_key = os.urandom(24) # セッション情報の暗号化に必要な
 
 
 # --- ルーティング設定 ---
-
-# トップページ（インデックス）
-@auth.route("/")
-def top():
-    # セッションにユーザーのメールアドレスがない場合はログイン画面へリダイレクト
-    if 'user_email' not in session:
-        return redirect('/login')
-    
-    return render_template('index.html')
 
 # ログイン画面
 @auth.route("/login", methods=['GET', 'POST'])
@@ -94,6 +85,9 @@ def logout():
     session.pop('user_email', None)  # セッションからユーザー情報を削除（ログアウト）
     return redirect('/login')
 
+# @auth.route("/top")
+# def top():
+#     return render_template('top.html')
 
 # データベース接続関数
 def connect_db():
@@ -107,12 +101,8 @@ def get_db():
         g.sqlite_db = connect_db()
     return g.sqlite_db
 
-# # リクエスト終了時に自動でデータベースを閉じる
+# リクエスト終了時に自動でデータベースを閉じる
 # @auth.teardown_appcontext
 # def close_db(error):
 #     if hasattr(g, 'sqlite_db'):
 #         g.sqlite_db.close()
-
-
-if __name__ == "__main__":
-    auth.run(debug=True)
