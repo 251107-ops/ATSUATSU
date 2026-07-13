@@ -85,9 +85,9 @@ def logout():
     session.pop('user_email', None)  # セッションからユーザー情報を削除（ログアウト）
     return redirect('/login')
 
-@auth.route("/top")
-def top():
-    return render_template('top.html')
+# @auth.route("/top")
+# def top():
+#     return render_template('top.html')
 
 # データベース接続関数
 def connect_db():

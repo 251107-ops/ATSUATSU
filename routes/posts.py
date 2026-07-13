@@ -9,17 +9,7 @@ def top():
         return redirect('/login')
 
     db = get_db()
-    result = db.execute("""
-        SELECT
-            users.username, users.department, users.grade, users.profile_photo,
-            categories.name AS category_name,
-            skills.skill_name,
-            posts.type, posts.body
-        FROM posts
-        JOIN users ON posts.user_id = users.user_id
-        JOIN skills ON posts.skill_id = skills.skill_id
-        JOIN categories ON skills.category_id = categories.category_id
-        ORDER BY posts.created_at DESC
-    """).fetchall()
+    result = db.execute("SELECT name, email, department, grade, introduction, icon_path FROM users").fetchall()
+    # result = [dict(row) for row in result]
 
-    return render_template('index.html', posts=result)
+    return render_template('top.html', posts=result)
