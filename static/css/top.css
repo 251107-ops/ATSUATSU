@@ -1,250 +1,346 @@
-* {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
+/* ==========================================
+   共通・ベーススタイル
+   ========================================== */
+:root {
+    --primary-color: #2f69e3;     /* メインの鮮やかなブルー */
+    --primary-hover: #1e50c4;     /* ボタンホバー時の濃いブルー */
+    --bg-color: #f4f7fc;          /* 背景のとても薄いグレーブルー */
+    --text-main: #2c3e50;         /* メインのテキスト色 */
+    --text-sub: #7f8c8d;          /* サブテキスト（学科・学年など） */
+    --card-bg: #ffffff;           /* カードの背景（白） */
+    --border-color: #e2e8f0;      /* 薄い枠線 */
+    
+    /* タグの配色 */
+    --tag-blue-bg: #e6f0fa;
+    --tag-blue-text: #2f69e3;
+    --tag-green-bg: #e6f7ed;
+    --tag-green-text: #2e7d32;
 }
 
 body {
-    font-family: "Hiragino Sans", "Yu Gothic", sans-serif;
-    background: #f7f8fa;
-    color: #1a1a2e;
+    font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-main);
+    margin: 0;
+    padding: 0;
+    line-height: 1.6;
 }
 
-/* ヘッダー */
+a {
+    text-decoration: none;
+    color: inherit;
+}
+
+/* ==========================================
+   ヘッダー領域
+   ========================================== */
+/* ==========================================
+   ヘッダー領域
+   ========================================== */
 .header {
     display: flex;
-    align-items: center;
     justify-content: space-between;
-    padding: 16px 40px;
-    background: white;
-    border-bottom: 1px solid #eee;
+    align-items: center;
+    height: 72px;          /* 60pxから72pxに戻し、縦幅にゆとり（帯感）を持たせます */
+    padding: 0 40px;       /* 左右の余白を少し広げてワイヤーのバランスに調整 */
+    background-color: var(--card-bg);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    position: sticky;
+    top: 0;
+    z-index: 100;
 }
 
 .logo {
-    font-size: 20px;
-    font-weight: bold;
-    color: #2b3a67;
+    display: block;
+    width: auto;
+    height: 52px;          /* 44px → 52px に引き上げ、ロゴの存在感を出しつつ帯に収めます */
+    max-width: 100%;
+    margin: 0;
+    margin-right: 40px;
+    object-fit: contain;
+    flex-shrink: 0;
 }
 
 .nav {
     display: flex;
-    gap: 24px;
+    align-items: center;
+    gap: 30px;
+    flex-shrink: 0;
 }
 
 .nav a {
-    text-decoration: none;
-    color: #444;
     font-size: 14px;
+    font-weight: bold;
+    color: var(--text-main);
+    line-height: 1;
+    white-space: nowrap;
+    transition: color 0.2s;
 }
-
+/* ログアウトボタン（画像のログインボタン風） */
 .btn-outline {
-    background: white;
-    border: 1px solid #ccc;
-    border-radius: 8px;
-    padding: 8px 16px;
+    background-color: var(--primary-color);
+    color: #ffffff;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 20px;
+    font-weight: bold;
     cursor: pointer;
+    transition: background-color 0.2s;
 }
 
-/* ヒーロー */
+.btn-outline:hover {
+    background-color: var(--primary-hover);
+}
+
+/* ==========================================
+   ヒーローエリア（メインビジュアル部）
+   ========================================== */
 .hero {
-    text-align: center;
-    padding: 60px 20px 40px;
+    max-width: 1200px;
+    margin: 40px auto 20px;
+    padding: 0 5%;
 }
 
 .hero h1 {
-    font-size: 32px;
-    color: #2b3a67;
-    margin-bottom: 12px;
+    font-size: 36px;
+    font-weight: bold;
+    color: var(--text-main);
+    margin-bottom: 15px;
+    line-height: 1.3;
 }
 
 .hero p {
-    color: #666;
-    font-size: 14px;
+    font-size: 16px;
+    color: var(--text-sub);
+    margin: 0;
 }
 
-/* 検索エリア */
+/* ==========================================
+   検索・フィルターエリア
+   ========================================== */
 .search-area {
-    max-width: 900px;
+    max-width: 1200px;
     margin: 0 auto 40px;
-    padding: 0 20px;
+    padding: 0 5%;
 }
 
+/* 検索バー */
 .search-bar {
     display: flex;
-    gap: 8px;
-    margin-bottom: 16px;
+    background-color: #ffffff;
+    border-radius: 30px;
+    padding: 6px 6px 6px 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+    align-items: center;
+    margin-bottom: 20px;
+    border: 1px solid var(--border-color);
 }
 
 .search-bar input {
     flex: 1;
-    padding: 12px 16px;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    font-size: 14px;
+    border: none;
+    outline: none;
+    font-size: 16px;
+    color: var(--text-main);
+}
+
+.search-bar input::placeholder {
+    color: #b0bec5;
 }
 
 .btn-primary {
-    background: #2b3a67;
-    color: white;
+    background-color: var(--primary-color);
+    color: #ffffff;
     border: none;
-    border-radius: 8px;
-    padding: 12px 24px;
+    padding: 12px 35px;
+    border-radius: 24px;
+    font-size: 16px;
+    font-weight: bold;
     cursor: pointer;
+    transition: background-color 0.2s;
 }
 
+.btn-primary:hover {
+    background-color: var(--primary-hover);
+}
+
+/* フィルターボタン・セレクト */
 .filters {
     display: flex;
-    gap: 8px;
+    gap: 12px;
     align-items: center;
     flex-wrap: wrap;
 }
 
 .filter-btn {
-    background: white;
-    border: 1px solid #ddd;
-    border-radius: 999px;
-    padding: 8px 16px;
+    background-color: #ffffff;
+    border: 1px solid var(--border-color);
+    padding: 8px 20px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-main);
     cursor: pointer;
-    font-size: 13px;
+    transition: all 0.2s;
 }
 
 .filter-btn.active {
-    background: #2b3a67;
-    color: white;
-    border-color: #2b3a67;
+    background-color: var(--primary-color);
+    color: #ffffff;
+    border-color: var(--primary-color);
 }
 
 .filters select {
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    padding: 8px 12px;
-    font-size: 13px;
+    background-color: #ffffff;
+    border: 1px solid var(--border-color);
+    padding: 8px 16px;
+    border-radius: 10px;
+    font-size: 14px;
+    color: var(--text-main);
+    outline: none;
+    cursor: pointer;
 }
 
-/* スキル一覧セクション */
+/* ==========================================
+   スキルカードセクション
+   ========================================== */
 .skills-section {
-    max-width: 1100px;
-    margin: 0 auto;
-    padding: 0 20px 60px;
+    max-width: 1200px;
+    margin: 0 auto 60px;
+    padding: 0 5%;
 }
 
 .section-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 16px;
+    margin-bottom: 20px;
 }
 
 .section-header h2 {
-    font-size: 18px;
+    font-size: 20px;
+    font-weight: bold;
+    margin: 0;
 }
 
 .sort-select {
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    padding: 6px 12px;
-    font-size: 13px;
+    background: transparent;
+    border: none;
+    font-size: 14px;
+    color: var(--text-sub);
+    cursor: pointer;
+    outline: none;
 }
 
-/* カード */
+/* カードのグリッド配置 */
 .cards {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 16px;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 20px;
 }
 
+/* 個別のカードデザイン */
 .card {
-    background: white;
-    border: 1px solid #eee;
+    background-color: var(--card-bg);
     border-radius: 16px;
-    padding: 16px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    padding: 24px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.02);
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    display: flex;
+    flex-direction: column;
     position: relative;
+    transition: transform 0.2s, box-shadow 0.2s;
 }
 
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05);
+}
+
+/* カード上部（アイコンと名前） */
 .card-top {
     display: flex;
     align-items: center;
-    gap: 10px;
-    margin-bottom: 12px;
+    gap: 12px;
+    margin-bottom: 15px;
 }
 
 .card-top img {
-    width: 40px;
-    height: 40px;
+    width: 44px;
+    height: 44px;
     border-radius: 50%;
-    background: #eee;
-    display: block;
+    object-fit: cover;
+    background-color: #e2e8f0; /* 画像がない場合の仮背景 */
 }
 
-.name {
-    display: block;
-    font-size: 14px;
+.card-top div {
+    display: flex;
+    flex-direction: column;
+}
+
+.card-top .name {
     font-weight: bold;
+    font-size: 15px;
+    color: var(--text-main);
 }
 
-.meta {
-    display: block;
+.card-top .meta {
     font-size: 12px;
-    color: #888;
+    color: var(--text-sub);
+    margin-top: 2px;
 }
 
+/* タグエリア */
 .tags {
     display: flex;
-    gap: 6px;
-    align-items: center;
-    margin-bottom: 10px;
+    gap: 8px;
     flex-wrap: wrap;
+    margin-bottom: 15px;
 }
 
 .tag {
-    border: 1px solid #ddd;
-    border-radius: 999px;
-    padding: 3px 10px;
-    font-size: 11px;
-    color: #555;
+    font-size: 12px;
+    font-weight: bold;
+    padding: 4px 12px;
+    border-radius: 8px;
+    /* デフォルトは薄いブルーのタグ */
+    background-color: var(--tag-blue-bg);
+    color: var(--tag-blue-text);
 }
 
+/* HTMLの動的なバッジ判定用（教えたい / 学びたい） */
 .badge {
-    border-radius: 999px;
-    padding: 3px 10px;
-    font-size: 11px;
+    font-size: 12px;
+    font-weight: bold;
+    padding: 4px 12px;
+    border-radius: 8px;
 }
 
-.badge.teach {
-    background: #e6f7ee;
-    color: #1a9e5c;
+/* 「教えたい」「学びたい」はどちらも画像内では薄緑系の配色 */
+.badge.teach, .badge.learn {
+    background-color: var(--tag-green-bg);
+    color: var(--tag-green-text);
 }
 
-.badge.learn {
-    background: #e7f1fc;
-    color: #1a73c9;
+/* カード本文 */
+.card .body {
+    font-size: 14px;
+    color: var(--text-main);
+    margin: 0 0 20px 0;
+    flex: 1; /* テキスト量に関わらず高さを揃える */
 }
 
-.body {
-    font-size: 13px;
-    color: #444;
-    line-height: 1.5;
-    margin-bottom: 12px;
-}
-
+/* お気に入り（ブックマーク）アイコン風 */
 .fav {
-    font-size: 13px;
-    color: #888;
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    font-size: 14px;
+    color: #b0bec5;
+    cursor: pointer;
+    transition: color 0.2s;
 }
 
-/* レスポンシブ */
-/* @media (max-width: 900px) {
-    .cards {
-        grid-template-columns: repeat(2, 1fr);
-    }
+.fav:hover {
+    color: #e57373;
 }
-
-@media (max-width: 500px) {
-    .cards {
-        grid-template-columns: 1fr;
-    }
-    .nav {
-        display: none;
-    }
-} */
