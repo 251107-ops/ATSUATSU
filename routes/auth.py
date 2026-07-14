@@ -27,12 +27,13 @@ def login():
         db = get_db()
         # データベースから該当するメールアドレスのユーザー情報を取得
         user_data = db.execute(
-            "SELECT email, password FROM users WHERE email = ?", [email]
+            "SELECT user_id, email, password FROM users WHERE email = ?", [email]
         ).fetchone()
         
         # ⭕ ハッシュ化されたパスワードの検証
         if user_data is not None and ph.verify(user_data['password'], password):
             session['user_email'] = email  # セッションにメールアドレスを保存（ログイン完了）
+            session['user_id'] = user_data['user_id']  # ユーザーIDもセッションに保存
             return redirect('/')
         
         error_message = '入力されたメールアドレスもしくはパスワードが誤っています'

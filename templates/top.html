@@ -14,7 +14,7 @@
             <a href="#">通知</a>
             <a href="#">お気に入り</a>
             <a href="#">チャット</a>
-            <a href="#">投稿作成</a>
+            <a href="/posts">投稿作成</a>
             <a href="/profile">マイページ</a>
         </nav>
         <button class="btn-outline">ログアウト</button>
@@ -56,7 +56,7 @@
             {% for post in posts %}
             <div class="card">
                 <div class="card-top">
-                    <img src="{{ post.icon_path }}" alt="">
+                    <img src="{{ url_for('static', filename=post.icon_path) }}" alt="ユーザーアバター">
                     <div>
                         <span class="name">{{ post.name }}</span>
                         <span class="meta">{{ post.department }} {{ post.grade }}</span>
@@ -65,9 +65,9 @@
                 <div class="tags">
                     <span class="tag">{{ post.category_name }}</span>
                     <span class="tag">{{ post.skill_name }}</span>
-                    <span class="badge {{ 'teach' if post.type == '教えたい' else 'learn' }}">{{ post.type }}</span>
+                    <span class="badge {{ 'teach' if post.post_type == '教えたい' else 'learn' }}">{{ post.post_type }}</span>
                 </div>
-                <p class="body">{{ post.body }}</p>
+                <p class="body">{{ post.post_text }}</p>
                 <span class="fav">{{ post.favorite_count }} ♥</span>
             </div>
             {% endfor %}

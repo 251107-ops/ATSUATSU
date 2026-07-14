@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>投稿作成</title>
+</head>
+<body>
+
+    <h2>新規投稿作成</h2>
+    <form method="POST" action="/posts">
+        
+        <p>募集タイプを選択してください：</p>
+        <select name="post_type">
+            <option value="教えたい">教えたい</option>
+            <option value="学びたい">学びたい</option>
+        </select>
+
+        <p>対応するスキルを選択してください：</p>
+        <select name="skill_id" required>
+            <option value="">-- スキルを選択してください --</option>
+            {% for skill in skills %}
+                <option value="{{ skill[0] if skill is iterable else skill.skill_id }}">{{ skill[1] if skill is iterable else skill.skill_name }}</option>
+            {% endfor %}
+        </select>
+
+        <p>ここに投稿内容を入力してください。</p>
+        <textarea name="post_text" rows="10" cols="50" placeholder="投稿内容を入力" required></textarea>
+        
+        <br><br>
+        <button type="submit">投稿する</button>
+    </form>
+
+    <hr>
+
+    <h2>新しいスキルをシステムに追加</h2>
+    <form method="POST" action="/skill_edit">
+        <p>選択肢にないスキルを追加したい場合はここに入力してください：</p>
+        <input type="text" name="skill_name" placeholder="例: Vue.js, Figma" required>
+        <button type="submit">スキルを登録</button>
+    </form>
+
+</body>
+</html>
