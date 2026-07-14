@@ -3,21 +3,21 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>プロフィール編集 | スキルシェア</title>
+<title>プロフィール | スキルシェア</title>
 <link rel="stylesheet" href="{{ url_for('static', filename='css/profile.css') }}">
 </head>
 <body>
 
   <header class="header">
     <div class="header__left">
-     <img src="{{ url_for('static', filename='img/logo.png') }}" alt="SkillLink" class="logo">
+      <img src="{{ url_for('static', filename='img/logo.png') }}" alt="SkillLink" class="logo">
       <div class="logo-text">
         <span class="logo-title">スキルシェア</span>
       </div>
     </div>
 
     <nav class="header__nav">
-      <a href="#" class="nav-link">ホーム</a>
+      <a href="/" class="nav-link">ホーム</a>
       <a href="#" class="nav-link">スキル一覧</a>
       <a href="#" class="nav-link nav-link--active">マイページ</a>
     </nav>
@@ -25,10 +25,8 @@
     <div class="header__right">
       <button class="header-avatar" id="headerAvatarBtn" aria-label="アカウントメニュー">
         {% if user and user.icon_path %}
-          <img id="headerAvatarImg" src="{{ user.icon_path }}" alt="アバター" class="header-avatar__img">
-          <span id="headerAvatarInitial" class="header-avatar__initial is-hidden"></span>
+          <img id="headerAvatarImg" src="{{ url_for('static', filename=user.icon_path) }}" alt="アバター" class="header-avatar__img">
         {% else %}
-          <img id="headerAvatarImg" src="" alt="" class="header-avatar__img is-hidden">
           <span id="headerAvatarInitial" class="header-avatar__initial">{{ user.name[0] if user else '田' }}</span>
         {% endif %}
       </button>
@@ -39,7 +37,7 @@
 
     <aside class="sidebar">
       <button class="side-link side-link--active" data-target="profile">
-        <span class="side-link__icon">◎</span>プロフィール
+       <a href="/profile"><span class="side-link__icon">◎</span>プロフィール</a>
       </button>
       <button class="side-link" data-target="skills">
         <span class="side-link__icon">▦</span>スキル管理
@@ -57,89 +55,74 @@
 
     <main class="main">
       <div class="main__head">
-        <h1 class="main__title">プロフィール編集</h1>
-        <p class="main__note"><span class="required">*</span>は必須項目です</p>
+        <h1 class="main__title">プロフィール</h1>
+        <a href="/profile_edit" class="btn btn--primary">プロフィール編集</a>
       </div>
 
-      <form id="profileForm" class="profile-card" method="POST" enctype="multipart/form-data" novalidate>
-        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-
+      <div class="profile-card-content">
         <div class="avatar-block">
           <div class="avatar-wrap">
             {% if user and user.icon_path %}
-              <img id="avatarImg" class="avatar-img" src="{{ user.icon_path }}" alt="プロフィール画像">
-              <span id="avatarPlaceholder" class="avatar-placeholder is-hidden"></span>
+              <img id="avatarImg" class="avatar-img" src="{{ url_for('static', filename=user.icon_path) }}" alt="プロフィール画像">
             {% else %}
-              <img id="avatarImg" class="avatar-img is-hidden" src="" alt="プロフィール画像">
               <span id="avatarPlaceholder" class="avatar-placeholder">{{ user.name[:2] if user else '田中' }}</span>
             {% endif %}
-            <button type="button" class="avatar-cam-btn" id="avatarCamBtn" aria-label="画像を変更">📷</button>
-            <input type="file" id="avatarInput" accept="image/png, image/jpeg, image/gif" class="is-hidden">
           </div>
-          <button type="button" class="btn btn--outline btn--sm" id="avatarChangeBtn">アイコンを変更</button>
-          <p class="avatar-hint">PNG / JPEG / GIF、3MBまで</p>
         </div>
 
         <div class="field-grid">
-          <div class="field">
-            <label for="name">名前<span class="required">*</span></label>
-            <input type="text" id="name" name="name" value="{{ user.name if user else '' }}" maxlength="40" required>
+          <div class="field field--wide">
+            <label>名前</label>
+            <p class="profile-text-value">{{ user.name if user else '' }}</p>
           </div>
 
           <div class="field">
-            <label for="grade">学年<span class="required">*</span></label>
-            <select id="grade" name="grade" required>
-              <option {% if user and user.grade == '1年' %}selected{% endif %}>1年</option>
-              <option {% if user and user.grade == '2年' %}selected{% endif %}>2年</option>
-              <option {% if user and user.grade == '3年' %}selected{% endif %}>3年</option>
-              <option {% if user and user.grade == '4年' %}selected{% endif %}>4年</option>
-            </select>
+            <label>学年</label>
+            <p class="profile-text-value">{{ user.grade if user else '' }}</p>
           </div>
 
           <div class="field">
-            <label for="department">学科<span class="required">*</span></label>
-            <select id="department" name="department" required>
-              <option {% if user and user.department == '情報システム' %}selected{% endif %}>情報システム</option>
-            </select>
+            <label>学科</label>
+            <p class="profile-text-value">{{ user.department if user else '' }}</p>
           </div>
 
           <div class="field field--wide">
-            <label for="bio">自己紹介</label>
-            <textarea id="bio" name="bio" rows="3" maxlength="500">{{ user.introduction if user else '' }}</textarea>
-            <span class="field-counter" id="bioCounter">0 / 500</span>
+            <label>自己紹介</label>
+            <div class="bio-text-block">
+              {{ user.introduction if user else '自己紹介はまだ登録されていません。' }}
+            </div>
           </div>
         </div>
+      </div>
 
-        <div class="skill-field">
-          <label>教えたいスキル</label>
-          <div class="tag-list" id="teachSkillList">
-            {% for skill in teach_skills %}
-            <span class="tag tag--teach">{{ skill }}<button type="button" class="tag__remove" aria-label="{{ skill }}を削除">×</button></span>
-            {% endfor %}
-            <button type="button" class="tag-add" data-target="teachSkillList" data-variant="teach">+ 追加</button>
-          </div>
+      <div class="skill-field">
+        <label>教えたいスキル</label>
+        <div class="tag-list">
+          {% for skill in teach_skills %}
+            <span class="tag tag--teach">{{ skill }}</span>
+          {% else %}
+            <span class="no-tags-notice">登録されていません</span>
+          {% endfor %}
         </div>
+      </div>
 
-        <div class="skill-field">
-          <label>学びたいスキル</label>
-          <div class="tag-list" id="learnSkillList">
-            {% for skill in learn_skills %}
-            <span class="tag tag--learn">{{ skill }}<button type="button" class="tag__remove" aria-label="{{ skill }}を削除">×</button></span>
-            {% endfor %}
-            <button type="button" class="tag-add" data-target="learnSkillList" data-variant="learn">+ 追加</button>
-          </div>
+      <div class="skill-field">
+        <label>学びたいスキル</label>
+        <div class="tag-list">
+          {% for skill in learn_skills %}
+            <span class="tag tag--learn">{{ skill }}</span>
+          {% else %}
+            <span class="no-tags-notice">登録されていません</span>
+          {% endfor %}
         </div>
+      </div>
 
-        <div class="form-actions">
-          <button type="button" class="btn btn--outline" id="cancelBtn">キャンセル</button>
-          <button type="submit" class="btn btn--primary" id="submitBtn">保存する</button>
-        </div>
-      </form>
+      <!-- <div class="form-actions">
+        <input type="file" class="btn btn--primary">プロフィール編集</input>
+      </div> -->
     </main>
 
   </div>
-
-  <div id="toast" class="toast is-hidden" role="status" aria-live="polite">プロフィールを保存しました</div>
 
   <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </body>
