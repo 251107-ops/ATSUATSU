@@ -34,39 +34,48 @@ a {
 /* ==========================================
    ヘッダー領域
    ========================================== */
+/* ==========================================
+   ヘッダー領域
+   ========================================== */
 .header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 20px 5%;
-    background-color: transparent; /* 背景に馴染ませる */
+    height: 72px;          /* 60pxから72pxに戻し、縦幅にゆとり（帯感）を持たせます */
+    padding: 0 40px;       /* 左右の余白を少し広げてワイヤーのバランスに調整 */
+    background-color: var(--card-bg);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    position: sticky;
+    top: 0;
+    z-index: 100;
 }
 
 .logo {
     display: block;
-    width: 240px;         /* ロゴのサイズ（適宜調整してください） */
+    width: auto;
+    height: 52px;          /* 44px → 52px に引き上げ、ロゴの存在感を出しつつ帯に収めます */
     max-width: 100%;
-    height: auto;
     margin: 0;
-    margin-right: 40px;   /* ロゴのすぐ右側に作る隙間の広さ（ここでコントロール！） */
+    margin-right: 40px;
+    object-fit: contain;
+    flex-shrink: 0;
 }
 
 .nav {
     display: flex;
+    align-items: center;
     gap: 30px;
+    flex-shrink: 0;
 }
 
 .nav a {
     font-size: 14px;
     font-weight: bold;
     color: var(--text-main);
+    line-height: 1;
+    white-space: nowrap;
     transition: color 0.2s;
 }
-
-.nav a:hover {
-    color: var(--primary-color);
-}
-
 /* ログアウトボタン（画像のログインボタン風） */
 .btn-outline {
     background-color: var(--primary-color);
@@ -334,20 +343,4 @@ a {
 
 .fav:hover {
     color: #e57373;
-}
-/* ==========================================
-   ヘッダー領域
-   ========================================== */
-.header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px 5%; 
-    background-color: var(--card-bg); /* 背景を白に */
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05); /* 下方向へ薄い影（溝）を追加 */
-    
-    /* 画面上部に固定するための設定 */
-    position: sticky;
-    top: 0;
-    z-index: 100; /* コンテンツより前面に表示 */
 }
