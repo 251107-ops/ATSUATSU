@@ -30,68 +30,6 @@ a {
     text-decoration: none;
     color: inherit;
 }
-
-/* ==========================================
-   ヘッダー領域
-   ========================================== */
-/* ==========================================
-   ヘッダー領域
-   ========================================== */
-.header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    height: 72px;          /* 60pxから72pxに戻し、縦幅にゆとり（帯感）を持たせます */
-    padding: 0 40px;       /* 左右の余白を少し広げてワイヤーのバランスに調整 */
-    background-color: var(--card-bg);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-    position: sticky;
-    top: 0;
-    z-index: 100;
-}
-
-.logo {
-    display: block;
-    width: auto;
-    height: 52px;          /* 44px → 52px に引き上げ、ロゴの存在感を出しつつ帯に収めます */
-    max-width: 100%;
-    margin: 0;
-    margin-right: 40px;
-    object-fit: contain;
-    flex-shrink: 0;
-}
-
-.nav {
-    display: flex;
-    align-items: center;
-    gap: 30px;
-    flex-shrink: 0;
-}
-
-.nav a {
-    font-size: 14px;
-    font-weight: bold;
-    color: var(--text-main);
-    line-height: 1;
-    white-space: nowrap;
-    transition: color 0.2s;
-}
-/* ログアウトボタン（画像のログインボタン風） */
-.btn-outline {
-    background-color: var(--primary-color);
-    color: #ffffff;
-    border: none;
-    padding: 10px 24px;
-    border-radius: 20px;
-    font-weight: bold;
-    cursor: pointer;
-    transition: background-color 0.2s;
-}
-
-.btn-outline:hover {
-    background-color: var(--primary-hover);
-}
-
 /* ==========================================
    ヒーローエリア（メインビジュアル部）
    ========================================== */
