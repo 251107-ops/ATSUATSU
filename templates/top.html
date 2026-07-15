@@ -7,19 +7,8 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/top.css') }}">
 </head>
 <body>
-    <header class="header">
-         <img src="{{ url_for('static', filename='img/logo.png') }}" alt="SkillLink" class="logo">
-        <nav class="nav">
-            <a href="#">ホーム</a>
-            <a href="#">通知</a>
-            <a href="#">お気に入り</a>
-            <a href="#">チャット</a>
-            <a href="#">投稿作成</a>
-            <a href="/profile">マイページ</a>
-        </nav>
-        <button class="btn-outline">ログアウト</button>
-    </header>
-
+    {% include 'header.html' %}
+    <main>
     <section class="hero">
         <h1>教えあい、学びあい、成長しよう</h1>
         <p>学内のスキルをシェアして、お互いに高め合えるコミュニティ</p>
@@ -73,6 +62,6 @@
             {% endfor %}
         </div>
     </section>
-
+</main>
 </body>
 </html>
