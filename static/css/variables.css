@@ -1,0 +1,20 @@
+:root {
+    --primary-color: #3457d5;
+    --primary-hover: #2941ac;
+    --bg-color: #f4f7fc;
+    --text-main: #2c3e50;
+    --text-sub: #7f8c8d;
+    --card-bg: #ffffff;
+    --border-color: #e2e8f0;
+
+    --tag-blue-bg: #e6f0fa;
+    --tag-blue-text: #3457d5;
+    --tag-green-bg: #e6f7ed;
+    --tag-green-text: #2e7d32;
+
+    --font-family-base: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif;
+}
+
+body {
+    font-family: var(--font-family-base);
+}

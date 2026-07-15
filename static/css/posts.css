@@ -1,0 +1,147 @@
+/* ==========================================
+   投稿作成ページ用スタイル
+   ========================================== */
+
+.page-wrap {
+    max-width: 800px;
+    margin: 40px auto 60px;
+    padding: 0 20px;
+}
+
+.post-card {
+    background-color: var(--card-bg);
+    border-radius: 16px;
+    padding: 32px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+    border: 1px solid var(--border-color);
+    margin-bottom: 24px;
+}
+
+.post-card h2 {
+    font-size: 20px;
+    font-weight: bold;
+    color: var(--text-main);
+    margin: 0 0 24px 0;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group p {
+    font-size: 14px;
+    font-weight: bold;
+    color: var(--text-main);
+    margin: 0 0 8px 0;
+}
+
+.post-card select,
+.post-card textarea,
+.post-card input[type="text"] {
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 14px;
+    color: var(--text-main);
+    background-color: #ffffff;
+    outline: none;
+    font-family: inherit;
+    transition: border-color 0.2s;
+}
+
+.post-card select:focus,
+.post-card textarea:focus,
+.post-card input[type="text"]:focus {
+    border-color: var(--primary-color);
+}
+
+.post-card textarea {
+    resize: vertical;
+    line-height: 1.6;
+}
+
+.post-card textarea::placeholder,
+.post-card input::placeholder {
+    color: #b0bec5;
+}
+
+/* ボタン */
+.btn-submit {
+    background-color: var(--primary-color);
+    color: #ffffff;
+    border: none;
+    padding: 12px 32px;
+    border-radius: 24px;
+    font-size: 15px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.btn-submit:hover {
+    background-color: var(--primary-hover);
+}
+
+/* スキル追加フォーム(サブカード) */
+.skill-add-card {
+    background-color: var(--card-bg);
+    border-radius: 16px;
+    padding: 32px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+    border: 1px solid var(--border-color);
+}
+
+.skill-add-card h2 {
+    font-size: 18px;
+    font-weight: bold;
+    color: var(--text-main);
+    margin: 0 0 20px 0;
+}
+
+.skill-add-card p {
+    font-size: 14px;
+    color: var(--text-sub);
+    margin: 0 0 12px 0;
+}
+
+.skill-add-row {
+    display: flex;
+    gap: 10px;
+}
+
+.skill-add-row input[type="text"] {
+    flex: 1;
+    box-sizing: border-box;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 14px;
+    color: var(--text-main);
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.skill-add-row input[type="text"]:focus {
+    border-color: var(--primary-color);
+}
+
+.btn-outline-small {
+    background-color: #ffffff;
+    color: var(--primary-color);
+    border: 1px solid var(--primary-color);
+    padding: 10px 22px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s;
+}
+
+.btn-outline-small:hover {
+    background-color: var(--tag-blue-bg);
+}

@@ -24,7 +24,7 @@
 
 body {
   margin: 0;
-  font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", "Segoe UI", sans-serif;
+  /* font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", "Segoe UI", sans-serif; */
   background: var(--color-bg);
   color: var(--color-text);
   -webkit-font-smoothing: antialiased;
@@ -131,45 +131,46 @@ body {
 
 /* ---------- SIDEBAR ---------- */
 .sidebar {
-  background: transparent;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 12px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   position: sticky;
-  top: 100px;
+  top: 84px;
 }
 
 .side-link {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
+  gap: 10px;
+  padding: 11px 14px;
   border: none;
   background: transparent;
   border-radius: var(--radius-md);
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--color-text-muted);
   cursor: pointer;
   text-align: left;
   width: 100%;
-  transition: all 0.2s;
 }
 
 .side-link:hover {
-  background: #edf2f7;
-  color: var(--color-text);
+  background: #f4f6fb;
 }
 
 .side-link--active {
-  background: var(--color-surface);
+  background: var(--color-primary-soft);
   color: var(--color-primary);
-  box-shadow: var(--shadow-card);
+  font-weight: 700;
 }
 
 .side-link__icon {
-  font-size: 16px;
-  width: 20px;
+  font-size: 15px;
+  width: 18px;
   text-align: center;
 }
 

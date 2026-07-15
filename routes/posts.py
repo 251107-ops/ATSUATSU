@@ -36,6 +36,7 @@ def top():
         })
     return render_template('top.html', posts=posts_list, active_tab='all')
 
+
 @posts.route("/top/learn")
 def top_learn():
     if 'user_email' not in session:
@@ -68,6 +69,7 @@ def top_learn():
             'favorite_count': 0       
         })
     return render_template('top.html', posts=posts_list, active_tab='learn')
+
 
 @posts.route("/top/teach")
 def top_teach():
@@ -102,9 +104,8 @@ def top_teach():
         })
     return render_template('top.html', posts=posts_list, active_tab='teach')
 
-# @posts.route("/profile_edit")
-# def profile_edit(): 
-#     return render_template('profile_edit.html')
+
+
 
 @posts.route("/profile", methods=['GET', 'POST'])
 def profile():
@@ -114,6 +115,8 @@ def profile():
     user_email = session['user_email']
     db = get_db()
     row = db.execute("SELECT name, email, department, grade, introduction, icon_path FROM users WHERE email = ?", (user_email,)).fetchone()
+    
+    user = None
     if row:
         user = {
             'name': row[0],
@@ -125,6 +128,7 @@ def profile():
         }
     return render_template('profile.html', user=user)
 
+
 @posts.route("/profile_edit", methods=['GET', 'POST'])
 def profile_edit():
     if 'user_email' not in session:
@@ -134,6 +138,7 @@ def profile_edit():
     db = get_db()
     row = db.execute("SELECT name, email, department, grade, introduction, icon_path FROM users WHERE email = ?", (user_email,)).fetchone()
 
+    user = None
     if row:
         user = {
             'name': row[0],
@@ -143,8 +148,8 @@ def profile_edit():
             'introduction': row[4],
             'icon_path': row[5]
         }
-
     return render_template('profile_edit.html', user=user)
+
 
 @posts.route("/profile/edit", methods=['GET', 'POST'])
 def edit_profile():
@@ -167,13 +172,10 @@ def edit_profile():
         db.commit()
         return redirect('/profile')
 
-    # user = db.execute("SELECT name, email, department, grade, introduction FROM users WHERE email = ?", (user_email,)).fetchone()
-    # return render_template('profile.html', user=user)
+    return redirect('/profile')
 
-# @posts.route("/top")
-# def home():
 
-#     return render_template('top.html')
+
 
 @posts.route("/posts", methods=['GET', 'POST'])
 def create_post():
@@ -182,7 +184,6 @@ def create_post():
         return redirect('/login')
 
     if request.method == 'POST':
-        # フォームからデータを取得
         skill_id = request.form.get('skill_id', '')
         post_type = request.form.get('post_type', '')
         post_text = request.form.get('post_text', '')
@@ -192,8 +193,8 @@ def create_post():
         
         user_id = session.get('user_id')
 
-
         if user_id and skill_id:
+            
             post_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             db.execute(
                 "INSERT INTO posts (user_id, skill_id, post_type, post_text, post_date) VALUES (?, ?, ?, ?, ?)",
@@ -201,5 +202,6 @@ def create_post():
             )
             db.commit()
             return redirect('/')
+            
     skills = db.execute("SELECT skill_id, skill_name FROM skills").fetchall()
     return render_template('posts.html', skills=skills)
