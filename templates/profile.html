@@ -11,18 +11,18 @@
   <header class="header">
      <img src="{{ url_for('static', filename='img/logo.png') }}" alt="SkillLink" class="logo">
     <nav class="nav">
-      <a href="#">ホーム</a>
+      <a href="/">ホーム</a>
       <a href="#">通知</a>
       <a href="#">お気に入り</a>
       <a href="#">チャット</a>
-      <a href="#">投稿作成</a>
+      <a href="/posts">投稿作成</a>
       <a href="/profile">マイページ</a>
     </nav>
 
     <div class="header__right">
       <button class="header-avatar" id="headerAvatarBtn" aria-label="アカウントメニュー">
         {% if user and user.icon_path %}
-          <img id="headerAvatarImg" src="{{ user.icon_path }}" alt="アバター" class="header-avatar__img">
+          <img id="headerAvatarImg" src="{{ url_for('static', filename=user.icon_path) }}" alt="アバター" class="header-avatar__img">
           <span id="headerAvatarInitial" class="header-avatar__initial is-hidden"></span>
         {% else %}
           <img id="headerAvatarImg" src="" alt="" class="header-avatar__img is-hidden">
@@ -64,7 +64,7 @@
         <div class="avatar-block">
           <div class="avatar-wrap">
             {% if user and user.icon_path %}
-              <img id="avatarImg" class="avatar-img" src="{{ user.icon_path }}" alt="プロフィール画像">
+              <img id="avatarImg" class="avatar-img" src="{{ url_for('static', filename=user.icon_path) }}" alt="プロフィール画像">
               <span id="avatarPlaceholder" class="avatar-placeholder is-hidden"></span>
             {% else %}
               <img id="avatarImg" class="avatar-img is-hidden" src="" alt="プロフィール画像">
