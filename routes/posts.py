@@ -34,11 +34,78 @@ def top():
             'category_name': 'スキル',
             'favorite_count': 0       
         })
-    return render_template('top.html', posts=posts_list)
+    return render_template('top.html', posts=posts_list, active_tab='all')
 
-# @posts.route("/profile_edit")
-# def profile_edit(): 
-#     return render_template('profile_edit.html')
+
+@posts.route("/top/learn")
+def top_learn():
+    if 'user_email' not in session:
+        return redirect('/login')
+
+    db = get_db()
+    rows = db.execute("""
+        SELECT
+            users.name, users.department, users.grade, users.icon_path,
+            skills.skill_name,
+            posts.post_type, posts.post_text
+        FROM posts
+        JOIN users ON posts.user_id = users.user_id
+        JOIN skills ON posts.skill_id = skills.skill_id
+        WHERE posts.post_type = '学びたい'
+        ORDER BY posts.post_date DESC
+    """).fetchall()
+
+    posts_list = []
+    for row in rows:
+        posts_list.append({
+            'name': row[0],
+            'department': row[1],
+            'grade': row[2],
+            'icon_path': row[3] if row[3] else 'img/default-avatar.png',
+            'skill_name': row[4],
+            'post_type': row[5],
+            'post_text': row[6],
+            'category_name': 'スキル',
+            'favorite_count': 0       
+        })
+    return render_template('top.html', posts=posts_list, active_tab='learn')
+
+
+@posts.route("/top/teach")
+def top_teach():
+    if 'user_email' not in session:
+        return redirect('/login')
+
+    db = get_db()
+    rows = db.execute("""
+        SELECT
+            users.name, users.department, users.grade, users.icon_path,
+            skills.skill_name,
+            posts.post_type, posts.post_text
+        FROM posts
+        JOIN users ON posts.user_id = users.user_id
+        JOIN skills ON posts.skill_id = skills.skill_id
+        WHERE posts.post_type = '教えたい'
+        ORDER BY posts.post_date DESC
+    """).fetchall()
+
+    posts_list = []
+    for row in rows:
+        posts_list.append({
+            'name': row[0],
+            'department': row[1],
+            'grade': row[2],
+            'icon_path': row[3] if row[3] else 'img/default-avatar.png',
+            'skill_name': row[4],
+            'post_type': row[5],
+            'post_text': row[6],
+            'category_name': 'スキル',
+            'favorite_count': 0       
+        })
+    return render_template('top.html', posts=posts_list, active_tab='teach')
+
+
+
 
 @posts.route("/profile", methods=['GET', 'POST'])
 def profile():
@@ -48,6 +115,8 @@ def profile():
     user_email = session['user_email']
     db = get_db()
     row = db.execute("SELECT name, email, department, grade, introduction, icon_path FROM users WHERE email = ?", (user_email,)).fetchone()
+    
+    user = None
     if row:
         user = {
             'name': row[0],
@@ -59,6 +128,7 @@ def profile():
         }
     return render_template('profile.html', user=user)
 
+
 @posts.route("/profile_edit", methods=['GET', 'POST'])
 def profile_edit():
     if 'user_email' not in session:
@@ -68,6 +138,7 @@ def profile_edit():
     db = get_db()
     row = db.execute("SELECT name, email, department, grade, introduction, icon_path FROM users WHERE email = ?", (user_email,)).fetchone()
 
+    user = None
     if row:
         user = {
             'name': row[0],
@@ -77,8 +148,8 @@ def profile_edit():
             'introduction': row[4],
             'icon_path': row[5]
         }
-
     return render_template('profile_edit.html', user=user)
+
 
 @posts.route("/profile/edit", methods=['GET', 'POST'])
 def edit_profile():
@@ -101,13 +172,10 @@ def edit_profile():
         db.commit()
         return redirect('/profile')
 
-    # user = db.execute("SELECT name, email, department, grade, introduction FROM users WHERE email = ?", (user_email,)).fetchone()
-    # return render_template('profile.html', user=user)
+    return redirect('/profile')
 
-# @posts.route("/top")
-# def home():
 
-#     return render_template('top.html')
+
 
 @posts.route("/posts", methods=['GET', 'POST'])
 def create_post():
@@ -116,7 +184,6 @@ def create_post():
         return redirect('/login')
 
     if request.method == 'POST':
-        # フォームからデータを取得
         skill_id = request.form.get('skill_id', '')
         post_type = request.form.get('post_type', '')
         post_text = request.form.get('post_text', '')
@@ -126,8 +193,8 @@ def create_post():
         
         user_id = session.get('user_id')
 
-
         if user_id and skill_id:
+            
             post_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             db.execute(
                 "INSERT INTO posts (user_id, skill_id, post_type, post_text, post_date) VALUES (?, ?, ?, ?, ?)",
@@ -135,45 +202,6 @@ def create_post():
             )
             db.commit()
             return redirect('/')
+            
     skills = db.execute("SELECT skill_id, skill_name FROM skills").fetchall()
     return render_template('posts.html', skills=skills)
-
-# @posts.route("/posts", methods=['GET', 'POST'])
-# def create_post():
-#     db = get_db()
-#     if 'user_email' not in session:
-#         return redirect('/login')
-
-#     if request.method == 'POST':
-#         # 1. Capturar datos
-#         skill_id = request.form.get('skill_id', '')
-#         post_type = request.form.get('post_type', '')
-#         post_text = request.form.get('post_text', '')
-#         user_id = session.get('user_id')
-
-#         # 2. DETECTOR DE ERRORES EN PANTALLA
-#         # Si algo falla, esto te lo mostrará directamente en el navegador
-#         errores = []
-#         if not skill_id: errores.append("El campo 'skill_id' llegó VACÍO desde el HTML.")
-#         if not post_type: errores.append("El campo 'post_type' llegó VACÍO.")
-#         if not post_text: errores.append("El campo 'post_text' llegó VACÍO.")
-#         if not user_id: errores.append("El 'user_id' no está en la sesión. (Prueba a ir a /logout y loguearte de nuevo).")
-
-#         if errores:
-#             # Nos muestra la lista de culpables en texto plano
-#             return f"❌ ERROR DE VALIDACIÓN:<br><br>" + "<br>".join(errores), 400
-
-#         # 3. Intento de inserción con captura de excepciones de la Base de Datos
-#         try:
-#             db.execute(
-#                 "INSERT INTO posts (user_id, skill_id, post_type, post_text) VALUES (?, ?, ?, ?)",
-#                 (user_id, skill_id, post_type, post_text)
-#             )
-#             db.commit()
-#             return redirect('/')
-#         except Exception as e:
-#             return f"❌ ERROR DE BASE DE DATOS (SQLITE):<br><br>{str(e)}", 500
-
-#     # Lógica GET
-#     skills = db.execute("SELECT skill_id, skill_name FROM skills").fetchall()
-#     return render_template('posts.html', skills=skills)

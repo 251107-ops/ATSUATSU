@@ -1,24 +1,8 @@
 /* ==========================================
    共通・ベーススタイル
    ========================================== */
-:root {
-    --primary-color: #2f69e3;     /* メインの鮮やかなブルー */
-    --primary-hover: #1e50c4;     /* ボタンホバー時の濃いブルー */
-    --bg-color: #f4f7fc;          /* 背景のとても薄いグレーブルー */
-    --text-main: #2c3e50;         /* メインのテキスト色 */
-    --text-sub: #7f8c8d;          /* サブテキスト（学科・学年など） */
-    --card-bg: #ffffff;           /* カードの背景（白） */
-    --border-color: #e2e8f0;      /* 薄い枠線 */
-    
-    /* タグの配色 */
-    --tag-blue-bg: #e6f0fa;
-    --tag-blue-text: #2f69e3;
-    --tag-green-bg: #e6f7ed;
-    --tag-green-text: #2e7d32;
-}
-
 body {
-    font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+    /* font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;  ← 削除 */
     background-color: var(--bg-color);
     color: var(--text-main);
     margin: 0;
