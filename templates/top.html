@@ -7,8 +7,24 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/top.css') }}">
 </head>
 <body>
+<<<<<<< HEAD
     {% include 'header.html' %}
     <main>
+=======
+    <header class="header">
+         <img src="{{ url_for('static', filename='img/logo.png') }}" alt="SkillLink" class="logo">
+        <nav class="nav">
+            <a href="#">ホーム</a>
+            <a href="#">通知</a>
+            <a href="#">お気に入り</a>
+            <a href="#">チャット</a>
+            <a href="/posts">投稿作成</a>
+            <a href="/profile">マイページ</a>
+        </nav>
+        <button class="btn-outline">ログアウト</button>
+    </header>
+
+>>>>>>> 90c914479d80a677aee212bed08fea4f59f336a4
     <section class="hero">
         <h1>教えあい、学びあい、成長しよう</h1>
         <p>学内のスキルをシェアして、お互いに高め合えるコミュニティ</p>
@@ -45,18 +61,18 @@
             {% for post in posts %}
             <div class="card">
                 <div class="card-top">
-                    <img src="{{ post.profile_photo }}" alt="">
+                    <img src="{{ url_for('static', filename=post.icon_path) }}" alt="ユーザーアバター">
                     <div>
-                        <span class="name">{{ post.username }}</span>
+                        <span class="name">{{ post.name }}</span>
                         <span class="meta">{{ post.department }} {{ post.grade }}</span>
                     </div>
                 </div>
                 <div class="tags">
                     <span class="tag">{{ post.category_name }}</span>
                     <span class="tag">{{ post.skill_name }}</span>
-                    <span class="badge {{ 'teach' if post.type == '教えたい' else 'learn' }}">{{ post.type }}</span>
+                    <span class="badge {{ 'teach' if post.post_type == '教えたい' else 'learn' }}">{{ post.post_type }}</span>
                 </div>
-                <p class="body">{{ post.body }}</p>
+                <p class="body">{{ post.post_text }}</p>
                 <span class="fav">{{ post.favorite_count }} ♥</span>
             </div>
             {% endfor %}
