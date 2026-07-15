@@ -28,7 +28,6 @@ def login():
         # データベースから該当するメールアドレスのユーザー情報を取得
         user_data = db.execute(
             "SELECT user_id, email, password FROM users WHERE email = ?", [email]
-            "SELECT user_id, email, password FROM users WHERE email = ?", [email]
         ).fetchone()
 
         # ⭕ ハッシュ化されたパスワードの検証
