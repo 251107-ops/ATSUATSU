@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, redirect, session, request
 from routes.auth import get_db
+from datetime import datetime
 
 posts = Blueprint('posts', __name__)
 
@@ -17,6 +18,7 @@ def top():
         FROM posts
         JOIN users ON posts.user_id = users.user_id
         JOIN skills ON posts.skill_id = skills.skill_id
+        ORDER BY posts.post_date DESC
     """).fetchall()
 
     posts_list = []
@@ -126,11 +128,52 @@ def create_post():
 
 
         if user_id and skill_id:
+            post_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             db.execute(
-                "INSERT INTO posts (user_id, skill_id, post_type, post_text) VALUES (?, ?, ?, ?)",
-                (session['user_id'], skill_id, post_type, post_text)
+                "INSERT INTO posts (user_id, skill_id, post_type, post_text, post_date) VALUES (?, ?, ?, ?, ?)",
+                (user_id, skill_id, post_type, post_text, post_date)
             )
             db.commit()
             return redirect('/')
     skills = db.execute("SELECT skill_id, skill_name FROM skills").fetchall()
     return render_template('posts.html', skills=skills)
+
+# @posts.route("/posts", methods=['GET', 'POST'])
+# def create_post():
+#     db = get_db()
+#     if 'user_email' not in session:
+#         return redirect('/login')
+
+#     if request.method == 'POST':
+#         # 1. Capturar datos
+#         skill_id = request.form.get('skill_id', '')
+#         post_type = request.form.get('post_type', '')
+#         post_text = request.form.get('post_text', '')
+#         user_id = session.get('user_id')
+
+#         # 2. DETECTOR DE ERRORES EN PANTALLA
+#         # Si algo falla, esto te lo mostrará directamente en el navegador
+#         errores = []
+#         if not skill_id: errores.append("El campo 'skill_id' llegó VACÍO desde el HTML.")
+#         if not post_type: errores.append("El campo 'post_type' llegó VACÍO.")
+#         if not post_text: errores.append("El campo 'post_text' llegó VACÍO.")
+#         if not user_id: errores.append("El 'user_id' no está en la sesión. (Prueba a ir a /logout y loguearte de nuevo).")
+
+#         if errores:
+#             # Nos muestra la lista de culpables en texto plano
+#             return f"❌ ERROR DE VALIDACIÓN:<br><br>" + "<br>".join(errores), 400
+
+#         # 3. Intento de inserción con captura de excepciones de la Base de Datos
+#         try:
+#             db.execute(
+#                 "INSERT INTO posts (user_id, skill_id, post_type, post_text) VALUES (?, ?, ?, ?)",
+#                 (user_id, skill_id, post_type, post_text)
+#             )
+#             db.commit()
+#             return redirect('/')
+#         except Exception as e:
+#             return f"❌ ERROR DE BASE DE DATOS (SQLITE):<br><br>{str(e)}", 500
+
+#     # Lógica GET
+#     skills = db.execute("SELECT skill_id, skill_name FROM skills").fetchall()
+#     return render_template('posts.html', skills=skills)
