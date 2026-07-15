@@ -34,7 +34,73 @@ def top():
             'category_name': 'スキル',
             'favorite_count': 0       
         })
-    return render_template('top.html', posts=posts_list)
+    return render_template('top.html', posts=posts_list, active_tab='all')
+
+@posts.route("/top/learn")
+def top_learn():
+    if 'user_email' not in session:
+        return redirect('/login')
+
+    db = get_db()
+    rows = db.execute("""
+        SELECT
+            users.name, users.department, users.grade, users.icon_path,
+            skills.skill_name,
+            posts.post_type, posts.post_text
+        FROM posts
+        JOIN users ON posts.user_id = users.user_id
+        JOIN skills ON posts.skill_id = skills.skill_id
+        WHERE posts.post_type = '学びたい'
+        ORDER BY posts.post_date DESC
+    """).fetchall()
+
+    posts_list = []
+    for row in rows:
+        posts_list.append({
+            'name': row[0],
+            'department': row[1],
+            'grade': row[2],
+            'icon_path': row[3] if row[3] else 'img/default-avatar.png',
+            'skill_name': row[4],
+            'post_type': row[5],
+            'post_text': row[6],
+            'category_name': 'スキル',
+            'favorite_count': 0       
+        })
+    return render_template('top.html', posts=posts_list, active_tab='learn')
+
+@posts.route("/top/teach")
+def top_teach():
+    if 'user_email' not in session:
+        return redirect('/login')
+
+    db = get_db()
+    rows = db.execute("""
+        SELECT
+            users.name, users.department, users.grade, users.icon_path,
+            skills.skill_name,
+            posts.post_type, posts.post_text
+        FROM posts
+        JOIN users ON posts.user_id = users.user_id
+        JOIN skills ON posts.skill_id = skills.skill_id
+        WHERE posts.post_type = '教えたい'
+        ORDER BY posts.post_date DESC
+    """).fetchall()
+
+    posts_list = []
+    for row in rows:
+        posts_list.append({
+            'name': row[0],
+            'department': row[1],
+            'grade': row[2],
+            'icon_path': row[3] if row[3] else 'img/default-avatar.png',
+            'skill_name': row[4],
+            'post_type': row[5],
+            'post_text': row[6],
+            'category_name': 'スキル',
+            'favorite_count': 0       
+        })
+    return render_template('top.html', posts=posts_list, active_tab='teach')
 
 # @posts.route("/profile_edit")
 # def profile_edit(): 

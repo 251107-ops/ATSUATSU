@@ -21,9 +21,9 @@
             <button class="btn-primary">検索</button>
         </div>
         <div class="filters">
-            <button class="filter-btn active">すべて</button>
-            <button class="filter-btn">教えたい</button>
-            <button class="filter-btn">学びたい</button>
+            <a href="/" class="filter-btn {% if active_tab == 'all' %}active{% endif %}">すべて</a>
+            <a href="/top/teach" class="filter-btn {% if active_tab == 'teach' %}active{% endif %}">教えたい</a>
+            <a href="/top/learn" class="filter-btn {% if active_tab == 'learn' %}active{% endif %}">学びたい</a>
             <select>
                 <option>学科：すべて</option>
             </select>
