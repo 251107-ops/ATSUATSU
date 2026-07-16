@@ -33,7 +33,7 @@ def login():
         # ⭕ ハッシュ化されたパスワードの検証
         if user_data is not None and ph.verify(user_data['password'], password):
             session['user_email'] = email  # セッションにメールアドレスを保存（ログイン完了）
-            session['user_id'] = user_data['user_id']  # ユーザーIDもセッションに保存
+            session['user_id'] = user_data['user_id']  # セッションにユーザーIDを保存（必要に応じて）
             return redirect('/')
 
         error_message = '入力されたメールアドレスもしくはパスワードが誤っています'
