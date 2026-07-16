@@ -5,35 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>プロフィール編集 | スキルシェア</title>
 <link rel="stylesheet" href="{{ url_for('static', filename='css/profile_edit.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/variables.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
 </head>
 <body>
 
-  <header class="header">
-    <div class="header__left">
-     <img src="{{ url_for('static', filename='img/logo.png') }}" alt="SkillLink" class="logo">
-      <div class="logo-text">
-        <span class="logo-title">スキルシェア</span>
-      </div>
-    </div>
-
-    <nav class="header__nav">
-      <a href="/" class="nav-link">ホーム</a>
-      <a href="#" class="nav-link">スキル一覧</a>
-      <a href="#" class="nav-link nav-link--active">マイページ</a>
-    </nav>
-
-    <div class="header__right">
-      <button class="header-avatar" id="headerAvatarBtn" aria-label="アカウントメニュー">
-        {% if user and user.icon_path %}
-          <img id="headerAvatarImg" src="{{ url_for('static', filename=user.icon_path) }}" alt="アバター" class="header-avatar__img">
-          <span id="headerAvatarInitial" class="header-avatar__initial is-hidden"></span>
-        {% else %}
-          <img id="headerAvatarImg" src="" alt="" class="header-avatar__img is-hidden">
-          <span id="headerAvatarInitial" class="header-avatar__initial">{{ user.name[0] if user else '田' }}</span>
-        {% endif %}
-      </button>
-    </div>
-  </header>
+   {% include 'header.html' %}
+    <main>
 
   <div class="layout">
 
@@ -114,9 +92,9 @@
           <label>教えたいスキル</label>
           <div class="tag-list" id="teachSkillList">
             {% for skill in teach_skills %}
-            <span class="tag tag--teach">{{ skill }}<button type="button" class="tag__remove" aria-label="{{ skill }}を削除">×</button></span>
+            <span class="tag tag--teach">{{ skill.skill_name }}<button type="button" class="tag__remove" aria-label="{{ skill }}を削除">×</button></span>
             {% endfor %}
-            <button type="button" class="tag-add" data-target="teachSkillList" data-variant="teach">+ 追加</button>
+            <button type="submit" class="tag-add" data-target="teachSkillList" data-variant="teach" formaction="/skill_edit">+ 追加</button>
           </div>
         </div>
 
@@ -124,7 +102,7 @@
           <label>学びたいスキル</label>
           <div class="tag-list" id="learnSkillList">
             {% for skill in learn_skills %}
-            <span class="tag tag--learn">{{ skill }}<button type="button" class="tag__remove" aria-label="{{ skill }}を削除">×</button></span>
+            <span class="tag tag--learn">{{ skill.skill_name }}<button type="button" class="tag__remove" aria-label="{{ skill }}を削除">×</button></span>
             {% endfor %}
             <button type="button" class="tag-add" data-target="learnSkillList" data-variant="learn">+ 追加</button>
           </div>
@@ -142,5 +120,6 @@
   <div id="toast" class="toast is-hidden" role="status" aria-live="polite">プロフィールを保存しました</div>
 
   <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</main>
 </body>
 </html>

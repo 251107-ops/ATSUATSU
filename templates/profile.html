@@ -5,33 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>プロフィール | スキルシェア</title>
 <link rel="stylesheet" href="{{ url_for('static', filename='css/profile.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/variables.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
 </head>
 <body>
 
-  <header class="header">
-    <div class="header__left">
-      <img src="{{ url_for('static', filename='img/logo.png') }}" alt="SkillLink" class="logo">
-      <div class="logo-text">
-        <span class="logo-title">スキルシェア</span>
-      </div>
-    </div>
+  {% include 'header.html' %}
 
-    <nav class="header__nav">
-      <a href="/" class="nav-link">ホーム</a>
-      <a href="#" class="nav-link">スキル一覧</a>
-      <a href="#" class="nav-link nav-link--active">マイページ</a>
-    </nav>
-
-    <div class="header__right">
-      <button class="header-avatar" id="headerAvatarBtn" aria-label="アカウントメニュー">
-        {% if user and user.icon_path %}
-          <img id="headerAvatarImg" src="{{ url_for('static', filename=user.icon_path) }}" alt="アバター" class="header-avatar__img">
-        {% else %}
-          <span id="headerAvatarInitial" class="header-avatar__initial">{{ user.name[0] if user else '田' }}</span>
-        {% endif %}
-      </button>
-    </div>
-  </header>
 
   <div class="layout">
 
@@ -100,21 +80,20 @@
         <div class="tag-list">
           {% for skill in teach_skills %}
             <span class="tag tag--teach">{{ skill }}</span>
+            <span class="tag tag--teach">{{ skills.skill_name }}</span>
           {% else %}
             <span class="no-tags-notice">登録されていません</span>
           {% endfor %}
-        </div>
-      </div>
-
-      <div class="skill-field">
+@@ -110,7 +110,7 @@
         <label>学びたいスキル</label>
         <div class="tag-list">
           {% for skill in learn_skills %}
             <span class="tag tag--learn">{{ skill }}</span>
+            <span class="tag tag--learn">{{ skills.skill_name }}</span>
           {% else %}
             <span class="no-tags-notice">登録されていません</span>
           {% endfor %}
-        </div>
+           </div>
       </div>
 
       <!-- <div class="form-actions">
