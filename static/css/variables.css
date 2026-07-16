@@ -9,8 +9,14 @@
 
     --tag-blue-bg: #e6f0fa;
     --tag-blue-text: #3457d5;
-    --tag-green-bg: #e6f7ed;
-    --tag-green-text: #2e7d32;
+
+    /*教えたい*/
+    --tag-teach-bg: #e6f7ed;
+    --tag-teach-text: #2e7d32;
+
+    /*学びたい*/
+    --tag-learn-bg: #fff4d6;
+    --tag-learn-text: #b26a00;
 
     --font-family-base: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif;
 }
