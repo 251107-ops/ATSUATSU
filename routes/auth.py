@@ -36,6 +36,7 @@ def login():
             session['user_id'] = user_data['user_id']  # セッションにユーザーIDを保存（必要に応じて）
             return redirect('/')
 
+        
         error_message = '入力されたメールアドレスもしくはパスワードが誤っています'
 
     return render_template('login.html', email=email, error_message=error_message)
