@@ -3,7 +3,7 @@ from flask import Flask
 # routes フォルダの auth.py から auth（Blueprint）をインポート
 from routes.auth import auth
 from routes.posts import posts
-from routes.skill import skills
+from routes.skills import skills
 
 app = Flask(__name__)
 

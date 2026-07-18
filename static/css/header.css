@@ -35,8 +35,14 @@
     color: var(--text-main) !important;
     line-height: 1;
     white-space: nowrap;
-    text-decoration: underline !important;   /* ← 下線を必ず表示 */
-    transition: color 0.2s;
+    text-decoration: underline !important;
+    display: inline-block;
+    transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.header .nav a:hover {
+    transform: translateY(-3px);
+    color: var(--primary-color) !important;
 }
 
 .header .btn-outline {
@@ -46,11 +52,12 @@
     padding: 10px 24px;
     border-radius: 20px;
     font-weight: bold !important;
-    text-decoration: none !important;   /* ボタンなので下線は不要 */
+    text-decoration: none !important;
     cursor: pointer;
-    transition: background-color 0.2s;
+    transition: background-color 0.2s, transform 0.2s ease;
 }
 
 .header .btn-outline:hover {
     background-color: var(--primary-hover) !important;
+    transform: translateY(-3px);
 }
