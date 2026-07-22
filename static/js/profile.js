@@ -253,3 +253,20 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
 });
+// 「プロフィール」の見出し文字を1文字ずつspanで包み、
+// 転がりながら登場するアニメーションを順番に適用する
+document.addEventListener('DOMContentLoaded', () => {
+    const title = document.getElementById('profileTitle');
+    if (!title) return;
+
+    const text = title.textContent;
+    title.textContent = '';
+
+    [...text].forEach((char, i) => {
+        const span = document.createElement('span');
+        span.className = 'roll-char';
+        span.textContent = char === ' ' ? '\u00A0' : char;
+        span.style.animationDelay = `${i * 0.08}s`;
+        title.appendChild(span);
+    });
+});

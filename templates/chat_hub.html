@@ -1,78 +1,56 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SkillLink - Chat Hub</title>
+    <title>SkillLink - チャットハブ</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
-    <style>
-        body { font-family: 'Helvetica Neue', Arial, sans-serif; color: #333; margin: 0; padding: 0; background: #fafafa; }
-        .hub-container { max-width: 800px; margin: 60px auto; padding: 0 20px; text-align: center; }
-        .hub-title { color: #2c3e50; margin-bottom: 10px; font-size: 28px; }
-        .hub-subtitle { color: #777; margin-bottom: 40px; font-size: 16px; }
-        .hub-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 25px; justify-content: center; }
-        .hub-card { 
-            background: white; 
-            border: 1px solid #e0e0e0; 
-            border-radius: 8px; 
-            padding: 30px 20px; 
-            text-decoration: none; 
-            color: inherit; 
-            box-shadow: 0 4px 6px rgba(0,0,0,0.02); 
-            transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s; 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            justify-content: center; 
-        }
-        .hub-card:hover { 
-            transform: translateY(-4px); 
-            box-shadow: 0 8px 15px rgba(0,0,0,0.05); 
-            border-color: #5c6bc0; 
-        }
-        .hub-icon { font-size: 40px; margin-bottom: 15px; }
-        .hub-card h3 { margin: 0 0 10px 0; color: #2c3e50; font-size: 18px; }
-        .hub-card p { margin: 0; color: #777; font-size: 13px; line-height: 1.4; }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/variables.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/footer.css') }}">
+    <!-- 抽出した新規CSSの読み込み -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/chat_hub.css') }}">
 </head>
 <body>
     {% include 'header.html' %}
+
     <div class="hub-container">
         <h1 class="hub-title">{{ name }}チャットへようこそ!</h1>
-        <p class="hub-subtitle">Select an option below to start connecting.</p>
+        <p class="hub-subtitle">下から選んでチャットを始めましょう。</p>
         
         <div class="hub-grid">
 
             <a href="{{ url_for('chat.show_create_room_form') }}" class="hub-card">
-                <div class="hub-icon" style="color: #2ec4b6;">➕</div>
-                <h3>Create a Room</h3>
-                <p>Start your own custom space and invite others by generating a unique topic room.</p>
+                <div class="hub-icon icon-create">➕</div>
+                <h3>ルームを作成</h3>
+                <p>自分だけのスペースを作り、招待コードで仲間を招待しましょう。</p>
             </a>
 
             <a href="{{ url_for('chat.list_public_rooms') }}" class="hub-card">
-                <div class="hub-icon" style="color: #5c6bc0;">🔍</div>
-                <h3>Join a Room</h3>
-                <p>Browse active public spaces or type an invitation code to access a private chat.</p>
+                <div class="hub-icon icon-join">🔍</div>
+                <h3>ルームに参加</h3>
+                <p>公開中のルームを見るか、招待コードを入力してチャットに参加しましょう。</p>
             </a>
 
             <a href="{{ url_for('chat.list_public_rooms') }}" class="hub-card">
-                <div class="hub-icon" style="color: #e76f51;">📂</div>
-                <h3>View Public Rooms</h3>
-                <p>Review the list of groups you are currently active in and jump back into discussions.</p>
+                <div class="hub-icon icon-public">📂</div>
+                <h3>公開ルームを見る</h3>
+                <p>参加中のルーム一覧を確認して、会話に戻りましょう。</p>
             </a>
 
             <a href="{{ url_for('chat.list_my_created_rooms') }}" class="hub-card">
-                <div class="hub-icon" style="color: #ffb703;">👑</div>
-                <h3>Rooms I Created</h3>
-                <p>Manage and access the specific chat spaces you have launched as an owner.</p>
+                <div class="hub-icon icon-owner">👑</div>
+                <h3>自分が作成したルーム</h3>
+                <p>オーナーとして作成したチャットルームを管理・アクセスできます。</p>
             </a>
 
             <a href="{{ url_for('chat.list_my_room_access') }}" class="hub-card">
-                <div class="hub-icon" style="color: #ffb703;">👑</div>
+                <div class="hub-icon icon-joined">🚪</div>
                 <h3>参加したルーム</h3>
-                <p>Manage and access the specific chat spaces you have launched as an owner.</p>
+                <p>参加しているチャットルームを管理・アクセスできます。</p>
             </a>
         </div>
     </div>
+
+    {% include 'footer.html' %}
 </body>
 </html>

@@ -1,0 +1,161 @@
+body {
+    font-family: var(--font-family-base, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif);
+    margin: 0;
+    padding: 0;
+    background-color: var(--bg-color, #f2f5f9); /* 全画面統一の淡い背景色 */
+    color: var(--text-main, #2c3e50);
+    min-height: 100vh;
+}
+
+.chat-layout {
+    max-width: 900px;
+    margin: 40px auto;
+    padding: 0 5%;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* ナビゲーションアクション（上部ボタン群） */
+.chat-nav-actions {
+    display: flex;
+    gap: 12px;
+    background-color: var(--card-bg, #ffffff);
+    padding: 16px 20px;
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 16px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.02);
+}
+
+.nav-link {
+    padding: 8px 18px;
+    background-color: var(--tag-blue-bg, #e6f0fa);
+    color: var(--primary-color, #385cdb);
+    border-radius: 20px; /* 角丸ボタン統一 */
+    text-decoration: none;
+    font-weight: bold;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+.nav-link:hover {
+    background-color: var(--primary-color, #385cdb);
+    color: #ffffff;
+}
+
+/* チャット本体コンテナ */
+.chat-container {
+    background-color: var(--card-bg, #ffffff);
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 16px; /* スキルカード等と丸みを統一 */
+    display: flex;
+    flex-direction: column;
+    height: 70vh;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.02);
+    overflow: hidden;
+}
+
+/* チャットヘッダー */
+.chat-header {
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--border-color, #e2e8f0);
+    background-color: var(--card-bg, #ffffff);
+}
+
+.chat-header h2 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: bold;
+    color: var(--text-main, #2c3e50);
+}
+
+.chat-header .user-info {
+    margin: 6px 0 0 0;
+    color: var(--text-sub, #7f8c8d);
+    font-size: 14px;
+}
+
+.room-token {
+    font-family: monospace;
+    background-color: var(--tag-blue-bg, #e6f0fa);
+    padding: 3px 10px;
+    border-radius: 8px;
+    color: var(--primary-color, #385cdb);
+    font-weight: bold;
+}
+
+/* メッセージ表示エリア */
+.chat-messages {
+    flex: 1;
+    padding: 24px;
+    overflow-y: auto;
+    background-color: var(--bg-color, #f2f5f9); /* トークエリアも心地よい背景色に */
+}
+
+.msg-line {
+    margin-bottom: 14px;
+    font-size: 15px;
+    line-height: 1.5;
+}
+
+.msg-user {
+    font-weight: bold;
+    color: var(--text-main, #2c3e50);
+}
+
+.msg-time {
+    font-size: 11px;
+    color: var(--text-sub, #7f8c8d);
+    margin-left: 8px;
+}
+
+/* 入退室などのシステムメッセージ用 */
+.msg-status {
+    color: var(--text-sub, #7f8c8d);
+    font-style: italic;
+    font-size: 13px;
+    text-align: center;
+    margin: 10px 0;
+}
+
+/* 入力エリア・フッター */
+.chat-footer {
+    padding: 16px 20px;
+    border-top: 1px solid var(--border-color, #e2e8f0);
+    background-color: var(--card-bg, #ffffff);
+    display: flex;
+    gap: 12px;
+}
+
+.chat-footer input {
+    flex: 1;
+    padding: 12px 16px;
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 24px; /* 検索フォームのような丸み */
+    font-size: 14px;
+    color: var(--text-main, #2c3e50);
+    background-color: var(--bg-color, #f2f5f9);
+    outline: none;
+    transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.chat-footer input:focus {
+    border-color: var(--primary-color, #385cdb);
+    background-color: #ffffff;
+}
+
+.btn-send {
+    padding: 0 28px;
+    background-color: var(--primary-color, #385cdb);
+    color: #ffffff;
+    border: none;
+    border-radius: 24px; /* 丸みのあるボタン */
+    font-weight: bold;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.btn-send:hover {
+    background-color: var(--primary-hover, #2a46b0);
+}

@@ -7,11 +7,11 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/profile.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/variables.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/footer.css') }}">
 </head>
 <body>
 
   {% include 'header.html' %}
-
 
   <div class="layout">
 
@@ -35,7 +35,7 @@
 
     <main class="main">
       <div class="main__head">
-        <h1 class="main__title">プロフィール</h1>
+        <h1 class="main__title" id="profileTitle">プロフィール</h1>
         <a href="/profile_edit" class="btn btn--primary">プロフィール編集</a>
       </div>
 
@@ -67,11 +67,15 @@
           </div>
 
           <div class="field field--wide">
-            <label>自己紹介</label>
-            <div class="bio-text-block">
-              {{ user.introduction if user else '自己紹介はまだ登録されていません。' }}
-            </div>
-          </div>
+              <label>自己紹介</label>
+              <div class="bio-text-block">
+                   {% if user and user.introduction %}
+                        {{ user.introduction }}
+                   {% else %}
+                       <span class="bio-empty">まだ自己紹介が登録されていません。プロフィール編集から追加してみましょう。</span>
+                   {% endif %}
+              </div>
+         </div>
         </div>
       </div>
 
@@ -91,16 +95,14 @@
           {% else %}
             <span class="no-tags-notice">登録されていません</span>
           {% endfor %}
-           </div>
+        </div>
       </div>
 
-      <!-- <div class="form-actions">
-        <input type="file" class="btn btn--primary">プロフィール編集</input>
-      </div> -->
     </main>
 
   </div>
 
-  <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/profile.js') }}"></script>
+  {% include 'footer.html' %}
 </body>
 </html>

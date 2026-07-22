@@ -7,11 +7,11 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/profile_edit.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/variables.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/footer.css') }}">
 </head>
 <body>
 
    {% include 'header.html' %}
-    <main>
 
   <div class="layout">
 
@@ -83,7 +83,7 @@
 
           <div class="field field--wide">
             <label for="bio">自己紹介</label>
-            <input><textarea id="bio" name="introduction" rows="3" maxlength="500">{{ user.introduction if user else '' }}</textarea>
+            <textarea id="bio" name="introduction" rows="3" maxlength="500">{{ user.introduction if user else '' }}</textarea>
             <span class="field-counter" id="bioCounter">0 / 500</span>
           </div>
         </div>
@@ -121,5 +121,6 @@
 
   <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </main>
+{% include 'footer.html' %}
 </body>
 </html>

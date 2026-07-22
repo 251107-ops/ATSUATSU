@@ -1,20 +1,25 @@
 :root {
-    --primary-color: #3457d5;
-    --primary-hover: #2941ac;
-    --bg-color: #f4f7fc;
+    --primary-color: #385cdb;
+    --primary-hover: #2a46b0;
+    
+    /* 画像の背景色（ほんのり青みのある淡いグレー） */
+    --bg-color: #f2f5f9; 
+    
     --text-main: #2c3e50;
     --text-sub: #7f8c8d;
     --card-bg: #ffffff;
     --border-color: #e2e8f0;
 
     --tag-blue-bg: #e6f0fa;
-    --tag-blue-text: #3457d5;
-    --tag-green-bg: #e6f7ed;
-    --tag-green-text: #2e7d32;
+    --tag-blue-text: #385cdb;
+
+    /* 教えたい（薄緑） */
+    --tag-teach-bg: #eaf6ed;
+    --tag-teach-text: #2e7d32;
+
+    /* 学びたい（薄黄色） */
+    --tag-learn-bg: #fdf5e2;
+    --tag-learn-text: #b26a00;
 
     --font-family-base: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif;
-}
-
-body {
-    font-family: var(--font-family-base);
 }
