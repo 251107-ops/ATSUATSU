@@ -41,9 +41,9 @@
         <section class="skills-section">
             <div class="section-header">
                 <h2>注目のスキル</h2>
-                <select class="sort-select">
-                    <option>新着順</option>
-                    <option>人気順</option>
+                <select class="sort-select" onchange="location.href='?sort='+this.value;">
+                    <option value="new" {% if active_sort == 'new' %}active{% endif %}>新着順</option>
+                    <option value="popular" {% if active_sort == 'popular' %}active{% endif %}>人気順</option>
                 </select>
             </div>
 

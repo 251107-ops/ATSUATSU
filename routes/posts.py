@@ -9,8 +9,15 @@ def top():
     if 'user_email' not in session:
         return redirect('/login')
 
+    sort_type = request.args.get('sort','new')
+
+    if sort_type == 'popular':
+        order_by = "ORDER BY like_count DESC, posts.post_date"
+    else:
+        order_by = "ORDER BY posts.post_date DESC"
+
     db = get_db()
-    rows = db.execute("""
+    query = f"""
         SELECT
             users.name, users.department, users.grade, users.icon_path,
             skills.skill_name,
@@ -19,8 +26,10 @@ def top():
         FROM posts
         JOIN users ON posts.user_id = users.user_id
         JOIN skills ON posts.skill_id = skills.skill_id
-        ORDER BY posts.post_date DESC
-    """).fetchall()
+        {order_by}
+    """
+
+    rows = db.execute(query).fetchall()
 
     posts_list = []
     for row in rows:
@@ -36,7 +45,7 @@ def top():
             'category_name': 'スキル',
             'like_count': row[8] if row[8] else 0
         })
-    return render_template('top.html', posts=posts_list, active_tab='all')
+    return render_template('top.html', posts=posts_list, active_tab='all', active_sort=sort_type)
 
 
 @posts.route("/top/learn")
