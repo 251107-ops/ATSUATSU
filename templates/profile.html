@@ -82,18 +82,15 @@
       <div class="skill-field">
         <label>教えたいスキル</label>
         <div class="tag-list">
-          {% for skill in teach_skills %}
+          {% for skill in skills_teach %}
             <span class="tag tag--teach">{{ skill.skill_name }}</span>
           {% else %}
             <span class="no-tags-notice">登録されていません</span>
           {% endfor %}
         </div>
-      </div>
-
-      <div class="skill-field">
         <label>学びたいスキル</label>
         <div class="tag-list">
-          {% for skill in learn_skills %}
+          {% for skill in skills_learn %}
             <span class="tag tag--learn">{{ skill.skill_name }}</span>
           {% else %}
             <span class="no-tags-notice">登録されていません</span>

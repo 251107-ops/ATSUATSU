@@ -14,7 +14,8 @@ def top():
         SELECT
             users.name, users.department, users.grade, users.icon_path,
             skills.skill_name,
-            posts.post_type, posts.post_text
+            posts.post_type, posts.post_text, posts.post_id,
+            (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.post_id) AS like_count
         FROM posts
         JOIN users ON posts.user_id = users.user_id
         JOIN skills ON posts.skill_id = skills.skill_id
@@ -31,8 +32,9 @@ def top():
             'skill_name': row[4],
             'post_type': row[5],
             'post_text': row[6],
+            'post_id': row[7],
             'category_name': 'スキル',
-            'favorite_count': 0       
+            'like_count': row[8] if row[8] else 0
         })
     return render_template('top.html', posts=posts_list, active_tab='all')
 
@@ -47,7 +49,8 @@ def top_learn():
         SELECT
             users.name, users.department, users.grade, users.icon_path,
             skills.skill_name,
-            posts.post_type, posts.post_text
+            posts.post_type, posts.post_text, posts.post_id,
+            (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.post_id) AS like_count
         FROM posts
         JOIN users ON posts.user_id = users.user_id
         JOIN skills ON posts.skill_id = skills.skill_id
@@ -65,8 +68,9 @@ def top_learn():
             'skill_name': row[4],
             'post_type': row[5],
             'post_text': row[6],
+            'post_id': row[7],
             'category_name': 'スキル',
-            'favorite_count': 0       
+            'like_count': row[8] if row[8] else 0
         })
     return render_template('top.html', posts=posts_list, active_tab='learn')
 
@@ -81,7 +85,8 @@ def top_teach():
         SELECT
             users.name, users.department, users.grade, users.icon_path,
             skills.skill_name,
-            posts.post_type, posts.post_text
+            posts.post_type, posts.post_text, posts.post_id,
+            (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.post_id) AS like_count
         FROM posts
         JOIN users ON posts.user_id = users.user_id
         JOIN skills ON posts.skill_id = skills.skill_id
@@ -99,8 +104,9 @@ def top_teach():
             'skill_name': row[4],
             'post_type': row[5],
             'post_text': row[6],
+            'post_id': row[7],
             'category_name': 'スキル',
-            'favorite_count': 0       
+            'like_count': row[8] if row[8] else 0
         })
     return render_template('top.html', posts=posts_list, active_tab='teach')
 
@@ -113,6 +119,7 @@ def profile():
         return redirect('/login')
 
     user_email = session['user_email']
+    user_id = session.get('user_id')
     db = get_db()
     row = db.execute("SELECT name, email, department, grade, introduction, icon_path FROM users WHERE email = ?", (user_email,)).fetchone()
     
@@ -126,8 +133,28 @@ def profile():
             'introduction': row[4],
             'icon_path': row[5]
         }
-    return render_template('profile.html', user=user)
+    # 教えたいスキルの取得
+    teach_rows = db.execute("""
+        SELECT DISTINCT skills.skill_id, skills.skill_name 
+        FROM posts
+        JOIN skills ON posts.skill_id = skills.skill_id
+        WHERE posts.user_id = ? AND posts.post_type = '教えたい'
+    """, (user_id,)).fetchall()
+    
+    skills_teach = [{'skill_id': r[0], 'skill_name': r[1]} for r in teach_rows]
 
+    # 学びたいスキルの取得
+    learn_rows = db.execute("""
+        SELECT DISTINCT skills.skill_id, skills.skill_name 
+        FROM posts
+        JOIN skills ON posts.skill_id = skills.skill_id
+        WHERE posts.user_id = ? AND posts.post_type = '学びたい'
+    """, (user_id,)).fetchall()
+    
+    skills_learn = [{'skill_id': r[0], 'skill_name': r[1]} for r in learn_rows]
+
+    # ユーザー情報とスキル情報をテンプレートに渡す
+    return render_template('profile.html', user=user, skills_teach=skills_teach, skills_learn=skills_learn)
 
 @posts.route("/profile_edit", methods=['GET', 'POST'])
 def profile_edit():
@@ -205,3 +232,123 @@ def create_post():
             
     skills = db.execute("SELECT skill_id, skill_name FROM skills").fetchall()
     return render_template('posts.html', skills=skills)
+
+# @posts.route("posts/delete/<int:post_id>", methods=['POST'])
+# def delete_post(post_id):
+#     if 'user_email' not in session:
+#         return redirect('/login')
+
+#     user_id = session.get('user_id')
+#     db = get_db()
+
+#     # ユーザーが投稿の所有者であることを確認してから削除
+#     db.execute("DELETE FROM posts WHERE post_id = ? AND user_id = ?", (post_id, user_id))
+#     db.commit()
+#     return redirect('/')
+
+@posts.route("/posts/search", methods=['GET', 'POST'])
+def search_posts():
+    if 'user_email' not in session:
+        return redirect('/login')
+
+    db = get_db()
+    search_query = request.args.get('query', '')
+
+    if search_query:
+        rows = db.execute("""
+            SELECT
+                users.name, users.department, users.grade, users.icon_path,
+                skills.skill_name,
+                posts.post_type, posts.post_text, posts.post_id,
+                (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.post_id) AS like_count
+            FROM posts
+            JOIN users ON posts.user_id = users.user_id
+            JOIN skills ON posts.skill_id = skills.skill_id
+            WHERE skills.skill_name LIKE ?
+            OR users.department LIKE ?
+            OR users.grade LIKE ?
+            ORDER BY posts.post_date DESC
+        """, ('%' + search_query + '%', '%' + search_query + '%', '%' + search_query + '%')).fetchall()
+
+        posts_list = []
+        for row in rows:
+            posts_list.append({
+                'name': row[0],
+                'department': row[1],
+                'grade': row[2],
+                'icon_path': row[3] if row[3] else 'img/default-avatar.png',
+                'skill_name': row[4],
+                'post_type': row[5],
+                'post_text': row[6],
+                'post_id': row[7],
+                'category_name': 'スキル',
+                'like_count': row[8] if row[8] else 0
+            })
+        return render_template('top.html', posts=posts_list, active_tab='all', search_query=search_query)
+    
+    return redirect('/')
+
+@posts.route("/posts/likes", methods=['POST'])
+def like_post():
+    if 'user_email' not in session:
+        return redirect('/login')
+
+    post_id = request.form.get('post_id')
+    user_id = session.get('user_id')
+    if not post_id or not user_id:
+        return redirect('/')
+    db = get_db()
+
+    # ユーザーがすでにその投稿にいいねをしているかどうかを確認
+    existing_like = db.execute("SELECT 1 FROM likes WHERE user_id = ? AND post_id = ?", (user_id, post_id)).fetchone()
+    
+    if existing_like:
+        # すでにいいねしている場合は、いいねを解除
+        db.execute("DELETE FROM likes WHERE user_id = ? AND post_id = ?", (user_id, post_id))
+    else:
+        db.execute("INSERT INTO likes (user_id, post_id) VALUES (?, ?)", (user_id, post_id))
+
+    db.commit()
+    return redirect(request.referrer or '/')
+
+
+@posts.route("/likes/page", methods=["GET"])
+def get_like():
+    if 'user_email' not in session:
+        return redirect('/login')
+    
+    user_id = session.get('user_id')
+    if not user_id:
+        return redirect('/login')
+
+    db = get_db()
+    rows = db.execute("""
+        SELECT
+            users.name, users.department, users.grade, users.icon_path,
+            skills.skill_name,
+            posts.post_type, posts.post_text, posts.post_id,
+            (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.post_id) AS like_count
+        FROM posts
+        JOIN users ON posts.user_id = users.user_id
+        JOIN skills ON posts.skill_id = skills.skill_id
+        WHERE posts.post_id IN (
+            SELECT likes.post_id FROM likes WHERE likes.user_id = ?
+        )
+        ORDER BY posts.post_date DESC
+    """, (user_id,)).fetchall()
+   
+    posts_list = []
+    for row in rows:
+        posts_list.append({
+            'name': row[0],
+            'department': row[1],
+            'grade': row[2],
+            'icon_path': row[3] if row[3] else 'img/default-avatar.png',
+            'skill_name': row[4],
+            'post_type': row[5],
+            'post_text': row[6],
+            'post_id': row[7],
+            'category_name': 'スキル',
+            'like_count': row[8] if row[8] else 0
+        })
+    return render_template('like_page.html', posts=posts_list)

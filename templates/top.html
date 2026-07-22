@@ -20,8 +20,10 @@
 
         <section class="search-area">
             <div class="search-bar">
-                <input type="text" placeholder="スキル名・学科・学年で検索">
+                <form action="/posts/search" method="GET">
+                    <input type="text" name="query" placeholder="スキル名・学科・学年で検索">
                 <button class="btn-primary">検索</button>
+                </form>
             </div>
             <div class="filters">
                 <a href="/" class="filter-btn {% if active_tab == 'all' %}active{% endif %}">すべて</a>
@@ -61,7 +63,11 @@
                         <span class="badge {{ 'teach' if post.post_type == '教えたい' else 'learn' }}">{{ post.post_type }}</span>
                     </div>
                     <p class="body">{{ post.post_text }}</p>
-                    <span class="fav">{{ post.favorite_count }} ♥</span>
+                    <form action="/posts/likes" method="POST">
+                        <input type="hidden" name="post_id" value="{{ post.post_id }}">
+                        <button type="submit" class="like-btn">{{post.like_count}}♥</button>
+                    </form>
+                    <!-- <span class="fav">{{ post.likes }} ♥</span> -->
                 </div>
                 {% else %}
                 <div class="no-posts">
