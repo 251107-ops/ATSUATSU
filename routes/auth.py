@@ -101,6 +101,46 @@ def logout():
     session.clear()  # セッションからユーザー情報を削除（ログアウト）
     return redirect('/login')
 
+@auth.route("/change-password", methods=["GET","POST"])
+def change_password():
+    error_message = ''
+    if 'user_id' not in session:
+        return redirect('/login')
+
+    user_id = session['user_id']
+
+    if request.method == "POST":
+        current_password = request.form.get('current_password', '')
+        new_password = request.form.get('new_password', '')
+        password_confirm = request.form.get('password_confirm', '')
+        
+        db = get_db()
+        user_data = db.execute("SELECT password FROM users WHERE user_id=?", (user_id,)).fetchone()
+
+        current_valid = False
+
+        if user_data:
+            try:
+                current_valid = ph.verify(user_data['password'], current_password)
+            except (VerifyMismatchError, InvalidHashError):
+                current_valid = False
+
+        if not current_valid:
+            error_message = 'Current password is incorrect.'
+        
+        elif new_password != password_confirm:
+            error_message = 'New passwords do not match.'
+       
+        elif not new_password.strip():
+            error_message = 'New password cannot be empty.'
+        else:
+            new_pass_hash = ph.hash(new_password)
+            db.execute("UPDATE users set password = ? WHERE user_id = ?", (new_pass_hash, user_id))
+            db.commit()
+            return redirect('/profile')
+    return render_template('settings.html', error_message=error_message)
+
+
 
 # @auth.route("/top")
 # def top():
