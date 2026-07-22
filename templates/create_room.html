@@ -1,53 +1,26 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SkillLink - Create Room</title>
+    <title>SkillLink - ルーム作成</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
-    <style>
-        body { font-family: 'Helvetica Neue', Arial, sans-serif; color: #333; margin: 0; padding: 20px; background: #fafafa; }
-        .form-container { max-width: 500px; margin: 60px auto; background: white; padding: 30px; border: 1px solid #e0e0e0; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
-        h2 { margin-top: 0; color: #2c3e50; border-bottom: 2px solid #5c6bc0; padding-bottom: 10px; }
-        .form-group { margin-bottom: 20px; display: flex; flex-direction: column; gap: 8px; }
-        label { font-weight: bold; color: #555; font-size: 14px; }
-        select { padding: 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 15px; background: #fdfdfd; width: 100%; box-sizing: border-box; }
-        
-        .type-selector { display: flex; gap: 10px; margin-top: 5px; }
-        .btn-type { 
-            flex: 1; 
-            padding: 10px; 
-            border: 1px solid #ccc; 
-            background: #f5f5f5; 
-            color: #666; 
-            border-radius: 4px; 
-            cursor: pointer; 
-            font-weight: bold; 
-            transition: all 0.2s; 
-        }
-        .btn-type.active { 
-            background: #5c6bc0; 
-            color: white; 
-            border-color: #4758b3; 
-        }
-
-        .btn-submit { width: 100%; padding: 12px; background: #5c6bc0; color: white; border: none; border-radius: 4px; font-weight: bold; font-size: 16px; cursor: pointer; transition: background 0.2s; margin-top: 15px; }
-        .btn-submit:hover { background: #4758b3; }
-        .note { font-size: 13px; color: #777; margin-top: 10px; line-height: 1.4; }
-        .back-link { display: block; text-align: center; margin-top: 15px; color: #5c6bc0; text-decoration: none; font-size: 14px; }
-        .back-link:hover { text-decoration: underline; }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/variables.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/footer.css') }}">
+    <!-- 抽出した新CSSの読み込み -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/create_room.css') }}">
 </head>
 <body>
     {% include 'header.html' %}
+
     <div class="form-container">
-        <h2>Launch a New Chat Space</h2>
+        <h2>新しいチャットルームを作成</h2>
         
         <form id="create-room-form" method="POST">
             <div class="form-group">
-                <label for="skill-select">Choose the Room Topic</label>
+                <label for="skill-select">ルームのテーマを選択</label>
                 <select id="skill-select" name="skill_id" required>
-                    <option value="" disabled selected>Select a category...</option>
+                    <option value="" disabled selected>カテゴリーを選択してください...</option>
                     {% for skill in skills %}
                         <option value="{{ skill.skill_id }}">{{ skill.skill_name }}</option>
                     {% endfor %}
@@ -55,22 +28,21 @@
             </div>
 
             <div class="form-group">
-                <label>Room Privacy</label>
+                <label>ルームの公開設定</label>
                 <div class="type-selector">
-                    <button type="button" class="btn-type active" id="btn-public" onclick="selectType('public')">Public Room</button>
-                    <button type="button" class="btn-type" id="btn-private" onclick="selectType('private')">Private Room</button>
+                    <button type="button" class="btn-type active" id="btn-public" onclick="selectType('public')">公開ルーム</button>
+                    <button type="button" class="btn-type" id="btn-private" onclick="selectType('private')">非公開ルーム</button>
                 </div>
-                <p class="note" id="type-description">Public rooms are listed for everyone to join freely.</p>
+                <p class="note" id="type-description">公開ルームは一覧に表示され、誰でも自由に参加できます。</p>
             </div>
 
-            <button type="submit" class="btn-submit">Create & Open Room</button>
+            <button type="submit" class="btn-submit">ルームを作成して開く</button>
         </form>
 
-        <a href="{{ url_for('chat.list_public_rooms') }}" class="back-link">← Cancel and go back</a>
+        <a href="{{ url_for('chat.list_public_rooms') }}" class="back-link">← キャンセルして戻る</a>
     </div>
 
     <script>
-
         let selectedType = 'public';
 
         function selectType(type) {
@@ -82,11 +54,11 @@
             if (type === 'public') {
                 btnPublic.classList.add('active');
                 btnPrivate.classList.remove('active');
-                desc.textContent = "Public rooms are listed for everyone to join freely.";
+                desc.textContent = "公開ルームは一覧に表示され、誰でも自由に参加できます。";
             } else {
                 btnPrivate.classList.add('active');
                 btnPublic.classList.remove('active');
-                desc.textContent = "Private rooms won't appear in lists. Members need an invitation code to enter.";
+                desc.textContent = "非公開ルームは一覧に表示されません。参加するには招待コードが必要です。";
             }
         }
 
@@ -100,5 +72,7 @@
             }
         });
     </script>
+    
+    {% include 'footer.html' %}
 </body>
 </html>
