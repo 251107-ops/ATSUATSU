@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SkillLink - チャットルーム</title>
+    <title>SkillLink - チャットルーム一覧</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/variables.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/footer.css') }}">
-    <!-- 抽出した新CSSの読み込み -->
+    <!-- 公開ルーム一覧専用CSSの読み込み -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/public_rooms.css') }}">
 </head>
 <body>
@@ -15,7 +15,6 @@
     
     <div class="container">
         <div class="action-row">
-            <!-- 非公開ルームへの参加 -->
             <div class="action-section">
                 <h3>非公開ルームに参加</h3>
                 <form action="{{ url_for('chat.join_private_room') }}" method="POST" class="action-form">
@@ -24,12 +23,11 @@
                 </form>
             </div>
 
-            <!-- ルーム作成フォームへの直接リンク -->
             <div class="action-section">
                 <h3>コミュニティルームを開設</h3>
-                <p>お探しのテーマが見つかりませんか?任意のスキルで公開ルームをすぐに開設できます。</p>
-                <a href="{{ url_for('chat.show_create_room_form') }}" class="btn btn-secondary btn-block">
-                    + 公開ルームを作成
+                <p>お探しのテーマが見つかりませんか？任意のスキルで公開ルームをすぐに開設できます。</p>
+                <a href="{{ url_for('chat.show_create_room_form') }}" class="btn btn-secondary">
+                    ＋ 公開ルームを作成
                 </a>
             </div>
         </div>
@@ -51,7 +49,7 @@
             </div>
         {% else %}
             <p class="no-rooms">
-                現在公開中のルームはありません。上のボタンから最初のルームを作成してみましょう!
+                現在公開中のルームはありません。上のボタンから最初のルームを作成してみましょう！
             </p>
         {% endif %}
     </div>

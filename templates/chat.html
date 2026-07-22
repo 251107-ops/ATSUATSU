@@ -7,18 +7,19 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/variables.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/footer.css') }}">
-    <!-- 抽出した新規CSSの読み込み -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/chat.css') }}">
+    <!-- ライブチャット専用CSSの読み込み -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/live_chat.css') }}">
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 </head>
 <body>
     {% include 'header.html' %}
+    
     <div class="chat-layout">
         
         <div class="chat-nav-actions">
             <a href="{{ url_for('chat.show_create_room_form') }}" class="nav-link">＋ ルーム作成</a>
             <a href="{{ url_for('chat.list_public_rooms') }}" class="nav-link">🔍 入室</a>
-            <a href="{{ url_for('chat.list_public_rooms') }}" class="nav-link">📂 公開ルーム</a>
+            <a href="{{ url_for('chat.list_public_rooms') }}" class="nav-link">📂 公開ルーム一覧</a>
         </div>
 
         <div class="chat-container">
