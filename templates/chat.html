@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SkillLink - ライブチャット</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/variables.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/footer.css') }}">
+    <!-- ライブチャット専用CSSの読み込み -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/live_chat.css') }}">
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+</head>
+<body>
+    {% include 'header.html' %}
+    
+    <div class="chat-layout">
+        
+        <div class="chat-nav-actions">
+            <a href="{{ url_for('chat.show_create_room_form') }}" class="nav-link">＋ ルーム作成</a>
+            <a href="{{ url_for('chat.list_public_rooms') }}" class="nav-link">🔍 入室</a>
+            <a href="{{ url_for('chat.list_public_rooms') }}" class="nav-link">📂 公開ルーム一覧</a>
+        </div>
+
+        <div class="chat-container">
+            <div class="chat-header">
+                <h2>ルームコード: <span class="room-token">{{ room }}</span></h2>
+                <p class="user-info">ログイン中: <strong>{{ name }}</strong></p>
+            </div>
+
+            <div class="chat-messages" id="chat-box">
+                {% for chat in chats %}
+                    <div class="msg-line">
+                        <span class="msg-user">{{ chat.name }}</span>: 
+                        <span>{{ chat.content }}</span>
+                        <span class="msg-time">{{ chat.time }}</span>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <div class="chat-footer">
+                <input type="text" id="message-input" placeholder="メッセージを入力してください..." autocomplete="off">
+                <button class="btn-send" id="send-btn">送信</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            window.chatSocket = io('/chat');
+            
+            const chatBox = document.getElementById('chat-box');
+            const msgInput = document.getElementById('message-input');
+            const sendBtn = document.getElementById('send-btn');
+
+            // スクロール位置を一番下に初期化
+            chatBox.scrollTop = chatBox.scrollHeight;
+
+            // 接続完了時にルームへ参加要請
+            window.chatSocket.on('connect', () => {
+                window.chatSocket.emit('joined', {});
+            });
+
+            // メッセージ受信時の処理
+            window.chatSocket.on('message', (data) => {
+                const msgDiv = document.createElement('div');
+                msgDiv.className = 'msg-line';
+                const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                
+                // 安全なパース処理
+                const separatorIndex = data.msg.indexOf(':');
+                const senderName = separatorIndex !== -1 ? data.msg.substring(0, separatorIndex) : "システム";
+                const messageContent = separatorIndex !== -1 ? data.msg.substring(separatorIndex + 1) : data.msg;
+
+                msgDiv.innerHTML = `<span class="msg-user">${senderName}</span>: <span>${messageContent}</span> <span class="msg-time">${now}</span>`;
+                chatBox.appendChild(msgDiv);
+                chatBox.scrollTop = chatBox.scrollHeight;
+            });
+
+            // ステータス（入退室通知）受信時の処理
+            window.chatSocket.on('status', (data) => {
+                const statusDiv = document.createElement('div');
+                statusDiv.className = 'msg-line msg-status';
+                statusDiv.textContent = data.msg;
+                chatBox.appendChild(statusDiv);
+                chatBox.scrollTop = chatBox.scrollHeight;
+            });
+
+            // メッセージ送信関数
+            const sendMessage = () => {
+                const text = msgInput.value.trim();
+                if (text !== "") {
+                    window.chatSocket.emit('text', { msg: text });
+                    msgInput.value = "";
+                }
+            };
+
+            // イベントリスナーの登録
+            sendBtn.addEventListener('click', sendMessage);
+            msgInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') sendMessage();
+            });
+        });
+
+        // ページ切断時のクリーンアップ処理
+        window.addEventListener('beforeunload', function() {
+            if (window.chatSocket) {
+                window.chatSocket.emit('left', {});
+                window.chatSocket.disconnect();
+            }
+        });
+
+        // ログアウトボタン押下時
+        document.getElementById('logout-btn')?.addEventListener('click', function() {
+            if (window.chatSocket) {
+                window.chatSocket.emit('left', {});
+                window.chatSocket.disconnect();
+            }
+        });
+    </script>
+    
+    {% include 'footer.html' %}
+</body>
+</html>

@@ -1,27 +1,28 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ホーム | スキルシェア</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/top.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/variables.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ホーム | スキルシェア</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/top.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/variables.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/footer.css') }}">
 </head>
 <body>
     {% include 'header.html' %}
     
     <main>
         <section class="hero">
-            <h1>教えあい、学びあい、成長しよう</h1>
-            <p>学内のスキルをシェアして、お互いに高め合えるコミュニティ</p>
+            <h1 id="heroTitle" class="hero-title">教えあい、学びあい、成長しよう</h1>
+            <p class="hero-sub">学内のスキルをシェアして、お互いに高め合えるコミュニティ</p>
         </section>
 
         <section class="search-area">
-            <div class="search-bar">
-                <input type="text" placeholder="スキル名・学科・学年で検索">
-                <button class="btn-primary">検索</button>
-            </div>
+            <form action="/posts/search" method="GET" class="search-form">
+            <input type="text" name="query" placeholder="スキル名・学科・学年で検索">
+            <button type="submit" class="btn-primary">検索</button>
+        </form>
             <div class="filters">
                 <a href="/" class="filter-btn {% if active_tab == 'all' %}active{% endif %}">すべて</a>
                 <a href="/top/teach" class="filter-btn {% if active_tab == 'teach' %}active{% endif %}">教えたい</a>
@@ -38,9 +39,9 @@
         <section class="skills-section">
             <div class="section-header">
                 <h2>注目のスキル</h2>
-                <select class="sort-select">
-                    <option>新着順</option>
-                    <option>人気順</option>
+                <select class="sort-select" onchange="location.href='?sort='+this.value;">
+                    <option value="new" {% if active_sort == 'new' %}active{% endif %}>新着順</option>
+                    <option value="popular" {% if active_sort == 'popular' %}active{% endif %}>人気順</option>
                 </select>
             </div>
 
@@ -60,7 +61,11 @@
                         <span class="badge {{ 'teach' if post.post_type == '教えたい' else 'learn' }}">{{ post.post_type }}</span>
                     </div>
                     <p class="body">{{ post.post_text }}</p>
-                    <span class="fav">{{ post.favorite_count }} ♥</span>
+                    <form action="/posts/likes" method="POST">
+                        <input type="hidden" name="post_id" value="{{ post.post_id }}">
+                        <button type="submit" class="like-btn">{{post.like_count}}♥</button>
+                    </form>
+                    <!-- <span class="fav">{{ post.likes }} ♥</span> -->
                 </div>
                 {% else %}
                 <div class="no-posts">
@@ -70,5 +75,7 @@
             </div>
         </section>
     </main>
+    <script src="{{ url_for('static', filename='js/top.js') }}"></script>
+    {% include 'footer.html' %}
 </body>
 </html>

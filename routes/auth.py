@@ -3,6 +3,7 @@ import sqlite3
 from flask import Blueprint, render_template, g, redirect, request, session
 from werkzeug.security import generate_password_hash, check_password_hash
 from argon2 import PasswordHasher
+from argon2.exceptions import VerifyMismatchError, InvalidHashError
 ph = PasswordHasher()
 
 DATABASE = os.path.join(os.path.dirname(__file__), "..", "nikuman.db")
@@ -23,19 +24,31 @@ def login():
     if request.method == 'POST':
         email = request.form.get('email', '')
         password = request.form.get('password', '')
+        name = request.form.get('name', '')
 
         db = get_db()
         # データベースから該当するメールアドレスのユーザー情報を取得
         user_data = db.execute(
-            "SELECT user_id, email, password FROM users WHERE email = ?", [email]
+            "SELECT user_id, name, email, password FROM users WHERE email = ?", [email]
         ).fetchone()
 
         # ⭕ ハッシュ化されたパスワードの検証
-        if user_data is not None and ph.verify(user_data['password'], password):
-            session['user_email'] = email  # セッションにメールアドレスを保存（ログイン完了）
-            session['user_id'] = user_data['user_id']  # セッションにユーザーIDを保存（必要に応じて）
-            return redirect('/')
+        if user_data:
+            try:
+                if ph.verify(user_data['password'], password):
+                    session.clear() 
+                    
+                    session['user_email'] = email  # セッションにメールアドレスを保存（ログイン完了）
+                    session['user_id'] = user_data['user_id']  # セッションにユーザーIDを保存
+                    session['name'] = user_data['name']  # セッションにユーザー名を保存（Chat用）
+                    session['room'] = None
+                    
+                    session.modified = True
+                    return redirect('/')
+            except (VerifyMismatchError, InvalidHashError):
+                pass
 
+        
         error_message = '入力されたメールアドレスもしくはパスワードが誤っています'
 
     return render_template('login.html', email=email, error_message=error_message)
@@ -85,8 +98,48 @@ def register2():
 # ログアウト処理
 @auth.route("/logout")
 def logout():
-    session.pop('user_email', None)  # セッションからユーザー情報を削除（ログアウト）
+    session.clear()  # セッションからユーザー情報を削除（ログアウト）
     return redirect('/login')
+
+@auth.route("/change-password", methods=["GET","POST"])
+def change_password():
+    error_message = ''
+    if 'user_id' not in session:
+        return redirect('/login')
+
+    user_id = session['user_id']
+
+    if request.method == "POST":
+        current_password = request.form.get('current_password', '')
+        new_password = request.form.get('new_password', '')
+        password_confirm = request.form.get('password_confirm', '')
+        
+        db = get_db()
+        user_data = db.execute("SELECT password FROM users WHERE user_id=?", (user_id,)).fetchone()
+
+        current_valid = False
+
+        if user_data:
+            try:
+                current_valid = ph.verify(user_data['password'], current_password)
+            except (VerifyMismatchError, InvalidHashError):
+                current_valid = False
+
+        if not current_valid:
+            error_message = 'Current password is incorrect.'
+        
+        elif new_password != password_confirm:
+            error_message = 'New passwords do not match.'
+       
+        elif not new_password.strip():
+            error_message = 'New password cannot be empty.'
+        else:
+            new_pass_hash = ph.hash(new_password)
+            db.execute("UPDATE users set password = ? WHERE user_id = ?", (new_pass_hash, user_id))
+            db.commit()
+            return redirect('/profile')
+    return render_template('settings.html', error_message=error_message)
+
 
 
 # @auth.route("/top")

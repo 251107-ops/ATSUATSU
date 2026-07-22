@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SkillLink - チャットルーム一覧</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/variables.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/footer.css') }}">
+    <!-- 公開ルーム一覧専用CSSの読み込み -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/public_rooms.css') }}">
+</head>
+<body>
+    {% include 'header.html' %}
+    
+    <div class="container">
+        <div class="action-row">
+            <div class="action-section">
+                <h3>非公開ルームに参加</h3>
+                <form action="{{ url_for('chat.join_private_room') }}" method="POST" class="action-form">
+                    <input type="text" name="room_code" placeholder="8桁の招待コードを入力してください..." required autocomplete="off">
+                    <button type="submit" class="btn">ルームに参加</button>
+                </form>
+            </div>
+
+            <div class="action-section">
+                <h3>コミュニティルームを開設</h3>
+                <p>お探しのテーマが見つかりませんか？任意のスキルで公開ルームをすぐに開設できます。</p>
+                <a href="{{ url_for('chat.show_create_room_form') }}" class="btn btn-secondary">
+                    ＋ 公開ルームを作成
+                </a>
+            </div>
+        </div>
+
+        <h2>現在公開中のルーム</h2>
+        {% if rooms %}
+            <div class="rooms-grid">
+                {% for room in rooms %}
+                    <div class="room-card">
+                        <div>
+                            <h3>スキル: {{ room.skill_name if room.skill_name else "総合交流" }}</h3>
+                            <p>参加人数: <strong>{{ room.total_members }}</strong>人</p>
+                        </div>
+                        <a href="{{ url_for('chat.access_room', room_id=room.room_id) }}" class="btn btn-block">
+                            チャットに入る
+                        </a>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="no-rooms">
+                現在公開中のルームはありません。上のボタンから最初のルームを作成してみましょう！
+            </p>
+        {% endif %}
+    </div>
+
+    {% include 'footer.html' %}
+</body>
+</html>

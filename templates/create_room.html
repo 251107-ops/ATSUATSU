@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SkillLink - ルーム作成</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/variables.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/footer.css') }}">
+    <!-- 抽出した新CSSの読み込み -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/create_room.css') }}">
+</head>
+<body>
+    {% include 'header.html' %}
+
+    <div class="form-container">
+        <h2>新しいチャットルームを作成</h2>
+        
+        <form id="create-room-form" method="POST">
+            <div class="form-group">
+                <label for="skill-select">ルームのテーマを選択</label>
+                <select id="skill-select" name="skill_id" required>
+                    <option value="" disabled selected>カテゴリーを選択してください...</option>
+                    {% for skill in skills %}
+                        <option value="{{ skill.skill_id }}">{{ skill.skill_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>ルームの公開設定</label>
+                <div class="type-selector">
+                    <button type="button" class="btn-type active" id="btn-public" onclick="selectType('public')">公開ルーム</button>
+                    <button type="button" class="btn-type" id="btn-private" onclick="selectType('private')">非公開ルーム</button>
+                </div>
+                <p class="note" id="type-description">公開ルームは一覧に表示され、誰でも自由に参加できます。</p>
+            </div>
+
+            <button type="submit" class="btn-submit">ルームを作成して開く</button>
+        </form>
+
+        <a href="{{ url_for('chat.list_public_rooms') }}" class="back-link">← キャンセルして戻る</a>
+    </div>
+
+    <script>
+        let selectedType = 'public';
+
+        function selectType(type) {
+            selectedType = type;
+            const btnPublic = document.getElementById('btn-public');
+            const btnPrivate = document.getElementById('btn-private');
+            const desc = document.getElementById('type-description');
+
+            if (type === 'public') {
+                btnPublic.classList.add('active');
+                btnPrivate.classList.remove('active');
+                desc.textContent = "公開ルームは一覧に表示され、誰でも自由に参加できます。";
+            } else {
+                btnPrivate.classList.add('active');
+                btnPublic.classList.remove('active');
+                desc.textContent = "非公開ルームは一覧に表示されません。参加するには招待コードが必要です。";
+            }
+        }
+
+        document.getElementById('create-room-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const skillId = document.getElementById('skill-select').value;
+            
+            if (skillId) {
+                this.action = `/create-${selectedType}-room/${skillId}`;
+                this.submit();
+            }
+        });
+    </script>
+    
+    {% include 'footer.html' %}
+</body>
+</html>
