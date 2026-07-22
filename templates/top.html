@@ -19,12 +19,10 @@
         </section>
 
         <section class="search-area">
-            <div class="search-bar">
-                <form action="/posts/search" method="GET">
-                    <input type="text" name="query" placeholder="スキル名・学科・学年で検索">
-                <button class="btn-primary">検索</button>
-                </form>
-            </div>
+            <form action="/posts/search" method="GET" class="search-form">
+            <input type="text" name="query" placeholder="スキル名・学科・学年で検索">
+            <button type="submit" class="btn-primary">検索</button>
+        </form>
             <div class="filters">
                 <a href="/" class="filter-btn {% if active_tab == 'all' %}active{% endif %}">すべて</a>
                 <a href="/top/teach" class="filter-btn {% if active_tab == 'teach' %}active{% endif %}">教えたい</a>
