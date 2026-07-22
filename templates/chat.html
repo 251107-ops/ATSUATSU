@@ -1,45 +1,31 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SkillLink - Live Chat</title>
+    <title>SkillLink - ライブチャット</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/variables.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/footer.css') }}">
+    <!-- ライブチャット専用CSSの読み込み -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/live_chat.css') }}">
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-    <style>
-        body { font-family: 'Helvetica Neue', Arial, sans-serif; margin: 0; padding: 20px; background: #fafafa; }
-        .chat-layout { max-width: 900px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
-        
-        .chat-nav-actions { display: flex; gap: 15px; background: white; padding: 15px 20px; border: 1px solid #e0e0e0; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.01); }
-        .nav-link { padding: 10px 15px; background: #f4f6f9; color: #5c6bc0; border-radius: 4px; text-decoration: none; font-weight: bold; font-size: 14px; transition: all 0.2s; }
-        .nav-link:hover { background: #5c6bc0; color: white; }
-        
-        .chat-container { background: white; border: 1px solid #e0e0e0; border-radius: 8px; display: flex; flex-direction: column; height: 70vh; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
-        .chat-header { padding: 15px 20px; border-bottom: 1px solid #eee; background: #fdfdfd; }
-        .room-token { font-family: monospace; background: #eef2f7; padding: 3px 8px; border-radius: 4px; color: #5c6bc0; font-weight: bold; }
-        .chat-messages { flex: 1; padding: 20px; overflow-y: auto; background: #fcfcfc; }
-        .msg-line { margin-bottom: 12px; font-size: 15px; }
-        .msg-user { font-weight: bold; color: #333; }
-        .msg-time { font-size: 11px; color: #999; margin-left: 8px; }
-        .chat-footer { padding: 15px; border-top: 1px solid #eee; display: flex; gap: 10px; }
-        .chat-footer input { flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; }
-        .btn-send { padding: 0 25px; background: #5c6bc0; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; }
-    </style>
 </head>
 <body>
     {% include 'header.html' %}
+    
     <div class="chat-layout">
         
         <div class="chat-nav-actions">
             <a href="{{ url_for('chat.show_create_room_form') }}" class="nav-link">＋ ルーム作成</a>
             <a href="{{ url_for('chat.list_public_rooms') }}" class="nav-link">🔍 入室</a>
-            <a href="{{ url_for('chat.list_public_rooms') }}" class="nav-link">📂 公開ルーム</a>
+            <a href="{{ url_for('chat.list_public_rooms') }}" class="nav-link">📂 公開ルーム一覧</a>
         </div>
 
         <div class="chat-container">
             <div class="chat-header">
-                <h2>Room Code: <span class="room-token">{{ room }}</span></h2>
-                <p style="margin: 5px 0 0 0; color: #777; font-size: 14px;">Logged in as: <strong>{{ name }}</strong></p>
+                <h2>ルームコード: <span class="room-token">{{ room }}</span></h2>
+                <p class="user-info">ログイン中: <strong>{{ name }}</strong></p>
             </div>
 
             <div class="chat-messages" id="chat-box">
@@ -53,15 +39,14 @@
             </div>
 
             <div class="chat-footer">
-                <input type="text" id="message-input" placeholder="Type a message here..." autocomplete="off">
-                <button class="btn-send" id="send-btn">Send</button>
+                <input type="text" id="message-input" placeholder="メッセージを入力してください..." autocomplete="off">
+                <button class="btn-send" id="send-btn">送信</button>
             </div>
         </div>
     </div>
 
     <script>
         document.addEventListener("DOMContentLoaded", () => {
-            // 💡 修正ポイント: 重複していた接続を1つに統合し、グローバル（ウィンドウ全体）で利用可能にします
             window.chatSocket = io('/chat');
             
             const chatBox = document.getElementById('chat-box');
@@ -84,7 +69,7 @@
                 
                 // 安全なパース処理
                 const separatorIndex = data.msg.indexOf(':');
-                const senderName = separatorIndex !== -1 ? data.msg.substring(0, separatorIndex) : "System";
+                const senderName = separatorIndex !== -1 ? data.msg.substring(0, separatorIndex) : "システム";
                 const messageContent = separatorIndex !== -1 ? data.msg.substring(separatorIndex + 1) : data.msg;
 
                 msgDiv.innerHTML = `<span class="msg-user">${senderName}</span>: <span>${messageContent}</span> <span class="msg-time">${now}</span>`;
@@ -95,9 +80,7 @@
             // ステータス（入退室通知）受信時の処理
             window.chatSocket.on('status', (data) => {
                 const statusDiv = document.createElement('div');
-                statusDiv.className = 'msg-line';
-                statusDiv.style.color = '#888';
-                statusDiv.style.fontStyle = 'italic';
+                statusDiv.className = 'msg-line msg-status';
                 statusDiv.textContent = data.msg;
                 chatBox.appendChild(statusDiv);
                 chatBox.scrollTop = chatBox.scrollHeight;
@@ -119,7 +102,7 @@
             });
         });
 
-        // 💡 修正ポイント: ページ移動時やログアウト時に古い接続（ゾンビセッション）を残さないためのクリーンアップ処理
+        // ページ切断時のクリーンアップ処理
         window.addEventListener('beforeunload', function() {
             if (window.chatSocket) {
                 window.chatSocket.emit('left', {});
@@ -127,7 +110,7 @@
             }
         });
 
-        // ログアウトボタンが押された場合も確実に切断
+        // ログアウトボタン押下時
         document.getElementById('logout-btn')?.addEventListener('click', function() {
             if (window.chatSocket) {
                 window.chatSocket.emit('left', {});
@@ -135,5 +118,7 @@
             }
         });
     </script>
+    
+    {% include 'footer.html' %}
 </body>
 </html>

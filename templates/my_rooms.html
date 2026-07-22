@@ -1,45 +1,34 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SkillLink - Chat Rooms</title>
+    <title>SkillLink - チャットルーム</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
-    <style>
-        body { font-family: 'Helvetica Neue', Arial, sans-serif; color: #333; margin: 0; padding: 20px; background: #fdfdfd; }
-        .container { max-width: 1000px; margin: 0 auto; }
-        .action-row { display: flex; flex-wrap: wrap; gap: 20px; margin-bottom: 30px; }
-        .action-section { flex: 1; min-width: 280px; background: #f4f6f9; padding: 20px; border-radius: 8px; box-sizing: border-box; }
-        .action-section h3 { margin-top: 0; margin-bottom: 15px; color: #2c3e50; font-size: 16px; }
-        .action-section input { padding: 10px; border: 1px solid #ddd; border-radius: 4px; flex: 1; font-size: 14px; min-width: 180px; }
-        .btn { padding: 10px 20px; background: #5c6bc0; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; text-decoration: none; font-size: 14px; transition: background 0.2s; }
-        .btn:hover { background: #4758b3; }
-        .btn-secondary { background: #2ecc71; }
-        .btn-secondary:hover { background: #27ae60; }
-        .rooms-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; margin-top: 15px; }
-        .room-card { border: 1px solid #e0e0e0; padding: 20px; border-radius: 8px; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.02); display: flex; flex-direction: column; justify-content: space-between; gap: 15px; }
-        .room-card h3 { margin-top: 0; color: #2c3e50; font-size: 18px; }
-        .room-card p { color: #666; font-size: 14px; margin: 0; }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/variables.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/footer.css') }}">
+    <!-- 抽出した新規CSSの読み込み -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/my_rooms.css') }}">
 </head>
 <body>
     {% include 'header.html' %}
+
     <div class="container">
         <div class="action-row">
 
             <div class="action-section">
-                <h3>Join Private Room</h3>
-                <form action="{{ url_for('chat.join_private_room') }}" method="POST" style="display: flex; gap: 10px; flex-wrap: wrap;">
-                    <input type="text" name="room_code" placeholder="Enter secure 8-character code..." required autocomplete="off">
-                    <button type="submit" class="btn">Join Room</button>
+                <h3>非公開ルームに参加</h3>
+                <form action="{{ url_for('chat.join_private_room') }}" method="POST" class="action-form">
+                    <input type="text" name="room_code" placeholder="8桁の招待コードを入力してください..." required autocomplete="off">
+                    <button type="submit" class="btn">ルームに参加</button>
                 </form>
             </div>
 
-            <div class="action-section" style="display: flex; flex-direction: column; justify-content: space-between;">
-                <h3>Host a Community Space</h3>
-                <p style="margin: 0 0 15px 0; font-size: 13px; color: #666;">Can't find your topic? Launch a public room for any skill instantly.</p>
-                <a href="{{ url_for('chat.show_create_room_form') }}" class="btn btn-secondary" style="display: inline-block; text-align: center;">
-                    + Create Public Room
+            <div class="action-section">
+                <h3>コミュニティルームを開設</h3>
+                <p>お探しのテーマが見つかりませんか?任意のスキルで公開ルームをすぐに開設できます。</p>
+                <a href="{{ url_for('chat.show_create_room_form') }}" class="btn btn-secondary btn-block">
+                    + 公開ルームを作成
                 </a>
             </div>
         </div>
@@ -50,20 +39,22 @@
                 {% for room in access_rooms %}
                     <div class="room-card">
                         <div>
-                            <h3>Skill: {{ room.skill_name if room.skill_name else "General Exchange" }}</h3>
-                            <p>Members inside: <strong>{{ room.total_members }}</strong></p>
+                            <h3>スキル: {{ room.skill_name if room.skill_name else "総合交流" }}</h3>
+                            <p>参加人数: <strong>{{ room.total_members }}</strong>人</p>
                         </div>
-                        <a href="{{ url_for('chat.access_room', room_id=room.room_id) }}" class="btn" style="display: block; text-align: center;">
+                        <a href="{{ url_for('chat.access_room', room_id=room.room_id) }}" class="btn btn-block">
                             入室
                         </a>
                     </div>
                 {% endfor %}
             </div>
         {% else %}
-            <p style="color: #999; background: #f9f9f9; padding: 20px; border-radius: 6px; text-align: center; border: 1px dashed #ddd;">
+            <p class="empty-state">
                 まだルームに参加してありません！
             </p>
         {% endif %}
     </div>
+
+    {% include 'footer.html' %}
 </body>
 </html>

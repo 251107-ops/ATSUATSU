@@ -1,0 +1,174 @@
+/* 基本レイアウト */
+body {
+    font-family: var(--font-family-base, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif);
+    color: var(--text-main, #2c3e50);
+    margin: 0;
+    padding: 0;
+    background-color: var(--bg-color, #f2f5f9); /* 全画面統一の淡い背景色 */
+    min-height: 100vh;
+}
+
+.container {
+    max-width: 1000px;
+    margin: 40px auto 60px;
+    padding: 0 5%;
+}
+
+.container > h2, 
+.container > h1 {
+    font-size: 24px;
+    font-weight: bold;
+    color: var(--text-main, #2c3e50);
+    margin-top: 0;
+    margin-bottom: 24px;
+}
+
+/* アクションエリア（上部ブロック） */
+.action-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    margin-bottom: 32px;
+}
+
+.action-section {
+    flex: 1;
+    min-width: 280px;
+    background-color: var(--card-bg, #ffffff);
+    padding: 24px;
+    border-radius: 16px;
+    border: 1px solid var(--border-color, #e2e8f0);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.02);
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.action-section h3 {
+    margin-top: 0;
+    margin-bottom: 8px;
+    color: var(--text-main, #2c3e50);
+    font-size: 17px;
+    font-weight: bold;
+}
+
+.action-section p {
+    margin: 0 0 16px 0;
+    font-size: 13px;
+    color: var(--text-sub, #7f8c8d);
+    line-height: 1.5;
+}
+
+.action-form {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.action-section input {
+    padding: 10px 16px;
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 20px;
+    flex: 1;
+    font-size: 14px;
+    min-width: 180px;
+    background-color: var(--bg-color, #f2f5f9);
+    color: var(--text-main, #2c3e50);
+    outline: none;
+    transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.action-section input:focus {
+    border-color: var(--primary-color, #385cdb);
+    background-color: #ffffff;
+}
+
+/* ボタン */
+.btn {
+    padding: 10px 22px;
+    background-color: var(--primary-color, #385cdb);
+    color: #ffffff;
+    border: none;
+    border-radius: 20px; /* カプセル型ボタン */
+    cursor: pointer;
+    font-weight: bold;
+    text-decoration: none;
+    font-size: 14px;
+    transition: background-color 0.2s ease;
+    text-align: center;
+    box-sizing: border-box;
+    display: inline-block;
+}
+
+.btn:hover {
+    background-color: var(--primary-hover, #2a46b0);
+}
+
+.btn-block {
+    display: block;
+    width: 100%;
+}
+
+.btn-secondary {
+    background-color: var(--tag-blue-bg, #e6f0fa);
+    color: var(--primary-color, #385cdb);
+}
+
+.btn-secondary:hover {
+    background-color: var(--primary-color, #385cdb);
+    color: #ffffff;
+}
+
+/* ルーム一覧グリッド */
+.rooms-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+    margin-top: 16px;
+}
+
+.room-card {
+    border: 1px solid var(--border-color, #e2e8f0);
+    padding: 24px;
+    border-radius: 16px; /* スキルカードと丸みを統一 */
+    background-color: var(--card-bg, #ffffff);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.02);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 16px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.room-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05);
+    border-color: var(--primary-color, #385cdb);
+}
+
+.room-card h3 {
+    margin: 0;
+    color: var(--text-main, #2c3e50);
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.room-card p {
+    color: var(--text-sub, #7f8c8d);
+    font-size: 14px;
+    margin: 0;
+    line-height: 1.5;
+}
+
+/* 整理済み：ルームが存在しない場合のテキスト */
+.no-rooms,
+.empty-state {
+    color: var(--text-sub, #7f8c8d);
+    background-color: var(--card-bg, #ffffff);
+    padding: 32px 20px;
+    border-radius: 16px;
+    text-align: center;
+    border: 1px dashed var(--border-color, #e2e8f0);
+    font-size: 14px;
+}

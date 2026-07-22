@@ -1,0 +1,99 @@
+body {
+    font-family: var(--font-family-base, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif);
+    color: var(--text-main, #2c3e50);
+    margin: 0;
+    padding: 0;
+    background-color: var(--bg-color, #f2f5f9); /* トップページと同じ背景色 */
+    min-height: 100vh;
+}
+
+.hub-container {
+    max-width: 900px;
+    margin: 50px auto 80px;
+    padding: 0 5%;
+    text-align: center;
+}
+
+.hub-title {
+    color: var(--text-main, #2c3e50);
+    margin-bottom: 8px;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.hub-subtitle {
+    color: var(--text-sub, #7f8c8d);
+    margin-bottom: 40px;
+    font-size: 15px;
+}
+
+/* グリッドレイアウト */
+.hub-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 20px;
+    justify-content: center;
+}
+
+/* ハブカード（トップページのスキルカードと角丸・影を統一） */
+.hub-card {
+    background-color: var(--card-bg, #ffffff);
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 16px;
+    padding: 32px 20px;
+    text-decoration: none;
+    color: inherit;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.02);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.hub-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05);
+    border-color: var(--primary-color, #385cdb);
+}
+
+.hub-icon {
+    font-size: 40px;
+    margin-bottom: 16px;
+}
+
+/* アイコンカラー（新メインカラー #385cdb と相性の良いカラーに微調整） */
+.icon-create {
+    color: #2e7d32; /* 教えたいグリーンと同系統 */
+}
+
+.icon-join {
+    color: var(--primary-color, #385cdb); /* メインブルー */
+}
+
+.icon-public {
+    color: #e57373; /* アクセントサーモンピンク */
+}
+
+.icon-owner {
+    color: var(--tag-learn-text, #b26a00); /* 学びたいイエローと同系統 */
+}
+
+.icon-joined {
+    color: #385cdb; /* メインブルー */
+}
+
+/* カード内テキスト */
+.hub-card h3 {
+    margin: 0 0 8px 0;
+    color: var(--text-main, #2c3e50);
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.hub-card p {
+    margin: 0;
+    color: var(--text-sub, #7f8c8d);
+    font-size: 13px;
+    line-height: 1.5;
+}
