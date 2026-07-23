@@ -228,7 +228,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (response.ok) {
           showToast(result.message || 'プロフィールを保存しました');
-          setTimeout(() => { location.reload(); }, 1000);
+          setTimeout(() => { window.location.href = '/profile'; }, 1000);
         } else {
           showToast(result.message || '保存に失敗しました');
           submitBtn.disabled = false;
