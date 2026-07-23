@@ -7,7 +7,7 @@ from routes.auth import get_db
 posts = Blueprint('posts', __name__)
 
 
-def fetch_posts(db, category_id="", post_type="", search_query="", sort_type="new", grade=""):
+def fetch_posts(db, category_id="", post_type="", search_query="", sort_type="new", grade="", department=""):
     
     conditions = []
     params = []
@@ -23,6 +23,10 @@ def fetch_posts(db, category_id="", post_type="", search_query="", sort_type="ne
     if grade:
         conditions.append("users.grade = ?")
         params.append(grade)
+    
+    if department:
+        conditions.append("users.department = ?")
+        params.append(department)
 
     if search_query:
         conditions.append("(skills.skill_name LIKE ? OR users.department LIKE ? OR users.grade LIKE ?)")
@@ -80,15 +84,18 @@ def top():
     sort_type = request.args.get('sort', 'new')
     selected_category = request.args.get('category', '')
     selected_grade = request.args.get('grade', '')
+    selected_department = request.args.get('department', '')
     search_query = request.args.get('query', '')
 
     category_data = db.execute("SELECT * FROM categories").fetchall()
     grade_data = db.execute("SELECT DISTINCT grade FROM users WHERE grade IS NOT NULL AND grade != ''").fetchall()
+    department_data = db.execute("SELECT DISTINCT department FROM users WHERE department IS NOT NULL AND department != ''").fetchall()
     
     posts_list = fetch_posts(
         db, 
         category_id=selected_category,
         grade=selected_grade, 
+        department=selected_department,
         search_query=search_query, 
         sort_type=sort_type
     )
@@ -102,6 +109,8 @@ def top():
         grades=grade_data,
         selected_grade=selected_grade,
         selected_category=selected_category,
+        departments=department_data,
+        selected_department=selected_department,
         search_query=search_query
     )
 
@@ -115,16 +124,19 @@ def top_learn():
     sort_type = request.args.get('sort', 'new')
     selected_category = request.args.get('category', '')
     selected_grade = request.args.get('grade', '')
+    selected_department = request.args.get('department', '')
     search_query = request.args.get('query', '')
 
     category_data = db.execute("SELECT * FROM categories").fetchall()
     grade_data = db.execute("SELECT DISTINCT grade FROM users WHERE grade IS NOT NULL AND grade != ''").fetchall()
+    department_data = db.execute("SELECT DISTINCT department FROM users WHERE department IS NOT NULL AND department != ''").fetchall()
 
     posts_list = fetch_posts(
         db, 
         category_id=selected_category, 
         post_type='学びたい', 
         grade=selected_grade,
+        department=selected_department,
         search_query=search_query, 
         sort_type=sort_type
     )
@@ -138,6 +150,8 @@ def top_learn():
         selected_category=selected_category,
         grades=grade_data,
         selected_grade=selected_grade,
+        departments=department_data,
+        selected_department=selected_department,
         search_query=search_query
     )
 
@@ -151,16 +165,19 @@ def top_teach():
     sort_type = request.args.get('sort', 'new')
     selected_category = request.args.get('category', '')
     selected_grade = request.args.get('grade', '')
+    selected_department = request.args.get('department', '')
     search_query = request.args.get('query', '')
 
     category_data = db.execute("SELECT * FROM categories").fetchall()
     grade_data = db.execute("SELECT DISTINCT grade FROM users WHERE grade IS NOT NULL AND grade != ''").fetchall()
+    department_data = db.execute("SELECT DISTINCT department FROM users WHERE department IS NOT NULL AND department != ''").fetchall()
 
     posts_list = fetch_posts(
         db, 
         category_id=selected_category, 
         post_type='教えたい',
         grade=selected_grade,
+        department=selected_department,
         search_query=search_query, 
         sort_type=sort_type
     )
@@ -174,6 +191,8 @@ def top_teach():
         selected_category=selected_category,
         grades=grade_data,
         selected_grade=selected_grade,
+        departments=department_data,
+        selected_department=selected_department,
         search_query=search_query
     )
 
