@@ -159,6 +159,15 @@ body {
   width: 100%;
 }
 
+.side-link a {
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
 .side-link:hover {
   background: #f4f6fb;
 }

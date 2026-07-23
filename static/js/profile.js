@@ -245,12 +245,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (cancelBtn) {
     cancelBtn.addEventListener('click', () => {
-      if (!window.confirm('変更を破棄してもよろしいですか？')) return;
-      profileForm.reset();
-      showToast('変更をキャンセルしました');
-      setTimeout(() => { location.reload(); }, 800);
+        if (!window.confirm('変更を破棄してもよろしいですか？')) return;
+        showToast('変更をキャンセルしました');
+        setTimeout(() => { window.location.href = '/profile'; }, 800);
     });
-  }
+}
 
 });
 // 「プロフィール」の見出し文字を1文字ずつspanで包み、
