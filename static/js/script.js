@@ -21,11 +21,12 @@ function greet(){
     }
 }
 
-function pass_confirm(){
+function pass_confirm(event){
     let pass1 = document.getElementById("password1").value
     let pass2 = document.getElementById("password2").value
 
     if(pass1!=pass2){
+        event.preventDefault()
        alert("パスワードが一致してない")
     }
     
