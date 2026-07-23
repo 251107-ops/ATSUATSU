@@ -4,8 +4,9 @@ from flask import Flask, render_template
 from flask_socketio import SocketIO, send
 from routes.auth import auth
 from routes.posts import posts
-from routes.skill import skills
+from routes.skill import skill
 from routes.chat import chat, init_chat_events
+from routes.category import categories
 
 app = Flask(__name__)
 
@@ -17,8 +18,9 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 # Blueprint の登録
 app.register_blueprint(auth)
 app.register_blueprint(posts)
-app.register_blueprint(skills)
+app.register_blueprint(skill)
 app.register_blueprint(chat)
+app.register_blueprint(categories)
 
 init_chat_events(socketio)
 
