@@ -1,15 +1,18 @@
-from flask import Blueprint, render_template, redirect, session, request
-from routes.auth import get_db
+import os
 from datetime import datetime
+from flask import Blueprint, render_template, redirect, session, request, jsonify
+from werkzeug.utils import secure_filename
+from routes.auth import get_db
 
 posts = Blueprint('posts', __name__)
+
 
 @posts.route("/")
 def top():
     if 'user_email' not in session:
         return redirect('/login')
 
-    sort_type = request.args.get('sort','new')
+    sort_type = request.args.get('sort', 'new')
 
     if sort_type == 'popular':
         order_by = "ORDER BY like_count DESC, posts.post_date"
@@ -120,8 +123,6 @@ def top_teach():
     return render_template('top.html', posts=posts_list, active_tab='teach')
 
 
-
-
 @posts.route("/profile", methods=['GET', 'POST'])
 def profile():
     if 'user_email' not in session:
@@ -130,8 +131,54 @@ def profile():
     user_email = session['user_email']
     user_id = session.get('user_id')
     db = get_db()
-    row = db.execute("SELECT name, email, department, grade, introduction, icon_path FROM users WHERE email = ?", (user_email,)).fetchone()
-    
+
+    if request.method == 'POST':
+        name = request.form.get('name', '').strip()
+        department = request.form.get('department', '')
+        grade = request.form.get('grade', '')
+        introduction = request.form.get('bio', '')
+
+        if not name:
+            return jsonify({'message': '名前を入力してください'}), 400
+
+        # アイコン画像の保存処理
+        icon_path = None
+        avatar_file = request.files.get('avatar')
+        if avatar_file and avatar_file.filename:
+            allowed_ext = {'.png', '.jpg', '.jpeg', '.gif'}
+            ext = os.path.splitext(avatar_file.filename)[1].lower()
+            if ext not in allowed_ext:
+                return jsonify({'message': '対応していない画像形式です'}), 400
+
+            filename = secure_filename(f"user_{user_id}{ext}")
+            upload_dir = os.path.join('static', 'uploads')
+            os.makedirs(upload_dir, exist_ok=True)
+            save_path = os.path.join(upload_dir, filename)
+            avatar_file.save(save_path)
+
+            # DBに保存するパスは url_for('static', ...) が使える相対パスにする
+            icon_path = f"uploads/{filename}"
+
+        if icon_path:
+            db.execute(
+                "UPDATE users SET name = ?, department = ?, grade = ?, introduction = ?, icon_path = ? WHERE email = ?",
+                (name, department, grade, introduction, icon_path, user_email)
+            )
+        else:
+            db.execute(
+                "UPDATE users SET name = ?, department = ?, grade = ?, introduction = ? WHERE email = ?",
+                (name, department, grade, introduction, user_email)
+            )
+        db.commit()
+
+        return jsonify({'message': 'プロフィールを保存しました'}), 200
+
+    # ↓ GET時の表示処理
+    row = db.execute(
+        "SELECT name, email, department, grade, introduction, icon_path FROM users WHERE email = ?",
+        (user_email,)
+    ).fetchone()
+
     user = None
     if row:
         user = {
@@ -142,28 +189,25 @@ def profile():
             'introduction': row[4],
             'icon_path': row[5]
         }
-    # 教えたいスキルの取得
+
     teach_rows = db.execute("""
         SELECT DISTINCT skills.skill_id, skills.skill_name 
         FROM posts
         JOIN skills ON posts.skill_id = skills.skill_id
         WHERE posts.user_id = ? AND posts.post_type = '教えたい'
     """, (user_id,)).fetchall()
-    
     skills_teach = [{'skill_id': r[0], 'skill_name': r[1]} for r in teach_rows]
 
-    # 学びたいスキルの取得
     learn_rows = db.execute("""
         SELECT DISTINCT skills.skill_id, skills.skill_name 
         FROM posts
         JOIN skills ON posts.skill_id = skills.skill_id
         WHERE posts.user_id = ? AND posts.post_type = '学びたい'
     """, (user_id,)).fetchall()
-    
     skills_learn = [{'skill_id': r[0], 'skill_name': r[1]} for r in learn_rows]
 
-    # ユーザー情報とスキル情報をテンプレートに渡す
     return render_template('profile.html', user=user, skills_teach=skills_teach, skills_learn=skills_learn)
+
 
 @posts.route("/profile_edit", methods=['GET', 'POST'])
 def profile_edit():
@@ -172,7 +216,10 @@ def profile_edit():
 
     user_email = session['user_email']
     db = get_db()
-    row = db.execute("SELECT name, email, department, grade, introduction, icon_path FROM users WHERE email = ?", (user_email,)).fetchone()
+    row = db.execute(
+        "SELECT name, email, department, grade, introduction, icon_path FROM users WHERE email = ?",
+        (user_email,)
+    ).fetchone()
 
     user = None
     if row:
@@ -211,8 +258,6 @@ def edit_profile():
     return redirect('/profile')
 
 
-
-
 @posts.route("/posts", methods=['GET', 'POST'])
 def create_post():
     db = get_db()
@@ -226,11 +271,10 @@ def create_post():
 
         if not skill_id or not post_type or not post_text:
             return "すべてのフィールドを入力してください", 400
-        
+
         user_id = session.get('user_id')
 
         if user_id and skill_id:
-            
             post_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             db.execute(
                 "INSERT INTO posts (user_id, skill_id, post_type, post_text, post_date) VALUES (?, ?, ?, ?, ?)",
@@ -238,22 +282,10 @@ def create_post():
             )
             db.commit()
             return redirect('/')
-            
+
     skills = db.execute("SELECT skill_id, skill_name FROM skills").fetchall()
     return render_template('posts.html', skills=skills)
 
-# @posts.route("posts/delete/<int:post_id>", methods=['POST'])
-# def delete_post(post_id):
-#     if 'user_email' not in session:
-#         return redirect('/login')
-
-#     user_id = session.get('user_id')
-#     db = get_db()
-
-#     # ユーザーが投稿の所有者であることを確認してから削除
-#     db.execute("DELETE FROM posts WHERE post_id = ? AND user_id = ?", (post_id, user_id))
-#     db.commit()
-#     return redirect('/')
 
 @posts.route("/posts/search", methods=['GET', 'POST'])
 def search_posts():
@@ -294,8 +326,9 @@ def search_posts():
                 'like_count': row[8] if row[8] else 0
             })
         return render_template('top.html', posts=posts_list, active_tab='all', search_query=search_query)
-    
+
     return redirect('/')
+
 
 @posts.route("/posts/likes", methods=['POST'])
 def like_post():
@@ -308,11 +341,11 @@ def like_post():
         return redirect('/')
     db = get_db()
 
-    # ユーザーがすでにその投稿にいいねをしているかどうかを確認
-    existing_like = db.execute("SELECT 1 FROM likes WHERE user_id = ? AND post_id = ?", (user_id, post_id)).fetchone()
-    
+    existing_like = db.execute(
+        "SELECT 1 FROM likes WHERE user_id = ? AND post_id = ?", (user_id, post_id)
+    ).fetchone()
+
     if existing_like:
-        # すでにいいねしている場合は、いいねを解除
         db.execute("DELETE FROM likes WHERE user_id = ? AND post_id = ?", (user_id, post_id))
     else:
         db.execute("INSERT INTO likes (user_id, post_id) VALUES (?, ?)", (user_id, post_id))
@@ -325,7 +358,7 @@ def like_post():
 def get_like():
     if 'user_email' not in session:
         return redirect('/login')
-    
+
     user_id = session.get('user_id')
     if not user_id:
         return redirect('/login')
@@ -345,7 +378,7 @@ def get_like():
         )
         ORDER BY posts.post_date DESC
     """, (user_id,)).fetchall()
-   
+
     posts_list = []
     for row in rows:
         posts_list.append({
