@@ -61,10 +61,9 @@
                         <span class="badge {{ 'teach' if post.post_type == '教えたい' else 'learn' }}">{{ post.post_type }}</span>
                     </div>
                     <p class="body">{{ post.post_text }}</p>
-                    <form action="/posts/likes" method="POST">
-                        <input type="hidden" name="post_id" value="{{ post.post_id }}">
-                        <button type="submit" class="like-btn">{{post.like_count}}♥</button>
-                    </form>
+                    <button type="button" class="like-btn" data-post-id="{{ post.post_id }}" data-liked="{{ 'true' if post.liked_by_me else 'false' }}">
+                        <span class="like-count">{{ post.like_count }}</span>♥
+                    </button>
                     <!-- <span class="fav">{{ post.likes }} ♥</span> -->
                 </div>
                 {% else %}

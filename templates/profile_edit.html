@@ -95,19 +95,19 @@
           <label>教えたいスキル</label>
           <div class="tag-list" id="teachSkillList">
             {% for skill in teach_skills %}
-            <span class="tag tag--teach">{{ skill.skill_name }}<button type="button" class="tag__remove" aria-label="{{ skill }}を削除">×</button></span>
+            <span class="tag tag--teach">{{ skill.skill_name }}<button type="button" class="tag__remove" aria-label="{{ skill.skill_name }}を削除">×</button></span>
             {% endfor %}
-            <button type="submit" class="tag-add" data-target="teachSkillList" data-variant="teach" formaction="/skill_edit">+ 追加</button>
+            <a href="/posts?type=教えたい" class="tag-add">+ 追加</a>
           </div>
         </div>
-
+        
         <div class="skill-field">
           <label>学びたいスキル</label>
           <div class="tag-list" id="learnSkillList">
             {% for skill in learn_skills %}
-            <span class="tag tag--learn">{{ skill.skill_name }}<button type="button" class="tag__remove" aria-label="{{ skill }}を削除">×</button></span>
+            <span class="tag tag--learn">{{ skill.skill_name }}<button type="button" class="tag__remove" aria-label="{{ skill.skill_name }}を削除">×</button></span>
             {% endfor %}
-            <button type="button" class="tag-add" data-target="learnSkillList" data-variant="learn">+ 追加</button>
+            <a href="/posts?type=学びたい" class="tag-add">+ 追加</a>
           </div>
         </div>
 

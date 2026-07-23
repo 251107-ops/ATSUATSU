@@ -427,6 +427,21 @@ body {
   box-shadow: 0 6px 8px -1px rgba(52, 87, 213, 0.3);
 }
 
+.profile-card,
+.my-posts-section {
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    margin-bottom: 20px;
+}
+
+.page-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
 /* ---------- RESPONSIVE ---------- */
 @media (max-width: 720px) {
   .header__nav {

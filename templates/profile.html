@@ -8,6 +8,7 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/variables.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/footer.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/top.css') }}">
 </head>
 <body>
 
@@ -33,72 +34,106 @@
       </button>
     </aside>
 
-    <main class="main">
+    <div class="page-content">
+
       <div class="main__head">
         <h1 class="main__title" id="profileTitle">プロフィール</h1>
         <a href="/profile_edit" class="btn btn--primary">プロフィール編集</a>
       </div>
 
-      <div class="profile-card-content">
-        <div class="avatar-block">
-          <div class="avatar-wrap">
-            {% if user and user.icon_path %}
-              <img id="avatarImg" class="avatar-img" src="{{ url_for('static', filename=user.icon_path) }}" alt="プロフィール画像">
+      <div class="main profile-block">
+        <div class="profile-card-content">
+          <div class="avatar-block">
+            <div class="avatar-wrap">
+              {% if user and user.icon_path %}
+                <img id="avatarImg" class="avatar-img" src="{{ url_for('static', filename=user.icon_path) }}" alt="プロフィール画像">
+              {% else %}
+                <span id="avatarPlaceholder" class="avatar-placeholder">{{ user.name[:2] if user else '田中' }}</span>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="field-grid">
+            <div class="field field--wide">
+              <label>名前</label>
+              <p class="profile-text-value">{{ user.name if user else '' }}</p>
+            </div>
+
+            <div class="field">
+              <label>学年</label>
+              <p class="profile-text-value">{{ user.grade if user else '' }}</p>
+            </div>
+
+            <div class="field">
+              <label>学科</label>
+              <p class="profile-text-value">{{ user.department if user else '' }}</p>
+            </div>
+
+            <div class="field field--wide">
+                <label>自己紹介</label>
+                <div class="bio-text-block">
+                     {% if user and user.introduction %}
+                          {{ user.introduction }}
+                     {% else %}
+                         <span class="bio-empty">まだ自己紹介が登録されていません。プロフィール編集から追加してみましょう。</span>
+                     {% endif %}
+                </div>
+           </div>
+          </div>
+        </div>
+
+        <div class="skill-field">
+          <label>教えたいスキル</label>
+          <div class="tag-list">
+            {% for skill in skills_teach %}
+              <span class="tag tag--teach">{{ skill.skill_name }}</span>
             {% else %}
-              <span id="avatarPlaceholder" class="avatar-placeholder">{{ user.name[:2] if user else '田中' }}</span>
-            {% endif %}
+              <span class="no-tags-notice">登録されていません</span>
+            {% endfor %}
           </div>
-        </div>
-
-        <div class="field-grid">
-          <div class="field field--wide">
-            <label>名前</label>
-            <p class="profile-text-value">{{ user.name if user else '' }}</p>
+          <label>学びたいスキル</label>
+          <div class="tag-list">
+            {% for skill in skills_learn %}
+              <span class="tag tag--learn">{{ skill.skill_name }}</span>
+            {% else %}
+              <span class="no-tags-notice">登録されていません</span>
+            {% endfor %}
           </div>
-
-          <div class="field">
-            <label>学年</label>
-            <p class="profile-text-value">{{ user.grade if user else '' }}</p>
-          </div>
-
-          <div class="field">
-            <label>学科</label>
-            <p class="profile-text-value">{{ user.department if user else '' }}</p>
-          </div>
-
-          <div class="field field--wide">
-              <label>自己紹介</label>
-              <div class="bio-text-block">
-                   {% if user and user.introduction %}
-                        {{ user.introduction }}
-                   {% else %}
-                       <span class="bio-empty">まだ自己紹介が登録されていません。プロフィール編集から追加してみましょう。</span>
-                   {% endif %}
-              </div>
-         </div>
         </div>
       </div>
 
-      <div class="skill-field">
-        <label>教えたいスキル</label>
-        <div class="tag-list">
-          {% for skill in skills_teach %}
-            <span class="tag tag--teach">{{ skill.skill_name }}</span>
-          {% else %}
-            <span class="no-tags-notice">登録されていません</span>
-          {% endfor %}
-        </div>
-        <label>学びたいスキル</label>
-        <div class="tag-list">
-          {% for skill in skills_learn %}
-            <span class="tag tag--learn">{{ skill.skill_name }}</span>
-          {% else %}
-            <span class="no-tags-notice">登録されていません</span>
-          {% endfor %}
+      <div class="main my-posts-section">
+        <h2>自分の投稿</h2>
+        <div class="cards">
+            {% for post in my_posts %}
+            <div class="card">
+                <div class="card-top">
+                    {% if user and user.icon_path %}
+                        <img src="{{ url_for('static', filename=user.icon_path) }}" alt="">
+                    {% else %}
+                        <img src="{{ url_for('static', filename='img/default-avatar.png') }}" alt="">
+                    {% endif %}
+                    <div>
+                        <span class="name">{{ user.name if user else '' }}</span>
+                        <span class="meta">{{ user.department if user else '' }} {{ user.grade if user else '' }}</span>
+                    </div>
+                </div>
+                <div class="tags">
+                    <span class="tag">{{ post.category_name }}</span>
+                    <span class="tag">{{ post.skill_name }}</span>
+                    <span class="badge {{ 'teach' if post.post_type == '教えたい' else 'learn' }}">{{ post.post_type }}</span>
+                </div>
+                <p class="body">{{ post.post_text }}</p>
+                <button type="button" class="like-btn" data-post-id="{{ post.post_id }}" data-liked="{{ 'true' if post.liked_by_me else 'false' }}">
+                  <span class="like-count">{{ post.like_count }}</span>♥
+              </button>
+            </div>
+            {% endfor %}
         </div>
       </div>
+      </div>
 
-    </main>
+    </div>
 
   </div>
 
