@@ -35,7 +35,7 @@
     color: var(--text-main) !important;
     line-height: 1;
     white-space: nowrap;
-    text-decoration: underline !important;
+    text-decoration: none !important;
     display: inline-block;
     transition: transform 0.2s ease, color 0.2s ease;
 }
