@@ -38,8 +38,13 @@
                 <a href="/" class="filter-btn {% if active_tab == 'all' %}active{% endif %}">すべて</a>
                 <a href="/top/teach" class="filter-btn {% if active_tab == 'teach' %}active{% endif %}">教えたい</a>
                 <a href="/top/learn" class="filter-btn {% if active_tab == 'learn' %}active{% endif %}">学びたい</a>
-                <select>
-                    <option>学科：すべて</option>
+                <select name="department" onchange="updateFilter('department', this.value)">
+                    <option value="" {% if not selected_department %}selected{% endif %}>学科：すべて</option>
+                    {% for department in departments %}
+                    <option value="{{ department[0] }}" {% if selected_department|string == department[0]|string %}selected{% endif %}>
+                        {{ department[0] }}
+                    </option>
+                    {% endfor %}
                 </select>
                 <select name="grade" onchange="updateFilter('grade', this.value)">
                         <option value="" {% if not selected_grade %}selected{% endif %}>
@@ -70,7 +75,7 @@
                         <img src="{{ url_for('static', filename=post.icon_path) }}" alt="ユーザーアバター">
                         <div>
                             <span class="name">{{ post.name }}</span>
-                            <span class="meta">{{ post.department }} {{ post.grade }}</span>
+                            <span class="meta">{{ post.department }} {{ post.grade }}年</span>
                         </div>
                     </div>
                     <div class="tags">
