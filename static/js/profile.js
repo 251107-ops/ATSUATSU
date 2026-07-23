@@ -245,14 +245,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (cancelBtn) {
     cancelBtn.addEventListener('click', () => {
-<<<<<<< HEAD
       if (!window.confirm('変更を破棄してもよろしいですか？')) return;
       window.location.href = '/profile';
-=======
-        if (!window.confirm('変更を破棄してもよろしいですか？')) return;
-        showToast('変更をキャンセルしました');
-        setTimeout(() => { window.location.href = '/profile'; }, 800);
->>>>>>> origin/main
     });
 }
 
