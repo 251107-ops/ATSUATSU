@@ -24,14 +24,32 @@
             <button type="submit" class="btn-primary">検索</button>
         </form>
             <div class="filters">
+                <select name="category" onchange="updateFilter('category', this.value)">
+                    <option value="" {% if not selected_category %}selected{% endif %}>
+                        詳細検索
+                    </option>
+
+                {% for category in categories %}
+                    <option value="{{ category[0] }}" {% if selected_category|string == category[0]|string %}selected{% endif %}>
+                         {{ category[1] }}
+                    </option>
+                {% endfor %}
+                </select>
                 <a href="/" class="filter-btn {% if active_tab == 'all' %}active{% endif %}">すべて</a>
                 <a href="/top/teach" class="filter-btn {% if active_tab == 'teach' %}active{% endif %}">教えたい</a>
                 <a href="/top/learn" class="filter-btn {% if active_tab == 'learn' %}active{% endif %}">学びたい</a>
                 <select>
                     <option>学科：すべて</option>
                 </select>
-                <select>
-                    <option>学年：すべて</option>
+                <select name="grade" onchange="updateFilter('grade', this.value)">
+                        <option value="" {% if not selected_grade %}selected{% endif %}>
+                            学年：すべて
+                        </option>
+                        {% for grade in grades %}
+                            <option value="{{ grade[0] }}" {% if selected_grade|string == grade[0]|string %}selected{% endif %}>
+                                {{ grade[0] }}
+                            </option>
+                        {% endfor %}
                 </select>
             </div>
         </section>
@@ -40,8 +58,8 @@
             <div class="section-header">
                 <h2>注目のスキル</h2>
                 <select class="sort-select" onchange="location.href='?sort='+this.value;">
-                    <option value="new" {% if active_sort == 'new' %}active{% endif %}>新着順</option>
-                    <option value="popular" {% if active_sort == 'popular' %}active{% endif %}>人気順</option>
+                    <option value="new" {% if active_sort == 'new' %}selected{% endif %}>新着順</option>
+                    <option value="popular" {% if active_sort == 'popular' %}selected{% endif %}>人気順</option>
                 </select>
             </div>
 
@@ -77,5 +95,19 @@
     </main>
     <script src="{{ url_for('static', filename='js/top.js') }}"></script>
     {% include 'footer.html' %}
+
+
+
+<script>
+  function updateFilter(key, value) {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (value) {
+      urlParams.set(key, value);
+    } else {
+      urlParams.delete(key);
+    }
+    window.location.search = urlParams.toString();
+  }
+</script>
 </body>
 </html>
