@@ -256,6 +256,7 @@ if (profileForm) {
           submitBtn.textContent = '保存する';
         }
       }
+<<<<<<< HEAD
     } catch (error) {
       console.error('エラー:', error);
       showToast('通信エラーが発生しました');
@@ -264,3 +265,60 @@ if (profileForm) {
     }
   });
 }});
+=======
+    });
+  }
+
+  if (cancelBtn) {
+    cancelBtn.addEventListener('click', () => {
+      if (!window.confirm('変更を破棄してもよろしいですか？')) return;
+      window.location.href = '/profile';
+    });
+}
+
+});
+// 「プロフィール」の見出し文字を1文字ずつspanで包み、
+// 転がりながら登場するアニメーションを順番に適用する
+document.addEventListener('DOMContentLoaded', () => {
+    const title = document.getElementById('profileTitle');
+    if (!title) return;
+
+    const text = title.textContent;
+    title.textContent = '';
+
+    [...text].forEach((char, i) => {
+        const span = document.createElement('span');
+        span.className = 'roll-char';
+        span.textContent = char === ' ' ? '\u00A0' : char;
+        span.style.animationDelay = `${i * 0.08}s`;
+        title.appendChild(span);
+    });
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.like-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+          const postId = btn.dataset.postId;
+          const response = await fetch('/posts/likes', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+              body: `post_id=${postId}`
+          });
+          if (response.ok) {
+              const result = await response.json();
+              const countSpan = btn.querySelector('.like-count');
+              let count = parseInt(countSpan.textContent);
+
+              if (result.liked) {
+                  count += 1;
+                  btn.dataset.liked = 'true';
+              } else {
+                  count -= 1;
+                  btn.dataset.liked = 'false';
+              }
+              countSpan.textContent = count;
+          }
+      });
+  });
+});
+>>>>>>> 48e9eae439a24f4f773a47d5d67f068525ee8401
