@@ -162,68 +162,79 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ---------------------------------------
-     5. 保存・キャンセル（バックエンド通信）
-  --------------------------------------- */
-  const profileForm = document.getElementById('profileForm');
-  const cancelBtn = document.getElementById('cancelBtn');
-  const submitBtn = document.getElementById('submitBtn');
-  const toast = document.getElementById('toast');
+   5. 保存・キャンセル（バックエンド通信）
+--------------------------------------- */
+const profileForm = document.getElementById('profileForm');
+const cancelBtn = document.getElementById('cancelBtn');
+const submitBtn = document.getElementById('submitBtn');
+const toast = document.getElementById('toast');
 
-  let toastTimer = null;
-  function showToast(message) {
-    if (!toast) return;
-    toast.textContent = message;
-    toast.classList.remove('is-hidden');
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => {
-      toast.classList.add('is-hidden');
-    }, 2400);
-  }
+let toastTimer = null;
+function showToast(message) {
+  if (!toast) return;
+  toast.textContent = message;
+  toast.classList.remove('is-hidden');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    toast.classList.add('is-hidden');
+  }, 2400);
+}
 
-  if (profileForm) {
-    profileForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
+if (profileForm) {
+  profileForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
 
-      const nameInput = document.getElementById('name');
-      if (!nameInput.value.trim()) {
-        showToast('名前を入力してください');
-        nameInput.focus();
-        return;
-      }
+    const nameInput = document.getElementById('name');
+    if (!nameInput || !nameInput.value.trim()) {
+      showToast('名前を入力してください');
+      if (nameInput) nameInput.focus();
+      return;
+    }
 
-      // 安全に×ボタン以外のテキストだけを取得する
-      const teachSkills = getTagNames(document.getElementById('teachSkillList'))
-        .map((s) => s); // 既に trim/lowercase 済み表示用ではないので下で元の大小文字を取り直す
+    const teachSkillsDisplay = Array.from(document.querySelectorAll('#teachSkillList .tag'))
+      .map((t) => t.childNodes[0].textContent.trim());
+    const learnSkillsDisplay = Array.from(document.querySelectorAll('#learnSkillList .tag'))
+      .map((t) => t.childNodes[0].textContent.trim());
 
-      const teachSkillsDisplay = Array.from(document.querySelectorAll('#teachSkillList .tag'))
-        .map((t) => t.childNodes[0].textContent.trim());
-      const learnSkillsDisplay = Array.from(document.querySelectorAll('#learnSkillList .tag'))
-        .map((t) => t.childNodes[0].textContent.trim());
+    const formData = new FormData();
 
-      const formData = new FormData();
-      formData.append('csrf_token', document.querySelector('input[name="csrf_token"]').value);
-      formData.append('name', nameInput.value.trim());
-      formData.append('grade', document.getElementById('grade').value);
-      formData.append('department', document.getElementById('department').value);
-      formData.append('bio', bioInput ? bioInput.value : '');
+    // ★修正1: CSRFトークンが存在する場合のみ取得（安全対策）
+    const csrfInput = document.querySelector('input[name="csrf_token"]');
+    if (csrfInput) {
+      formData.append('csrf_token', csrfInput.value);
+    }
 
-      formData.append('teachSkills', JSON.stringify(teachSkillsDisplay));
-      formData.append('learnSkills', JSON.stringify(learnSkillsDisplay));
+    formData.append('name', nameInput.value.trim());
+    formData.append('grade', document.getElementById('grade').value);
+    formData.append('department', document.getElementById('department').value);
 
-      if (avatarInput && avatarInput.files[0]) {
-        formData.append('avatar', avatarInput.files[0]);
-      }
+    // ★修正2: キー名をHTML/Flask側に合わせる (bio -> introduction)
+    formData.append('introduction', bioInput ? bioInput.value : '');
 
-      // 連打による二重送信防止
-      submitBtn.disabled = true;
-      submitBtn.textContent = '保存中...';
+    formData.append('teachSkills', JSON.stringify(teachSkillsDisplay));
+    formData.append('learnSkills', JSON.stringify(learnSkillsDisplay));
 
-      try {
-        const response = await fetch('/profile', {
-          method: 'POST',
-          body: formData
-        });
+    // ★修正3: キー名をHTML/Flask側に合わせる (avatar -> icon)
+    if (avatarInput && avatarInput.files[0]) {
+      formData.append('icon', avatarInput.files[0]);
+    }
 
+    // 連打による二重送信防止
+    submitBtn.disabled = true;
+    submitBtn.textContent = '保存中...';
+
+    try {
+      // ★修正4: 送信先URLを HTMLのform.action ('/profile_edit') に合わせる
+      const targetUrl = profileForm.getAttribute('action') || '/profile_edit';
+
+      const response = await fetch(targetUrl, {
+        method: 'POST',
+        body: formData
+      });
+
+      // レスポンスが JSON かどうか確認して処理
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
         const result = await response.json();
 
         if (response.ok) {
@@ -234,38 +245,22 @@ document.addEventListener('DOMContentLoaded', () => {
           submitBtn.disabled = false;
           submitBtn.textContent = '保存する';
         }
-      } catch (error) {
-        console.error('エラー:', error);
-        showToast('通信エラーが発生しました');
-        submitBtn.disabled = false;
-        submitBtn.textContent = '保存する';
+      } else {
+        // バックエンドが redirect(url_for('profile')) 等で HTML を返してきた場合のハンドリング
+        if (response.ok) {
+          showToast('プロフィールを保存しました');
+          setTimeout(() => { window.location.href = '/profile'; }, 1000);
+        } else {
+          showToast('保存処理でエラーが発生しました');
+          submitBtn.disabled = false;
+          submitBtn.textContent = '保存する';
+        }
       }
-    });
-  }
-
-  if (cancelBtn) {
-    cancelBtn.addEventListener('click', () => {
-        if (!window.confirm('変更を破棄してもよろしいですか？')) return;
-        showToast('変更をキャンセルしました');
-        setTimeout(() => { window.location.href = '/profile'; }, 800);
-    });
-}
-
-});
-// 「プロフィール」の見出し文字を1文字ずつspanで包み、
-// 転がりながら登場するアニメーションを順番に適用する
-document.addEventListener('DOMContentLoaded', () => {
-    const title = document.getElementById('profileTitle');
-    if (!title) return;
-
-    const text = title.textContent;
-    title.textContent = '';
-
-    [...text].forEach((char, i) => {
-        const span = document.createElement('span');
-        span.className = 'roll-char';
-        span.textContent = char === ' ' ? '\u00A0' : char;
-        span.style.animationDelay = `${i * 0.08}s`;
-        title.appendChild(span);
-    });
-});
+    } catch (error) {
+      console.error('エラー:', error);
+      showToast('通信エラーが発生しました');
+      submitBtn.disabled = false;
+      submitBtn.textContent = '保存する';
+    }
+  });
+}});
