@@ -9,11 +9,7 @@ posts = Blueprint('posts', __name__)
 
 
 def fetch_posts(db, category_id="", post_type="", search_query="", sort_type="new", grade="", department="", user_id=None):
-<<<<<<< HEAD
 
-=======
-    
->>>>>>> 3ffb50aaeee36c9dcaaca8e2b19b30defe58d57d
     conditions = []
     params = []
 
@@ -104,11 +100,7 @@ def top():
         category_id=selected_category,
         grade=selected_grade,
         department=selected_department,
-<<<<<<< HEAD
         search_query=search_query,
-=======
-        search_query=search_query, 
->>>>>>> 3ffb50aaeee36c9dcaaca8e2b19b30defe58d57d
         sort_type=sort_type,
         user_id=user_id
     )
@@ -151,11 +143,7 @@ def top_learn():
         post_type='学びたい',
         grade=selected_grade,
         department=selected_department,
-<<<<<<< HEAD
         search_query=search_query,
-=======
-        search_query=search_query, 
->>>>>>> 3ffb50aaeee36c9dcaaca8e2b19b30defe58d57d
         sort_type=sort_type,
         user_id=user_id
     )
@@ -173,10 +161,7 @@ def top_learn():
         selected_department=selected_department,
         search_query=search_query
     )
-<<<<<<< HEAD
 
-=======
->>>>>>> 3ffb50aaeee36c9dcaaca8e2b19b30defe58d57d
 
 @posts.route("/top/teach")
 def top_teach():
@@ -201,11 +186,7 @@ def top_teach():
         post_type='教えたい',
         grade=selected_grade,
         department=selected_department,
-<<<<<<< HEAD
         search_query=search_query,
-=======
-        search_query=search_query, 
->>>>>>> 3ffb50aaeee36c9dcaaca8e2b19b30defe58d57d
         sort_type=sort_type,
         user_id=user_id
     )
@@ -225,10 +206,6 @@ def top_teach():
     )
 
 
-<<<<<<< HEAD
-=======
-
->>>>>>> 3ffb50aaeee36c9dcaaca8e2b19b30defe58d57d
 @posts.route("/profile", methods=['GET', 'POST'])
 def profile():
     if 'user_email' not in session:
@@ -472,7 +449,6 @@ def create_post():
             )
             db.commit()
             return redirect('/')
-<<<<<<< HEAD
 
     preset_type = request.args.get('type', '')
     categories = db.execute("SELECT category_id, category_name FROM categories").fetchall()
@@ -480,25 +456,6 @@ def create_post():
     return render_template('posts.html', categories=categories, skills=skills, preset_type=preset_type)
 
 
-=======
-
-    skills = db.execute("SELECT skill_id, skill_name FROM skills").fetchall()
-    categories = db.execute("SELECT category_id, category_name FROM categories").fetchall()
-    return render_template('posts.html', skills=skills, categories=categories)
-
-# @posts.route("posts/delete/<int:post_id>", methods=['POST'])
-# def delete_post(post_id):
-#     if 'user_email' not in session:
-#         return redirect('/login')
-
-#     user_id = session.get('user_id')
-#     db = get_db()
-
-#     # ユーザーが投稿の所有者であることを確認してから削除
-#     db.execute("DELETE FROM posts WHERE post_id = ? AND user_id = ?", (post_id, user_id))
-#     db.commit()
-#     return redirect('/')
->>>>>>> 3ffb50aaeee36c9dcaaca8e2b19b30defe58d57d
 @posts.route("/posts/search", methods=['GET', 'POST'])
 def search_posts():
     if 'user_email' not in session:
@@ -545,6 +502,7 @@ def search_posts():
         return render_template('top.html', posts=posts_list, active_tab='all', search_query=search_query)
 
     return redirect('/')
+
 
 @posts.route("/posts/likes", methods=['POST'])
 def like_post():
@@ -599,11 +557,7 @@ def get_like():
         )
         ORDER BY posts.post_date DESC
     """, (user_id, user_id)).fetchall()
-<<<<<<< HEAD
 
-=======
-   
->>>>>>> 3ffb50aaeee36c9dcaaca8e2b19b30defe58d57d
     posts_list = []
     for row in rows:
         posts_list.append({
