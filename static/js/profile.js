@@ -48,8 +48,10 @@ document.addEventListener('DOMContentLoaded', () => {
       reader.onload = (event) => {
         const dataUrl = event.target.result;
 
-        avatarImg.src = dataUrl;
-        avatarImg.classList.remove('is-hidden');
+        if (avatarImg) {
+          avatarImg.src = dataUrl;
+          avatarImg.classList.remove('is-hidden');
+        }
         if (avatarPlaceholder) avatarPlaceholder.classList.add('is-hidden');
 
         if (headerAvatarImg) {
@@ -87,6 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const listId = this.dataset.target;
       const variant = this.dataset.variant; // 'teach' または 'learn'
       const list = document.getElementById(listId);
+      if (!list) return;
 
       const currentCount = list.querySelectorAll('.tag').length;
       if (currentCount >= MAX_SKILLS_PER_TYPE) {
@@ -117,7 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // 新しいタグ要素（span）を作成
       const tag = document.createElement('span');
       tag.className = `tag tag--${variant}`;
-      tag.textContent = trimmed; // スキル名をセット（textContentなのでXSSの心配なし）
+      tag.textContent = trimmed;
 
       // 削除ボタン（×）を作成してタグの中に追加
       const removeBtn = document.createElement('button');
@@ -125,7 +128,7 @@ document.addEventListener('DOMContentLoaded', () => {
       removeBtn.className = 'tag__remove';
       removeBtn.setAttribute('aria-label', `${trimmed}を削除`);
       removeBtn.textContent = '×';
-      attachRemoveHandler(removeBtn); // 削除機能をつける
+      attachRemoveHandler(removeBtn);
 
       tag.appendChild(removeBtn);
 
@@ -162,110 +165,110 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ---------------------------------------
-   5. 保存・キャンセル（バックエンド通信）
---------------------------------------- */
-const profileForm = document.getElementById('profileForm');
-const cancelBtn = document.getElementById('cancelBtn');
-const submitBtn = document.getElementById('submitBtn');
-const toast = document.getElementById('toast');
+     5. 保存・キャンセル（バックエンド通信）
+  --------------------------------------- */
+  const profileForm = document.getElementById('profileForm');
+  const cancelBtn = document.getElementById('cancelBtn');
+  const submitBtn = document.getElementById('submitBtn');
+  const toast = document.getElementById('toast');
 
-let toastTimer = null;
-function showToast(message) {
-  if (!toast) return;
-  toast.textContent = message;
-  toast.classList.remove('is-hidden');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => {
-    toast.classList.add('is-hidden');
-  }, 2400);
-}
+  let toastTimer = null;
+  function showToast(message) {
+    if (!toast) return;
+    toast.textContent = message;
+    toast.classList.remove('is-hidden');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => {
+      toast.classList.add('is-hidden');
+    }, 2400);
+  }
 
-if (profileForm) {
-  profileForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
+  if (profileForm) {
+    profileForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
 
-    const nameInput = document.getElementById('name');
-    if (!nameInput || !nameInput.value.trim()) {
-      showToast('名前を入力してください');
-      if (nameInput) nameInput.focus();
-      return;
-    }
+      const nameInput = document.getElementById('name');
+      if (!nameInput || !nameInput.value.trim()) {
+        showToast('名前を入力してください');
+        if (nameInput) nameInput.focus();
+        return;
+      }
 
-    const teachSkillsDisplay = Array.from(document.querySelectorAll('#teachSkillList .tag'))
-      .map((t) => t.childNodes[0].textContent.trim());
-    const learnSkillsDisplay = Array.from(document.querySelectorAll('#learnSkillList .tag'))
-      .map((t) => t.childNodes[0].textContent.trim());
+      const teachSkillsDisplay = Array.from(document.querySelectorAll('#teachSkillList .tag'))
+        .map((t) => t.childNodes[0].textContent.trim());
+      const learnSkillsDisplay = Array.from(document.querySelectorAll('#learnSkillList .tag'))
+        .map((t) => t.childNodes[0].textContent.trim());
 
-    const formData = new FormData();
+      const formData = new FormData();
 
-    // ★修正1: CSRFトークンが存在する場合のみ取得（安全対策）
-    const csrfInput = document.querySelector('input[name="csrf_token"]');
-    if (csrfInput) {
-      formData.append('csrf_token', csrfInput.value);
-    }
+      // CSRFトークンが存在する場合のみ取得
+      const csrfInput = document.querySelector('input[name="csrf_token"]');
+      if (csrfInput) {
+        formData.append('csrf_token', csrfInput.value);
+      }
 
-    formData.append('name', nameInput.value.trim());
-    formData.append('grade', document.getElementById('grade').value);
-    formData.append('department', document.getElementById('department').value);
+      formData.append('name', nameInput.value.trim());
+      formData.append('grade', document.getElementById('grade')?.value || '');
+      formData.append('department', document.getElementById('department')?.value || '');
 
-    // ★修正2: キー名をHTML/Flask側に合わせる (bio -> introduction)
-    formData.append('introduction', bioInput ? bioInput.value : '');
+      // ★Flask側（routes/posts.py）の受け取り名 'bio' に合わせる
+      formData.append('bio', bioInput ? bioInput.value : '');
 
-    formData.append('teachSkills', JSON.stringify(teachSkillsDisplay));
-    formData.append('learnSkills', JSON.stringify(learnSkillsDisplay));
+      formData.append('teachSkills', JSON.stringify(teachSkillsDisplay));
+      formData.append('learnSkills', JSON.stringify(learnSkillsDisplay));
 
-    // ★修正3: キー名をHTML/Flask側に合わせる (avatar -> icon)
-    if (avatarInput && avatarInput.files[0]) {
-      formData.append('icon', avatarInput.files[0]);
-    }
+      // ★Flask側（routes/posts.py）の受け取り名 'avatar' に合わせる
+      if (avatarInput && avatarInput.files[0]) {
+        formData.append('avatar', avatarInput.files[0]);
+      }
 
-    // 連打による二重送信防止
-    submitBtn.disabled = true;
-    submitBtn.textContent = '保存中...';
+      // 二重送信防止
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = '保存中...';
+      }
 
-    try {
-      // ★修正4: 送信先URLを HTMLのform.action ('/profile_edit') に合わせる
-      const targetUrl = profileForm.getAttribute('action') || '/profile_edit';
+      try {
+        const targetUrl = profileForm.getAttribute('action') || '/profile';
 
-      const response = await fetch(targetUrl, {
-        method: 'POST',
-        body: formData
-      });
+        const response = await fetch(targetUrl, {
+          method: 'POST',
+          body: formData
+        });
 
-      // レスポンスが JSON かどうか確認して処理
-      const contentType = response.headers.get('content-type');
-      if (contentType && contentType.includes('application/json')) {
-        const result = await response.json();
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          const result = await response.json();
 
-        if (response.ok) {
-          showToast(result.message || 'プロフィールを保存しました');
-          setTimeout(() => { window.location.href = '/profile'; }, 1000);
+          if (response.ok) {
+            showToast(result.message || 'プロフィールを保存しました');
+            setTimeout(() => { window.location.href = '/profile'; }, 1000);
+          } else {
+            showToast(result.message || '保存に失敗しました');
+            if (submitBtn) {
+              submitBtn.disabled = false;
+              submitBtn.textContent = '保存する';
+            }
+          }
         } else {
-          showToast(result.message || '保存に失敗しました');
-          submitBtn.disabled = false;
-          submitBtn.textContent = '保存する';
+          if (response.ok) {
+            showToast('プロフィールを保存しました');
+            setTimeout(() => { window.location.href = '/profile'; }, 1000);
+          } else {
+            showToast('保存処理でエラーが発生しました');
+            if (submitBtn) {
+              submitBtn.disabled = false;
+              submitBtn.textContent = '保存する';
+            }
+          }
         }
-      } else {
-        // バックエンドが redirect(url_for('profile')) 等で HTML を返してきた場合のハンドリング
-        if (response.ok) {
-          showToast('プロフィールを保存しました');
-          setTimeout(() => { window.location.href = '/profile'; }, 1000);
-        } else {
-          showToast('保存処理でエラーが発生しました');
+      } catch (err) {
+        showToast('通信エラーが発生しました');
+        if (submitBtn) {
           submitBtn.disabled = false;
           submitBtn.textContent = '保存する';
         }
       }
-<<<<<<< HEAD
-    } catch (error) {
-      console.error('エラー:', error);
-      showToast('通信エラーが発生しました');
-      submitBtn.disabled = false;
-      submitBtn.textContent = '保存する';
-    }
-  });
-}});
-=======
     });
   }
 
@@ -274,51 +277,48 @@ if (profileForm) {
       if (!window.confirm('変更を破棄してもよろしいですか？')) return;
       window.location.href = '/profile';
     });
-}
+  }
 
-});
-// 「プロフィール」の見出し文字を1文字ずつspanで包み、
-// 転がりながら登場するアニメーションを順番に適用する
-document.addEventListener('DOMContentLoaded', () => {
-    const title = document.getElementById('profileTitle');
-    if (!title) return;
-
+  /* ---------------------------------------
+     6. アニメーション & いいねボタン
+  --------------------------------------- */
+  const title = document.getElementById('profileTitle');
+  if (title) {
     const text = title.textContent;
     title.textContent = '';
-
     [...text].forEach((char, i) => {
-        const span = document.createElement('span');
-        span.className = 'roll-char';
-        span.textContent = char === ' ' ? '\u00A0' : char;
-        span.style.animationDelay = `${i * 0.08}s`;
-        title.appendChild(span);
+      const span = document.createElement('span');
+      span.className = 'roll-char';
+      span.textContent = char === ' ' ? '\u00A0' : char;
+      span.style.animationDelay = `${i * 0.08}s`;
+      title.appendChild(span);
     });
-});
+  }
 
-document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.like-btn').forEach(btn => {
-      btn.addEventListener('click', async () => {
-          const postId = btn.dataset.postId;
-          const response = await fetch('/posts/likes', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-              body: `post_id=${postId}`
-          });
-          if (response.ok) {
-              const result = await response.json();
-              const countSpan = btn.querySelector('.like-count');
-              let count = parseInt(countSpan.textContent);
-
-              if (result.liked) {
-                  count += 1;
-                  btn.dataset.liked = 'true';
-              } else {
-                  count -= 1;
-                  btn.dataset.liked = 'false';
-              }
-              countSpan.textContent = count;
-          }
+    btn.addEventListener('click', async () => {
+      const postId = btn.dataset.postId;
+      const response = await fetch('/posts/likes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `post_id=${postId}`
       });
+      if (response.ok) {
+        const result = await response.json();
+        const countSpan = btn.querySelector('.like-count');
+        if (countSpan) {
+          let count = parseInt(countSpan.textContent) || 0;
+          if (result.liked) {
+            count += 1;
+            btn.dataset.liked = 'true';
+          } else {
+            count -= 1;
+            btn.dataset.liked = 'false';
+          }
+          countSpan.textContent = count;
+        }
+      }
+    });
   });
+
 });
->>>>>>> 48e9eae439a24f4f773a47d5d67f068525ee8401
