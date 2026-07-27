@@ -62,7 +62,6 @@ def fetch_posts(db, category_id="", post_type="", search_query="", sort_type="ne
         {order_by}
     """
 
-    # SELECT句内の1つ目の ? (user_id) と WHERE句のパラメータを順番通り結合
     query_params = [user_id] + where_params
 
     rows = db.execute(query, query_params).fetchall()
@@ -206,8 +205,8 @@ def top_teach():
     )
 
 
-@posts.route("/profile", methods=['GET', 'POST'])
-def profile():
+@posts.route("/profile_edit", methods=['GET', 'POST'])
+def profile_edit():
     if 'user_email' not in session:
         return redirect('/login')
 
@@ -215,15 +214,14 @@ def profile():
     user_id = session.get('user_id')
     db = get_db()
 
+    # --- POSTリクエスト（編集保存時の処理） ---
     if request.method == 'POST':
         name = request.form.get('name', '').strip()
         department = request.form.get('department', '')
         grade = request.form.get('grade', '')
-        introduction = request.form.get('bio', '')
+        introduction = request.form.get('bio') or request.form.get('introduction', '')
 
-        if not name:
-            return jsonify({'message': '名前を入力してください'}), 400
-        
+        # スキル同期処理
         teach_skills_json = request.form.get('teachSkills', '[]')
         learn_skills_json = request.form.get('learnSkills', '[]')
 
@@ -262,23 +260,21 @@ def profile():
         sync_skills('教えたい', teach_skill_names)
         sync_skills('学びたい', learn_skill_names)
 
-        # アイコン画像の保存処理
+        # アイコン画像の保存
         icon_path = None
-        avatar_file = request.files.get('avatar')
+        avatar_file = request.files.get('avatar') or request.files.get('icon')
         if avatar_file and avatar_file.filename:
             allowed_ext = {'.png', '.jpg', '.jpeg', '.gif'}
             ext = os.path.splitext(avatar_file.filename)[1].lower()
-            if ext not in allowed_ext:
-                return jsonify({'message': '対応していない画像形式です'}), 400
+            if ext in allowed_ext:
+                filename = secure_filename(f"user_{user_id}{ext}")
+                upload_dir = os.path.join('static', 'uploads')
+                os.makedirs(upload_dir, exist_ok=True)
+                save_path = os.path.join(upload_dir, filename)
+                avatar_file.save(save_path)
+                icon_path = f"uploads/{filename}"
 
-            filename = secure_filename(f"user_{user_id}{ext}")
-            upload_dir = os.path.join('static', 'uploads')
-            os.makedirs(upload_dir, exist_ok=True)
-            save_path = os.path.join(upload_dir, filename)
-            avatar_file.save(save_path)
-
-            icon_path = f"uploads/{filename}"
-
+        # データベース更新
         if icon_path:
             db.execute(
                 "UPDATE users SET name = ?, department = ?, grade = ?, introduction = ?, icon_path = ? WHERE email = ?",
@@ -289,9 +285,58 @@ def profile():
                 "UPDATE users SET name = ?, department = ?, grade = ?, introduction = ? WHERE email = ?",
                 (name, department, grade, introduction, user_email)
             )
+
         db.commit()
 
-        return jsonify({'message': 'プロフィールを保存しました'}), 200
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.is_json:
+            return jsonify({'message': 'プロフィールを保存しました'}), 200
+        else:
+            return redirect('/profile')
+
+    # --- GETリクエスト（編集画面の表示） ---
+    row = db.execute(
+        "SELECT name, email, department, grade, introduction, icon_path FROM users WHERE email = ?",
+        (user_email,)
+    ).fetchone()
+
+    user = None
+    if row:
+        user = {
+            'name': row[0],
+            'email': row[1],
+            'department': row[2],
+            'grade': row[3],
+            'introduction': row[4],
+            'icon_path': row[5]
+        }
+
+    teach_rows = db.execute("""
+        SELECT DISTINCT skills.skill_id, skills.skill_name 
+        FROM posts
+        JOIN skills ON posts.skill_id = skills.skill_id
+        WHERE posts.user_id = ? AND posts.post_type = '教えたい'
+    """, (user_id,)).fetchall()
+    teach_skills = [{'skill_id': r[0], 'skill_name': r[1]} for r in teach_rows]
+
+    learn_rows = db.execute("""
+        SELECT DISTINCT skills.skill_id, skills.skill_name 
+        FROM posts
+        JOIN skills ON posts.skill_id = skills.skill_id
+        WHERE posts.user_id = ? AND posts.post_type = '学びたい'
+    """, (user_id,)).fetchall()
+    learn_skills = [{'skill_id': r[0], 'skill_name': r[1]} for r in learn_rows]
+
+    return render_template('profile_edit.html', user=user, teach_skills=teach_skills, learn_skills=learn_skills)
+
+
+@posts.route("/profile", methods=['GET'])
+def profile():
+    if 'user_email' not in session:
+        return redirect('/login')
+
+    user_email = session['user_email']
+    user_id = session.get('user_id')
+    db = get_db()
 
     row = db.execute(
         "SELECT name, email, department, grade, introduction, icon_path FROM users WHERE email = ?",
@@ -352,72 +397,6 @@ def profile():
         })
 
     return render_template('profile.html', user=user, skills_teach=skills_teach, skills_learn=skills_learn, my_posts=my_posts)
-
-@posts.route("/profile_edit", methods=['GET', 'POST'])
-def profile_edit():
-    if 'user_email' not in session:
-        return redirect('/login')
-
-    user_email = session['user_email']
-    user_id = session.get('user_id')
-    db = get_db()
-    row = db.execute(
-        "SELECT name, email, department, grade, introduction, icon_path FROM users WHERE email = ?",
-        (user_email,)
-    ).fetchone()
-
-    user = None
-    if row:
-        user = {
-            'name': row[0],
-            'email': row[1],
-            'department': row[2],
-            'grade': row[3],
-            'introduction': row[4],
-            'icon_path': row[5]
-        }
-
-    teach_rows = db.execute("""
-        SELECT DISTINCT skills.skill_id, skills.skill_name 
-        FROM posts
-        JOIN skills ON posts.skill_id = skills.skill_id
-        WHERE posts.user_id = ? AND posts.post_type = '教えたい'
-    """, (user_id,)).fetchall()
-    teach_skills = [{'skill_id': r[0], 'skill_name': r[1]} for r in teach_rows]
-
-    learn_rows = db.execute("""
-        SELECT DISTINCT skills.skill_id, skills.skill_name 
-        FROM posts
-        JOIN skills ON posts.skill_id = skills.skill_id
-        WHERE posts.user_id = ? AND posts.post_type = '学びたい'
-    """, (user_id,)).fetchall()
-    learn_skills = [{'skill_id': r[0], 'skill_name': r[1]} for r in learn_rows]
-
-    return render_template('profile_edit.html', user=user, teach_skills=teach_skills, learn_skills=learn_skills)
-
-@posts.route("/profile/edit", methods=['GET', 'POST'])
-def edit_profile():
-    if 'user_email' not in session:
-        return redirect('/login')
-
-    user_email = session['user_email']
-    db = get_db()
-
-    if request.method == 'POST':
-        name = request.form.get('name', '')
-        department = request.form.get('department', '')
-        grade = request.form.get('grade', '')
-        introduction = request.form.get('introduction', '')
-        icon_path = request.form.get('icon_path', '')
-
-        db.execute(
-            "UPDATE users SET name = ?, department = ?, grade = ?, introduction = ?, icon_path = ? WHERE email = ?",
-            (name, department, grade, introduction, icon_path, user_email)
-        )
-        db.commit()
-        return redirect('/profile')
-
-    return redirect('/profile')
 
 
 @posts.route("/posts", methods=['GET', 'POST'])
