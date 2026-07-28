@@ -28,7 +28,7 @@
 
                 <div class="form-group">
                     <p>カテゴリを選択してください：</p>
-                    <select id="category_select">
+                    <select id="category_select" name="category_id">
                         <option value="">-- カテゴリを選択してください --</option>
                         {% for c in categories %}
                         <option value="{{ c.category_id }}">{{ c.category_name }}</option>
