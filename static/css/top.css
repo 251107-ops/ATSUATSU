@@ -288,3 +288,29 @@ a {
 .fav:hover {
     color: #e57373;
 }
+
+.like-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    font-family: inherit;
+    font-size: 14px;
+    color: #b0bec5;
+    cursor: pointer;
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    transition: color 0.2s;
+}
+
+.like-btn:hover {
+    color: #e57373;
+}
+
+.like-btn[data-liked="true"] {
+    color: #e57373;
+}
+
+.like-btn[data-liked="true"]:hover {
+    color: #ef5350;
+}

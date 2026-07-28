@@ -113,7 +113,7 @@ def register2():
 
         return redirect('/login')  # 登録完了後にログインページへリダイレクト
     else:
-        error_message = '入力されたデータにはエラーがあります'
+        error_message = 'このデータは既に登録されています'
         return render_template('register1.html', error_message=error_message, name=name, email=email, password=password)
 
 

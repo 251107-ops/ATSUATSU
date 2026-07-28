@@ -2,9 +2,9 @@
    共通・ベーススタイル
    ========================================== */
 body {
-    /* font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;  ← 削除 */
     background-color: var(--bg-color);
     color: var(--text-main);
+    font-family: var(--font-family-base); /* 変数のフォントを適用 */
     margin: 0;
     padding: 0;
     line-height: 1.6;
@@ -14,202 +14,34 @@ a {
     text-decoration: none;
     color: inherit;
 }
+
 /* ==========================================
-   ヒーローエリア（メインビジュアル部）
+   お気に入りページ全体
    ========================================== */
-.hero {
+.like-page-wrap {
     max-width: 1200px;
-    margin: 40px auto 20px;
+    margin: 40px auto 60px;
     padding: 0 5%;
 }
 
-/* ヒーローの見出し文字を1文字ずつアニメーション */
-/* ==========================================
-   ヒーローエリア（メインビジュアル部）
-   ========================================== */
-.hero {
-    max-width: 1200px;
-    margin: 40px auto 20px;
-    padding: 0 5%;
-}
-
-/* ヒーローの見出し文字を1文字ずつアニメーション */
-.hero-title {
-    font-size: 36px;
+.like-page-title {
+    font-size: 24px;
     font-weight: bold;
-    margin-bottom: 15px;
-    line-height: 1.3;
-    animation: gradientMove 4s ease-in-out infinite;
+    color: var(--text-main);
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
-.hero-title .char {
-    display: inline-block;
-    opacity: 0;
-    transform: translateY(20px);
-    animation: charFadeUp 0.6s ease forwards;
-}
-
-@keyframes charFadeUp {
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-@keyframes gradientMove {
-    0% { background-position: 0% center; }
-    50% { background-position: 100% center; }
-    100% { background-position: 0% center; }
-}
-
-.hero-sub {
-    font-size: 16px;
+.like-page-title span {
+    font-size: 18px;
+    font-weight: normal;
     color: var(--text-sub);
-    margin: 0;
-    opacity: 0;
-    animation: fadeIn 0.8s ease 1.2s forwards;
 }
-
-@keyframes fadeIn {
-    to { opacity: 1; }
-}
-
-@keyframes gradientMove {
-    0% { background-position: 0% center; }
-    50% { background-position: 100% center; }
-    100% { background-position: 0% center; }
-}
-
-.hero-sub {
-    font-size: 16px;
-    color: var(--text-sub);
-    margin: 0;
-    opacity: 0;
-    animation: fadeIn 0.8s ease 1.2s forwards;
-}
-
-@keyframes fadeIn {
-    to { opacity: 1; }
-}
-
 /* ==========================================
-   検索・フィルターエリア
+   カードのグリッド配置
    ========================================== */
-.search-area {
-    max-width: 1200px;
-    margin: 0 auto 40px;
-    padding: 0 5%;
-}
-
-/* 検索バー */
-.search-bar {
-    display: flex;
-    background-color: #ffffff;
-    border-radius: 30px;
-    padding: 6px 6px 6px 20px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
-    align-items: center;
-    margin-bottom: 20px;
-    border: 1px solid var(--border-color);
-}
-
-.search-bar input {
-    flex: 1;
-    border: none;
-    outline: none;
-    font-size: 16px;
-    color: var(--text-main);
-}
-
-.search-bar input::placeholder {
-    color: #b0bec5;
-}
-
-.btn-primary {
-    background-color: var(--primary-color);
-    color: #ffffff;
-    border: none;
-    padding: 12px 35px;
-    border-radius: 24px;
-    font-size: 16px;
-    font-weight: bold;
-    cursor: pointer;
-    transition: background-color 0.2s;
-}
-
-.btn-primary:hover {
-    background-color: var(--primary-hover);
-}
-
-/* フィルターボタン・セレクト */
-.filters {
-    display: flex;
-    gap: 12px;
-    align-items: center;
-    flex-wrap: wrap;
-}
-
-.filter-btn {
-    background-color: #ffffff;
-    border: 1px solid var(--border-color);
-    padding: 8px 20px;
-    border-radius: 20px;
-    font-size: 14px;
-    font-weight: 500;
-    color: var(--text-main);
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.filter-btn.active {
-    background-color: var(--primary-color);
-    color: #ffffff;
-    border-color: var(--primary-color);
-}
-
-.filters select {
-    background-color: #ffffff;
-    border: 1px solid var(--border-color);
-    padding: 8px 16px;
-    border-radius: 10px;
-    font-size: 14px;
-    color: var(--text-main);
-    outline: none;
-    cursor: pointer;
-}
-
-/* ==========================================
-   スキルカードセクション
-   ========================================== */
-.skills-section {
-    max-width: 1200px;
-    margin: 0 auto 60px;
-    padding: 0 5%;
-}
-
-.section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-}
-
-.section-header h2 {
-    font-size: 20px;
-    font-weight: bold;
-    margin: 0;
-}
-
-.sort-select {
-    background: transparent;
-    border: none;
-    font-size: 14px;
-    color: var(--text-sub);
-    cursor: pointer;
-    outline: none;
-}
-
-/* カードのグリッド配置 */
 .cards {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -222,7 +54,7 @@ a {
     border-radius: 16px;
     padding: 24px;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.02);
-    border: 1px solid rgba(226, 232, 240, 0.8);
+    border: 1px solid var(--border-color); /* 変数に統一 */
     display: flex;
     flex-direction: column;
     position: relative;
@@ -247,7 +79,7 @@ a {
     height: 44px;
     border-radius: 50%;
     object-fit: cover;
-    background-color: #e2e8f0; /* 画像がない場合の仮背景 */
+    background-color: var(--bg-color);
 }
 
 .card-top div {
@@ -280,12 +112,11 @@ a {
     font-weight: bold;
     padding: 4px 12px;
     border-radius: 8px;
-    /* デフォルトは薄いブルーのタグ */
     background-color: var(--tag-blue-bg);
     color: var(--tag-blue-text);
 }
 
-/* HTMLの動的なバッジ判定用（教えたい / 学びたい） */
+/* 動的バッジ判定用（教えたい / 学びたい） */
 .badge {
     font-size: 12px;
     font-weight: bold;
@@ -293,6 +124,7 @@ a {
     border-radius: 8px;
 }
 
+/* variables.css の変数名と一致するように修正 */
 .badge.teach {
     background-color: var(--tag-teach-bg);
     color: var(--tag-teach-text);
@@ -308,20 +140,38 @@ a {
     font-size: 14px;
     color: var(--text-main);
     margin: 0 0 20px 0;
-    flex: 1; /* テキスト量に関わらず高さを揃える */
+    flex: 1;
+    word-break: break-word; /* 長文対策 */
+    white-space: pre-wrap;
 }
 
-/* お気に入り（ブックマーク）アイコン風 */
-.fav {
-    position: absolute;
-    bottom: 20px;
-    right: 20px;
-    font-size: 14px;
-    color: #b0bec5;
+/* いいねボタン */
+.like-btn {
+    align-self: flex-start;
+    margin-top: auto; /* ボタンを常にカードの一番下に寄せる */
+    background-color: var(--tag-blue-bg);
+    color: var(--primary-color);
+    border: none;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: bold;
     cursor: pointer;
-    transition: color 0.2s;
+    transition: background-color 0.2s, color 0.2s;
 }
 
-.fav:hover {
-    color: #e57373;
+.like-btn:hover {
+    background-color: var(--primary-hover); /* ホバー時の変数を適用 */
+    color: #ffffff;
+}
+
+/* 投稿が無い場合の表示 */
+.no-posts {
+    grid-column: 1 / -1;
+    text-align: center;
+    color: var(--text-sub);
+    background-color: var(--card-bg);
+    padding: 40px 20px;
+    border-radius: 16px;
+    border: 1px dashed var(--border-color);
 }
