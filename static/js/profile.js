@@ -48,8 +48,10 @@ document.addEventListener('DOMContentLoaded', () => {
       reader.onload = (event) => {
         const dataUrl = event.target.result;
 
-        avatarImg.src = dataUrl;
-        avatarImg.classList.remove('is-hidden');
+        if (avatarImg) {
+          avatarImg.src = dataUrl;
+          avatarImg.classList.remove('is-hidden');
+        }
         if (avatarPlaceholder) avatarPlaceholder.classList.add('is-hidden');
 
         if (headerAvatarImg) {
@@ -87,6 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const listId = this.dataset.target;
       const variant = this.dataset.variant; // 'teach' または 'learn'
       const list = document.getElementById(listId);
+      if (!list) return;
 
       const currentCount = list.querySelectorAll('.tag').length;
       if (currentCount >= MAX_SKILLS_PER_TYPE) {
@@ -117,7 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // 新しいタグ要素（span）を作成
       const tag = document.createElement('span');
       tag.className = `tag tag--${variant}`;
-      tag.textContent = trimmed; // スキル名をセット（textContentなのでXSSの心配なし）
+      tag.textContent = trimmed;
 
       // 削除ボタン（×）を作成してタグの中に追加
       const removeBtn = document.createElement('button');
@@ -125,7 +128,7 @@ document.addEventListener('DOMContentLoaded', () => {
       removeBtn.className = 'tag__remove';
       removeBtn.setAttribute('aria-label', `${trimmed}を削除`);
       removeBtn.textContent = '×';
-      attachRemoveHandler(removeBtn); // 削除機能をつける
+      attachRemoveHandler(removeBtn);
 
       tag.appendChild(removeBtn);
 
@@ -185,15 +188,11 @@ document.addEventListener('DOMContentLoaded', () => {
       e.preventDefault();
 
       const nameInput = document.getElementById('name');
-      if (!nameInput.value.trim()) {
+      if (!nameInput || !nameInput.value.trim()) {
         showToast('名前を入力してください');
-        nameInput.focus();
+        if (nameInput) nameInput.focus();
         return;
       }
-
-      // 安全に×ボタン以外のテキストだけを取得する
-      const teachSkills = getTagNames(document.getElementById('teachSkillList'))
-        .map((s) => s); // 既に trim/lowercase 済み表示用ではないので下で元の大小文字を取り直す
 
       const teachSkillsDisplay = Array.from(document.querySelectorAll('#teachSkillList .tag'))
         .map((t) => t.childNodes[0].textContent.trim());
@@ -201,71 +200,125 @@ document.addEventListener('DOMContentLoaded', () => {
         .map((t) => t.childNodes[0].textContent.trim());
 
       const formData = new FormData();
-      formData.append('csrf_token', document.querySelector('input[name="csrf_token"]').value);
+
+      // CSRFトークンが存在する場合のみ取得
+      const csrfInput = document.querySelector('input[name="csrf_token"]');
+      if (csrfInput) {
+        formData.append('csrf_token', csrfInput.value);
+      }
+
       formData.append('name', nameInput.value.trim());
-      formData.append('grade', document.getElementById('grade').value);
-      formData.append('department', document.getElementById('department').value);
+      formData.append('grade', document.getElementById('grade')?.value || '');
+      formData.append('department', document.getElementById('department')?.value || '');
+
+      // ★Flask側（routes/posts.py）の受け取り名 'bio' に合わせる
       formData.append('bio', bioInput ? bioInput.value : '');
 
       formData.append('teachSkills', JSON.stringify(teachSkillsDisplay));
       formData.append('learnSkills', JSON.stringify(learnSkillsDisplay));
 
+      // ★Flask側（routes/posts.py）の受け取り名 'avatar' に合わせる
       if (avatarInput && avatarInput.files[0]) {
         formData.append('avatar', avatarInput.files[0]);
       }
 
-      // 連打による二重送信防止
-      submitBtn.disabled = true;
-      submitBtn.textContent = '保存中...';
+      // 二重送信防止
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = '保存中...';
+      }
 
       try {
-        const response = await fetch('/profile', {
+        const targetUrl = profileForm.getAttribute('action') || '/profile';
+
+        const response = await fetch(targetUrl, {
           method: 'POST',
           body: formData
         });
 
-        const result = await response.json();
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          const result = await response.json();
 
-        if (response.ok) {
-          showToast(result.message || 'プロフィールを保存しました');
-          setTimeout(() => { window.location.href = '/profile'; }, 1000);
+          if (response.ok) {
+            showToast(result.message || 'プロフィールを保存しました');
+            setTimeout(() => { window.location.href = '/profile'; }, 1000);
+          } else {
+            showToast(result.message || '保存に失敗しました');
+            if (submitBtn) {
+              submitBtn.disabled = false;
+              submitBtn.textContent = '保存する';
+            }
+          }
         } else {
-          showToast(result.message || '保存に失敗しました');
+          if (response.ok) {
+            showToast('プロフィールを保存しました');
+            setTimeout(() => { window.location.href = '/profile'; }, 1000);
+          } else {
+            showToast('保存処理でエラーが発生しました');
+            if (submitBtn) {
+              submitBtn.disabled = false;
+              submitBtn.textContent = '保存する';
+            }
+          }
+        }
+      } catch (err) {
+        showToast('通信エラーが発生しました');
+        if (submitBtn) {
           submitBtn.disabled = false;
           submitBtn.textContent = '保存する';
         }
-      } catch (error) {
-        console.error('エラー:', error);
-        showToast('通信エラーが発生しました');
-        submitBtn.disabled = false;
-        submitBtn.textContent = '保存する';
       }
     });
   }
 
   if (cancelBtn) {
     cancelBtn.addEventListener('click', () => {
-        if (!window.confirm('変更を破棄してもよろしいですか？')) return;
-        showToast('変更をキャンセルしました');
-        setTimeout(() => { window.location.href = '/profile'; }, 800);
+      if (!window.confirm('変更を破棄してもよろしいですか？')) return;
+      window.location.href = '/profile';
     });
-}
+  }
 
-});
-// 「プロフィール」の見出し文字を1文字ずつspanで包み、
-// 転がりながら登場するアニメーションを順番に適用する
-document.addEventListener('DOMContentLoaded', () => {
-    const title = document.getElementById('profileTitle');
-    if (!title) return;
-
+  /* ---------------------------------------
+     6. アニメーション & いいねボタン
+  --------------------------------------- */
+  const title = document.getElementById('profileTitle');
+  if (title) {
     const text = title.textContent;
     title.textContent = '';
-
     [...text].forEach((char, i) => {
-        const span = document.createElement('span');
-        span.className = 'roll-char';
-        span.textContent = char === ' ' ? '\u00A0' : char;
-        span.style.animationDelay = `${i * 0.08}s`;
-        title.appendChild(span);
+      const span = document.createElement('span');
+      span.className = 'roll-char';
+      span.textContent = char === ' ' ? '\u00A0' : char;
+      span.style.animationDelay = `${i * 0.08}s`;
+      title.appendChild(span);
     });
+  }
+
+  document.querySelectorAll('.like-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const postId = btn.dataset.postId;
+      const response = await fetch('/posts/likes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `post_id=${postId}`
+      });
+      if (response.ok) {
+        const result = await response.json();
+        const countSpan = btn.querySelector('.like-count');
+        if (countSpan) {
+          let count = parseInt(countSpan.textContent) || 0;
+          if (result.liked) {
+            count += 1;
+            btn.dataset.liked = 'true';
+          } else {
+            count -= 1;
+            btn.dataset.liked = 'false';
+          }
+          countSpan.textContent = count;
+        }
+      }
+    });
+  });
+
 });
