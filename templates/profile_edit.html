@@ -11,26 +11,27 @@
 </head>
 <body>
 
-   {% include 'header.html' %}
+  {% include 'header.html' %}
 
   <div class="layout">
 
+    <!-- サイドバー -->
     <aside class="sidebar">
-      <button class="side-link side-link--active" data-target="profile">
-        <a href="/profile"><span class="side-link__icon">◎</span>プロフィール</a>
-      </button>
-      <button class="side-link" data-target="skills">
+      <a href="/profile" class="side-link side-link--active">
+        <span class="side-link__icon">◎</span>プロフィール
+      </a>
+      <button type="button" class="side-link" data-target="skills">
         <span class="side-link__icon">▦</span>スキル管理
       </button>
-      <button class="side-link" data-target="favorites">
+      <button type="button" class="side-link" data-target="favorites">
         <span class="side-link__icon">♡</span>お気に入り
       </button>
-      <button class="side-link" data-target="notifications">
+      <button type="button" class="side-link" data-target="notifications">
         <span class="side-link__icon">♪</span>通知
       </button>
-      <button class="side-link" data-target="settings">
+      <a href="/change-password" class="side-link">
         <span class="side-link__icon">⚙</span>設定
-      </button>
+      </a>
     </aside>
 
     <main class="main">
@@ -39,8 +40,10 @@
         <p class="main__note"><span class="required">*</span>は必須項目です</p>
       </div>
 
-      <form id="profileForm" class="profile-card" method="POST" enctype="multipart/form-data" novalidate>
-        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <form id="profileForm" class="profile-card" action="/profile_edit" method="POST" enctype="multipart/form-data" novalidate>
+        {% if csrf_token %}
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        {% endif %}
 
         <div class="avatar-block">
           <div class="avatar-wrap">
@@ -51,10 +54,13 @@
               <img id="avatarImg" class="avatar-img is-hidden" src="" alt="プロフィール画像">
               <span id="avatarPlaceholder" class="avatar-placeholder">{{ user.name[:2] if user else '田中' }}</span>
             {% endif %}
-            <button type="file" class="avatar-cam-btn" id="avatarCamBtn" aria-label="画像を変更">📷</button>
-            <input type="file" id="avatarInput" accept="image/png, image/jpeg, image/gif" value="アイコンを変更">
+
+            <!-- label をクリックすることで非表示にした input が開きます -->
+            <label for="avatarInput" class="avatar-cam-btn" aria-label="画像を変更">📷</label>
+            <input type="file" id="avatarInput" name="icon" accept="image/png, image/jpeg, image/gif">
           </div>
-          <button type="button" class="btn btn--outline btn--sm" id="avatarChangeBtn">アイコンを変更</button>
+          
+          <label for="avatarInput" class="btn btn--outline btn--sm" id="avatarChangeBtn">アイコンを変更</label>
           <p class="avatar-hint">PNG / JPEG / GIF、3MBまで</p>
         </div>
 
@@ -67,20 +73,20 @@
           <div class="field">
             <label for="grade">学年<span class="required">*</span></label>
             <select id="grade" name="grade" required>
-              <option {% if user and user.grade == '1年' %}selected{% endif %}>1年</option>
-              <option {% if user and user.grade == '2年' %}selected{% endif %}>2年</option>
-              <option {% if user and user.grade == '3年' %}selected{% endif %}>3年</option>
-              <option {% if user and user.grade == '4年' %}selected{% endif %}>4年</option>
+              <option value="1年" {% if user and user.grade == '1年' %}selected{% endif %}>1年</option>
+              <option value="2年" {% if user and user.grade == '2年' %}selected{% endif %}>2年</option>
+              <option value="3年" {% if user and user.grade == '3年' %}selected{% endif %}>3年</option>
+              <option value="4年" {% if user and user.grade == '4年' %}selected{% endif %}>4年</option>
             </select>
           </div>
 
           <div class="field">
             <label for="department">学科<span class="required">*</span></label>
             <select id="department" name="department" required>
-              <option {% if user and user.department == '情報システム' %}selected{% endif %}>情報システム</option>
-              <option {% if user and user.department == 'ゲームクリエイター' %}selected{% endif %}>ゲームクリエイター</option>
-              <option {% if user and user.department == 'CGデザイナー' %}selected{% endif %}>CGデザイナー</option>
-              <option {% if user and user.department == '先端テクノロジー' %}selected{% endif %}>先端テクノロジー</option>
+              <option value="情報システム" {% if user and user.department == '情報システム' %}selected{% endif %}>情報システム</option>
+              <option value="ゲームクリエイター" {% if user and user.department == 'ゲームクリエイター' %}selected{% endif %}>ゲームクリエイター</option>
+              <option value="CGデザイナー" {% if user and user.department == 'CGデザイナー' %}selected{% endif %}>CGデザイナー</option>
+              <option value="先端テクノロジー" {% if user and user.department == '先端テクノロジー' %}selected{% endif %}>先端テクノロジー</option>
             </select>
           </div>
 
@@ -112,8 +118,8 @@
         </div>
 
         <div class="form-actions">
-          <button type="button" class="btn btn--outline" id="cancelBtn">キャンセル</button>
-          <button type="submit" formaction="/profile" class="btn btn--primary" id="submitBtn">保存する</button>
+          <a href="/profile" class="btn btn--outline" id="cancelBtn">キャンセル</a>
+          <button type="submit" class="btn btn--primary" id="submitBtn">保存する</button>
         </div>
       </form>
     </main>
