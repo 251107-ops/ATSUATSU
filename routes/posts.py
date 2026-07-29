@@ -15,11 +15,11 @@ def fetch_posts(db, category_id="", post_type="", search_query="", sort_type="ne
 
     if category_id:
         conditions.append("posts.category_id = ?")
-        where_params.append(category_id)
+        params.append(category_id)
 
     if post_type:
         conditions.append("posts.post_type = ?")
-        where_params.append(post_type)
+        params.append(post_type)
 
     if grade:
         conditions.append("users.grade = ?")
@@ -27,12 +27,12 @@ def fetch_posts(db, category_id="", post_type="", search_query="", sort_type="ne
 
     if department:
         conditions.append("users.department = ?")
-        where_params.append(department)
+        params.append(department)
 
     if search_query:
         conditions.append("(skills.skill_name LIKE ? OR users.department LIKE ? OR users.grade LIKE ?)")
         search_pattern = f"%{search_query}%"
-        where_params.extend([search_pattern, search_pattern, search_pattern])
+        params.extend([search_pattern, search_pattern, search_pattern])
 
     where_clause = "WHERE " + " AND ".join(conditions) if conditions else ""
 
@@ -505,7 +505,15 @@ def create_post():
 
     preset_type = request.args.get('type', '')
     categories = db.execute("SELECT category_id, category_name FROM categories").fetchall()
-    skills = db.execute("SELECT skill_id, skill_name, category_id FROM skills").fetchall()
+    skill_rows = db.execute("SELECT skill_id, skill_name, category_id FROM skills").fetchall()
+    skills = [
+        {
+            'skill_id': r[0],
+            'skill_name': r[1],
+            'category_id': r[2]
+        } 
+        for r in skill_rows
+    ]
     return render_template('posts.html', categories=categories, skills=skills, preset_type=preset_type)
 
 
