@@ -18,38 +18,35 @@
             <h2>新規投稿作成</h2>
             <form method="POST" action="/posts">
 
+                <!-- 募集タイプ -->
                 <div class="form-group">
                     <p>募集タイプを選択してください：</p>
-                    <select name="post_type" required>
-                        <option value="教えたい" {% if preset_type == '教えたい' %}selected{% endif %}>教えたい</option>
-                        <option value="学びたい" {% if preset_type == '学びたい' %}selected{% endif %}>学びたい</option>
+                    <select name="post_type">
+                        <option value="教えたい" {{ 'selected' if preset_type == '教えたい' }}>教えたい</option>
+                        <option value="学びたい" {{ 'selected' if preset_type == '学びたい' }}>学びたい</option>
                     </select>
                 </div>
 
+                <!-- カテゴリ選択（JSの連動とサーバー送信を兼用） -->
                 <div class="form-group">
-                    <p>カテゴリを選択してください：</p>
+                    <p>対応するカテゴリを選択してください：</p>
                     <select id="category_select" name="category_id" required>
                         <option value="">-- カテゴリを選択してください --</option>
                         {% for c in categories %}
-                        <option value="{{ c[0] }}">
-                            {{ c[1] }}
-                        </option>
+                        <option value="{{ c.category_id }}">{{ c.category_name }}</option>
                         {% endfor %}
                     </select>
                 </div>
 
-               <div class="form-group">
+                <!-- スキル選択（カテゴリ連動で動的に変わる） -->
+                <div class="form-group">
                     <p>対応するスキルを選択してください：</p>
                     <select id="skill_select" name="skill_id" required>
                         <option value="">-- 先にカテゴリを選んでください --</option>
-                        {% for s in skills %}
-                            <option value="{{ s[0] }}" data-category-id="{{ s[2] }}" style="display: none;">
-                                {{ s[1] }}
-                            </option>
-                        {% endfor %}
                     </select>
                 </div>
 
+                <!-- 投稿内容 -->
                 <div class="form-group">
                     <p>ここに投稿内容を入力してください。</p>
                     <textarea name="post_text" rows="8" placeholder="投稿内容を入力" required></textarea>
@@ -59,6 +56,7 @@
             </form>
         </div>
 
+        <!-- 新規スキル追加カード -->
         <div class="skill-add-card">
             <h2>新しいスキルをシステムに追加</h2>
             <form method="POST" action="/skill_edit">
@@ -70,6 +68,7 @@
             </form>
         </div>
 
+        <!-- 新規カテゴリ追加カード -->
         <div class="skill-add-card">
             <h2>新しいカテゴリをシステムに追加</h2>
             <form method="POST" action="/categories-add">
@@ -86,28 +85,44 @@
     {% include 'footer.html' %}
 
     <script>
-    document.getElementById('category_select').addEventListener('change', function() {
-        const categoryId = this.value;
-        const skillSelect = document.getElementById('skill_select');
-        const options = skillSelect.querySelectorAll('option');
+        // サーバーから渡された全スキルデータ
+        const allSkills = [
+            {% for s in skills %}
+            { id: {{ s.skill_id }}, name: "{{ s.skill_name }}", categoryId: {{ s.category_id if s.category_id else 'null' }} },
+            {% endfor %}
+        ];
 
-        
-        skillSelect.value = "";
+        document.getElementById('category_select').addEventListener('change', function() {
+            const categoryId = parseInt(this.value);
+            const skillSelect = document.getElementById('skill_select');
+            
+            // スキル選択肢をいったんリセット
+            skillSelect.innerHTML = '';
 
-        options.forEach(opt => {
-           
-            if (opt.value === "") {
-                opt.style.display = "block";
+            if (!categoryId) {
+                skillSelect.innerHTML = '<option value="">-- 先にカテゴリを選んでください --</option>';
                 return;
             }
 
-            if (opt.getAttribute('data-category-id') === categoryId) {
-                opt.style.display = "block";
-            } else {
-                opt.style.display = "none";
+            // 選択されたカテゴリに一致するスキルをフィルタリング
+            const filtered = allSkills.filter(s => s.categoryId === categoryId);
+
+            if (filtered.length === 0) {
+                skillSelect.innerHTML = '<option value="">-- このカテゴリにスキルがありません --</option>';
+                return;
             }
+
+            // 選択肢の初期メッセージを追加
+            skillSelect.innerHTML = '<option value="">-- スキルを選択してください --</option>';
+            
+            // フィルタリングしたスキルをプルダウンに追加
+            filtered.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s.id;
+                opt.textContent = s.name;
+                skillSelect.appendChild(opt);
+            });
         });
-    });
-</script>
+    </script>
 </body>
 </html>
