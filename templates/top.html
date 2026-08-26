@@ -19,21 +19,42 @@
         </section>
 
         <section class="search-area">
-            <div class="search-bar">
-                <form action="/posts/search" method="GET">
-                    <input type="text" name="query" placeholder="スキル名・学科・学年で検索">
-                <button class="btn-primary">検索</button>
-                </form>
-            </div>
+            <form action="/posts/search" method="GET" class="search-form">
+            <input type="text" name="query" placeholder="スキル名・学科・学年で検索">
+            <button type="submit" class="btn-primary">検索</button>
+        </form>
             <div class="filters">
+                <select name="category" onchange="updateFilter('category', this.value)">
+                    <option value="" {% if not selected_category %}selected{% endif %}>
+                        詳細検索
+                    </option>
+
+                {% for category in categories %}
+                    <option value="{{ category[0] }}" {% if selected_category|string == category[0]|string %}selected{% endif %}>
+                         {{ category[1] }}
+                    </option>
+                {% endfor %}
+                </select>
                 <a href="/" class="filter-btn {% if active_tab == 'all' %}active{% endif %}">すべて</a>
                 <a href="/top/teach" class="filter-btn {% if active_tab == 'teach' %}active{% endif %}">教えたい</a>
                 <a href="/top/learn" class="filter-btn {% if active_tab == 'learn' %}active{% endif %}">学びたい</a>
-                <select>
-                    <option>学科：すべて</option>
+                <select name="department" onchange="updateFilter('department', this.value)">
+                    <option value="" {% if not selected_department %}selected{% endif %}>学科：すべて</option>
+                    {% for department in departments %}
+                    <option value="{{ department[0] }}" {% if selected_department|string == department[0]|string %}selected{% endif %}>
+                        {{ department[0] }}
+                    </option>
+                    {% endfor %}
                 </select>
-                <select>
-                    <option>学年：すべて</option>
+                <select name="grade" onchange="updateFilter('grade', this.value)">
+                        <option value="" {% if not selected_grade %}selected{% endif %}>
+                            学年：すべて
+                        </option>
+                        {% for grade in grades %}
+                            <option value="{{ grade[0] }}" {% if selected_grade|string == grade[0]|string %}selected{% endif %}>
+                                {{ grade[0] }}
+                            </option>
+                        {% endfor %}
                 </select>
             </div>
         </section>
@@ -41,9 +62,9 @@
         <section class="skills-section">
             <div class="section-header">
                 <h2>注目のスキル</h2>
-                <select class="sort-select">
-                    <option>新着順</option>
-                    <option>人気順</option>
+                <select class="sort-select" onchange="location.href='?sort='+this.value;">
+                    <option value="new" {% if active_sort == 'new' %}selected{% endif %}>新着順</option>
+                    <option value="popular" {% if active_sort == 'popular' %}selected{% endif %}>人気順</option>
                 </select>
             </div>
 
@@ -54,7 +75,7 @@
                         <img src="{{ url_for('static', filename=post.icon_path) }}" alt="ユーザーアバター">
                         <div>
                             <span class="name">{{ post.name }}</span>
-                            <span class="meta">{{ post.department }} {{ post.grade }}</span>
+                            <span class="meta">{{ post.department }} {{ post.grade }}年</span>
                         </div>
                     </div>
                     <div class="tags">
@@ -63,10 +84,9 @@
                         <span class="badge {{ 'teach' if post.post_type == '教えたい' else 'learn' }}">{{ post.post_type }}</span>
                     </div>
                     <p class="body">{{ post.post_text }}</p>
-                    <form action="/posts/likes" method="POST">
-                        <input type="hidden" name="post_id" value="{{ post.post_id }}">
-                        <button type="submit" class="like-btn">{{post.like_count}}♥</button>
-                    </form>
+                    <button type="button" class="like-btn" data-post-id="{{ post.post_id }}" data-liked="{{ 'true' if post.liked_by_me else 'false' }}">
+                        <span class="like-count">{{ post.like_count }}</span>♥
+                    </button>
                     <!-- <span class="fav">{{ post.likes }} ♥</span> -->
                 </div>
                 {% else %}
@@ -79,5 +99,19 @@
     </main>
     <script src="{{ url_for('static', filename='js/top.js') }}"></script>
     {% include 'footer.html' %}
+
+
+
+<script>
+  function updateFilter(key, value) {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (value) {
+      urlParams.set(key, value);
+    } else {
+      urlParams.delete(key);
+    }
+    window.location.search = urlParams.toString();
+  }
+</script>
 </body>
 </html>

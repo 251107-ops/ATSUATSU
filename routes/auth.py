@@ -2,6 +2,7 @@ import os
 import sqlite3
 from flask import Blueprint, render_template, g, redirect, request, session
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError, InvalidHashError
 ph = PasswordHasher()
@@ -36,19 +37,18 @@ def login():
         if user_data:
             try:
                 if ph.verify(user_data['password'], password):
-                    session.clear() 
-                    
+                    session.clear()
+
                     session['user_email'] = email  # セッションにメールアドレスを保存（ログイン完了）
                     session['user_id'] = user_data['user_id']  # セッションにユーザーIDを保存
                     session['name'] = user_data['name']  # セッションにユーザー名を保存（Chat用）
                     session['room'] = None
-                    
+
                     session.modified = True
                     return redirect('/')
             except (VerifyMismatchError, InvalidHashError):
                 pass
 
-        
         error_message = '入力されたメールアドレスもしくはパスワードが誤っています'
 
     return render_template('login.html', email=email, error_message=error_message)
@@ -78,20 +78,42 @@ def register2():
     grade = request.form.get('grade', '')
     department = request.form.get('department', '')
     introduction = request.form.get('introduction', '')
-    icon_path = request.form.get('icon_path', '')
 
     db = get_db()
     user_check = db.execute("SELECT email FROM users WHERE email = ?", (email,)).fetchone()
 
     if not user_check:
-        db.execute(
+        # まずユーザーを登録し、自動採番されたuser_idを取得する
+        cursor = db.execute(
             "INSERT INTO users (name, email, password, grade, department, introduction, icon_path) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            (name, email, password, grade, department, introduction, icon_path)
+            (name, email, password, grade, department, introduction, '')
         )
         db.commit()
+        new_user_id = cursor.lastrowid
+
+        # アイコン画像が送信されていれば保存する
+        icon_file = request.files.get('icon')
+        if icon_file and icon_file.filename:
+            allowed_ext = {'.png', '.jpg', '.jpeg', '.gif'}
+            ext = os.path.splitext(icon_file.filename)[1].lower()
+
+            if ext in allowed_ext:
+                filename = secure_filename(f"user_{new_user_id}{ext}")
+                upload_dir = os.path.join('static', 'uploads')
+                os.makedirs(upload_dir, exist_ok=True)
+                save_path = os.path.join(upload_dir, filename)
+                icon_file.save(save_path)
+
+                icon_path = f"uploads/{filename}"
+                db.execute(
+                    "UPDATE users SET icon_path = ? WHERE user_id = ?",
+                    (icon_path, new_user_id)
+                )
+                db.commit()
+
         return redirect('/login')  # 登録完了後にログインページへリダイレクト
     else:
-        error_message = '入力されたデータにはエラーがあります'
+        error_message = 'このデータは既に登録されています'
         return render_template('register1.html', error_message=error_message, name=name, email=email, password=password)
 
 
@@ -100,6 +122,46 @@ def register2():
 def logout():
     session.clear()  # セッションからユーザー情報を削除（ログアウト）
     return redirect('/login')
+
+
+@auth.route("/change-password", methods=["GET", "POST"])
+def change_password():
+    error_message = ''
+    if 'user_id' not in session:
+        return redirect('/login')
+
+    user_id = session['user_id']
+
+    if request.method == "POST":
+        current_password = request.form.get('current_password', '')
+        new_password = request.form.get('new_password', '')
+        password_confirm = request.form.get('password_confirm', '')
+
+        db = get_db()
+        user_data = db.execute("SELECT password FROM users WHERE user_id=?", (user_id,)).fetchone()
+
+        current_valid = False
+
+        if user_data:
+            try:
+                current_valid = ph.verify(user_data['password'], current_password)
+            except (VerifyMismatchError, InvalidHashError):
+                current_valid = False
+
+        if not current_valid:
+            error_message = 'Current password is incorrect.'
+
+        elif new_password != password_confirm:
+            error_message = 'New passwords do not match.'
+
+        elif not new_password.strip():
+            error_message = 'New password cannot be empty.'
+        else:
+            new_pass_hash = ph.hash(new_password)
+            db.execute("UPDATE users set password = ? WHERE user_id = ?", (new_pass_hash, user_id))
+            db.commit()
+            return redirect('/profile')
+    return render_template('settings.html', error_message=error_message)
 
 
 # @auth.route("/top")

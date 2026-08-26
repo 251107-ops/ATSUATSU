@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>設定</title>
+</head>
+<body>
+    <h3>パスワードを更新する</h3>
+    {% if error_message %}
+        <p class="error">{{ error_message }}</p>
+    {% endif %}
+
+    <form method="POST">
+    現在のパスワード：<input type="password" id="current_password" name="current_password" required><br>
+    パスワード：<input type="password" id="new_password" name="new_password" required><br>
+    パスワード確認：<input type="password" id="password_confirm" name="password_confirm" required>
+    <button type="submit">更新する</button>
+    </form>
+</body>
+</html>
