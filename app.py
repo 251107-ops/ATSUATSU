@@ -1,19 +1,19 @@
 # --- app.py ---
 import os
-from flask import Flask, render_template
+from flask import Flask, render_template, session
 from flask_socketio import SocketIO, send
-from routes.auth import auth
 from routes.posts import posts
 from routes.skill import skill
 from routes.chat import chat, init_chat_events
 from routes.category import categories
-from routes.auth import get_db
+from routes.auth import auth, get_db, init_db
+from routes.requests import requests_bp
+from routes.notifications import notifications_bp
 
 app = Flask(__name__)
 
 # :bulb: 修正点: 開発中は固定の文字列にするか、Blueprintを登録する「前」に必ず設定します
 app.secret_key = '.secret_key'
-
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 # Blueprint の登録
@@ -22,8 +22,11 @@ app.register_blueprint(posts)
 app.register_blueprint(skill)
 app.register_blueprint(chat)
 app.register_blueprint(categories)
+app.register_blueprint(requests_bp)
+app.register_blueprint(notifications_bp)
 
 init_chat_events(socketio)
+init_db() 
 
 @app.after_request
 def add_header(response):
@@ -79,6 +82,26 @@ with app.app_context():
         SELECT 'その他スキル', category_id FROM categories WHERE category_name = 'その他'
     ''')
     db.commit()
+
+@app.context_processor
+def inject_unread_notifications():
+    if 'user_id' in session:
+        db = get_db()
+        count = db.execute(
+            "SELECT COUNT(*) FROM notifications WHERE user_id = ? AND is_read = 0",
+            (session['user_id'],)
+        ).fetchone()[0]
+        return {'unread_notifications': count}
+    return {'unread_notifications': 0}
+
+
+@app.after_request
+def add_header(response):
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0, max-age=0'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
+
 
 if __name__ == "__main__":
     socketio.run(app, debug=True)
