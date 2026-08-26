@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>リクエスト一覧 | スキルシェア</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/variables.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/footer.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/request_list.css') }}">
+</head>
+<body>
+    {% include 'header.html' %}
+
+    <div class="container">
+
+        <h2>受け取ったリクエスト</h2>
+        {% if received %}
+            <div class="request-list">
+                {% for req in received %}
+                    <div class="request-card">
+                        <div class="request-info">
+                            <p class="request-title">
+                                <strong>{{ req.partner_name }}</strong> さんから
+                                「{{ req.skill_name }}」（{{ req.post_type }}）への申し込み
+                            </p>
+                            <p class="request-meta">{{ req.created_at }}</p>
+                        </div>
+
+                        <div class="request-status">
+                            {% if req.status == 'pending' %}
+                                <span class="badge badge-pending">申し込み中</span>
+                            {% elif req.status == 'accepted' %}
+                                <span class="badge badge-accepted">対応中</span>
+                            {% elif req.status == 'completed' %}
+                                <span class="badge badge-completed">セッション完了</span>
+                            {% elif req.status == 'reviewed' %}
+                                <span class="badge badge-reviewed">評価済み</span>
+                            {% elif req.status == 'declined' %}
+                                <span class="badge badge-declined">お断り</span>
+                            {% endif %}
+                        </div>
+
+                        <div class="request-actions">
+                            {% if req.status == 'pending' %}
+                                <form action="{{ url_for('requests_bp.accept_request', request_id=req.request_id) }}" method="POST">
+                                    <button type="submit" class="btn">承認</button>
+                                </form>
+                                <form action="{{ url_for('requests_bp.decline_request', request_id=req.request_id) }}" method="POST">
+                                    <button type="submit" class="btn btn-outline">拒否</button>
+                                </form>
+                            {% elif req.status == 'accepted' %}
+                                <a href="{{ url_for('chat.chat_room', room_id=req.room_id) }}" class="btn">チャットへ</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="empty-state">受け取ったリクエストはまだありません。</p>
+        {% endif %}
+
+        <h2>送ったリクエスト</h2>
+        {% if sent %}
+            <div class="request-list">
+                {% for req in sent %}
+                    <div class="request-card">
+                        <div class="request-info">
+                            <p class="request-title">
+                                <strong>{{ req.partner_name }}</strong> さんへ
+                                「{{ req.skill_name }}」（{{ req.post_type }}）を申し込み中
+                            </p>
+                            <p class="request-meta">{{ req.created_at }}</p>
+                        </div>
+
+                        <div class="request-status">
+                            {% if req.status == 'pending' %}
+                                <span class="badge badge-pending">承認待ち</span>
+                            {% elif req.status == 'accepted' %}
+                                <span class="badge badge-accepted">対応中</span>
+                            {% elif req.status == 'completed' %}
+                                <span class="badge badge-completed">評価待ち</span>
+                            {% elif req.status == 'reviewed' %}
+                                <span class="badge badge-reviewed">評価済み</span>
+                            {% elif req.status == 'declined' %}
+                                <span class="badge badge-declined">お断りされました</span>
+                            {% endif %}
+                        </div>
+
+                        <div class="request-actions">
+                            {% if req.status == 'accepted' %}
+                                <a href="{{ url_for('chat.chat_room', room_id=req.room_id) }}" class="btn">チャットへ</a>
+                                <form action="{{ url_for('requests_bp.complete_request', request_id=req.request_id) }}" method="POST">
+                                    <button type="submit" class="btn btn-outline">チャット終了</button>
+                                </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="empty-state">送ったリクエストはまだありません。</p>
+        {% endif %}
+
+    </div>
+
+    {% include 'footer.html' %}
+</body>
+</html>
