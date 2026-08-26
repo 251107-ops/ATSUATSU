@@ -1,14 +1,20 @@
 <header class="header">
     <a href="/">
-         <img src="{{ url_for('static', filename='img/logo.png') }}" alt="SkillLink" class="logo">
+        <img src="{{ url_for('static', filename='img/logo.png') }}" alt="SkillLink" class="logo">
     </a>
-        <nav class="nav">
-            <a href="/">ホーム</a>
-            <a href="#">通知</a>
-            <a href="/likes/page">お気に入り</a>
-            <a href="/chat">チャット</a>
-            <a href="/posts">投稿作成</a>
-            <a href="/profile">マイページ</a>
-        </nav>
-       <a href="/logout" class="btn-outline">ログアウト</a>
+    <nav class="nav">
+        <a href="/">ホーム</a>
+        <a href="/notifications" class="nav-item-notification">
+            通知
+            {% if unread_count and unread_count > 0 %}
+                <span class="notification-badge">{{ unread_count }}</span>
+            {% endif %}
+        </a>
+        <a href="/requests">リクエスト一覧</a>
+        <a href="/likes/page">お気に入り</a>
+        <a href="/chat">チャット</a>
+        <a href="/posts">投稿作成</a>
+        <a href="/profile">マイページ</a>
+    </nav>
+    <a href="/logout" class="btn-outline">ログアウト</a>
 </header>

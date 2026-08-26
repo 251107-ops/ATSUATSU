@@ -13,6 +13,27 @@
     {% include 'header.html' %}
     
     <main>
+        <!-- ★ 追加: ログイン中のユーザーIDを保持（JS判定用） -->
+        <input type="hidden" id="currentUserId" value="{{ session.get('user_id', '') }}">
+
+        <!-- top.html 内のメッセージ表示部 -->
+{% with messages = get_flashed_messages() %}
+  {% if messages %}
+    <div id="flashData" data-message="{{ messages[0] }}"></div>
+    <script>
+      document.addEventListener('DOMContentLoaded', () => {
+        const flashEl = document.getElementById('flashData');
+        if (flashEl) {
+          const msg = flashEl.dataset.message;
+          if (msg) {
+            alert(msg); // フォーム送信後のレスポンスとして来たメッセージのみ1度だけ表示
+          }
+        }
+      });
+    </script>
+  {% endif %}
+{% endwith %}
+
         <section class="hero">
             <h1 id="heroTitle" class="hero-title">教えあい、学びあい、成長しよう</h1>
             <p class="hero-sub">学内のスキルをシェアして、お互いに高め合えるコミュニティ</p>
@@ -20,9 +41,9 @@
 
         <section class="search-area">
             <form action="/posts/search" method="GET" class="search-form">
-            <input type="text" name="query" placeholder="スキル名・学科・学年で検索">
-            <button type="submit" class="btn-primary">検索</button>
-        </form>
+                <input type="text" name="query" placeholder="スキル名・学科・学年で検索">
+                <button type="submit" class="btn-primary">検索</button>
+            </form>
             <div class="filters">
                 <select name="category" onchange="updateFilter('category', this.value)">
                     <option value="" {% if not selected_category %}selected{% endif %}>
@@ -70,7 +91,17 @@
 
             <div class="cards">
                 {% for post in posts %}
-                <div class="card">
+                <div class="card"
+                     data-post-id="{{ post.post_id }}"
+                     data-user-id="{{ post.user_id }}"
+                     data-name="{{ post.name }}"
+                     data-meta="{{ post.department }} {{ post.grade }}年"
+                     data-icon="{{ url_for('static', filename=post.icon_path) }}"
+                     data-category="{{ post.category_name }}"
+                     data-skill="{{ post.skill_name }}"
+                     data-type="{{ post.post_type }}"
+                     data-body="{{ post.post_text }}"
+                     data-likes="{{ post.like_count }}">
                     <div class="card-top">
                         <img src="{{ url_for('static', filename=post.icon_path) }}" alt="ユーザーアバター">
                         <div>
@@ -87,7 +118,6 @@
                     <button type="button" class="like-btn" data-post-id="{{ post.post_id }}" data-liked="{{ 'true' if post.liked_by_me else 'false' }}">
                         <span class="like-count">{{ post.like_count }}</span>♥
                     </button>
-                    <!-- <span class="fav">{{ post.likes }} ♥</span> -->
                 </div>
                 {% else %}
                 <div class="no-posts">
@@ -97,21 +127,60 @@
             </div>
         </section>
     </main>
+
+    <!-- スキルカード拡大表示用モーダル（UI・リクエスト送信） -->
+    <div id="cardModal" class="modal-overlay">
+        <div class="modal-content">
+            <button type="button" class="modal-close" id="modalClose">&times;</button>
+            
+            <div class="modal-header">
+                <img id="modalIcon" src="" alt="ユーザーアバター">
+                <div class="modal-header-info">
+                    <span id="modalName" class="name"></span>
+                    <span id="modalMeta" class="meta"></span>
+                </div>
+            </div>
+
+            <div class="modal-tags">
+                <div class="modal-tag-row">
+                    <div id="modalCategory" class="modal-tag-item"></div>
+                    <span id="modalType" class="badge"></span>
+                </div>
+                <div class="modal-tag-row">
+                    <div id="modalSkill" class="modal-tag-item"></div>
+                </div>
+            </div>
+
+           <div class="modal-body-box">
+                <p id="modalBody"></p>
+            </div>
+
+            <form id="requestForm" action="/requests" method="POST" class="modal-action">
+                <input type="hidden" name="post_id" id="modalPostId">
+                <input type="hidden" name="receiver_id" id="modalReceiverId">
+                <button type="submit" id="requestBtn" class="request-btn"></button>
+            </form>
+
+            <div class="modal-footer">
+                <span id="modalLikes" class="modal-like-count">0</span> ♥
+            </div>
+
+        </div>
+    </div>
+
     <script src="{{ url_for('static', filename='js/top.js') }}"></script>
     {% include 'footer.html' %}
 
-
-
-<script>
-  function updateFilter(key, value) {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (value) {
-      urlParams.set(key, value);
-    } else {
-      urlParams.delete(key);
-    }
-    window.location.search = urlParams.toString();
-  }
-</script>
+    <script>
+      function updateFilter(key, value) {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (value) {
+          urlParams.set(key, value);
+        } else {
+          urlParams.delete(key);
+        }
+        window.location.search = urlParams.toString();
+      }
+    </script>
 </body>
 </html>

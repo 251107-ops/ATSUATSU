@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/footer.css') }}">
 </head>
 <body>
-
+ 
   {% include 'header.html' %}
 
   <div class="layout">
@@ -27,7 +27,7 @@
         <a href="/likes/page"><span class="side-link__icon">♡</span>お気に入り</a>
       </button>
       <button class="side-link" data-target="notifications">
-        <a href="#"><span class="side-link__icon">♪</span>通知</a>
+        <a href="/notifications"><span class="side-link__icon">♪</span>通知</a>
       </button>
       <button class="side-link" data-target="settings">
         <span class="side-link__icon">⚙</span><a href="/change-password">設定</a>
