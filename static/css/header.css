@@ -61,3 +61,19 @@
     background-color: var(--primary-hover) !important;
     transform: translateY(-3px);
 }
+
+.nav-notif {
+    position: relative;
+}
+.notif-badge {
+    position: absolute;
+    top: -8px;
+    right: -14px;
+    background-color: #e57373;
+    color: #fff;
+    font-size: 10px;
+    font-weight: bold;
+    padding: 1px 6px;
+    border-radius: 10px;
+    line-height: 1.4;
+}

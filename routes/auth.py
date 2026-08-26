@@ -181,6 +181,36 @@ def get_db():
         g.sqlite_db = connect_db()
     return g.sqlite_db
 
+def init_db():
+    db = connect_db()
+
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS requests (
+            request_id   INTEGER PRIMARY KEY AUTOINCREMENT,
+            post_id      INTEGER NOT NULL REFERENCES posts(post_id),
+            requester_id INTEGER NOT NULL REFERENCES users(user_id),
+            receiver_id  INTEGER NOT NULL REFERENCES users(user_id),
+            room_id      TEXT REFERENCES rooms(room_id),
+            status       TEXT NOT NULL DEFAULT 'pending',
+            created_at   TEXT DEFAULT (datetime('now','localtime')),
+            updated_at   TEXT DEFAULT (datetime('now','localtime'))
+        )
+    """)
+
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS notifications (
+            notification_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id     INTEGER NOT NULL REFERENCES users(user_id),
+            type        TEXT NOT NULL,
+            related_id  INTEGER,
+            is_read     INTEGER NOT NULL DEFAULT 0,
+            created_at  TEXT DEFAULT (datetime('now','localtime'))
+        )
+    """)
+
+    db.commit()
+    db.close()
+
 
 # リクエスト終了時に自動でデータベースを閉じる
 # @auth.teardown_appcontext

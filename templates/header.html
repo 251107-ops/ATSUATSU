@@ -4,7 +4,13 @@
     </a>
         <nav class="nav">
             <a href="/">ホーム</a>
-            <a href="#">通知</a>
+            <a href="/notifications" class="nav-notif">
+                通知
+                {% if unread_notifications and unread_notifications > 0 %}
+                    <span class="notif-badge">{{ unread_notifications }}</span>
+                {% endif %}
+            </a>
+            <a href="/requests">リクエスト</a>
             <a href="/likes/page">お気に入り</a>
             <a href="/chat">チャット</a>
             <a href="/posts">投稿作成</a>
