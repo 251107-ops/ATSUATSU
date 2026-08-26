@@ -1,59 +1,144 @@
-// 見出しの文字を1文字ずつspanで包んで、順番にフェードインさせる
 document.addEventListener('DOMContentLoaded', () => {
+
+    /* ==========================================
+       1. ヒーロータイトルの文字アニメーション
+       ========================================== */
     const heroTitle = document.getElementById('heroTitle');
-    if (!heroTitle) return;
+    if (heroTitle) {
+        const text = heroTitle.textContent;
+        heroTitle.textContent = '';
 
-    const text = heroTitle.textContent;
-    heroTitle.textContent = '';
+        [...text].forEach((char, i) => {
+            const span = document.createElement('span');
+            span.className = 'char';
+            span.textContent = char === ' ' ? '\u00A0' : char; // 半角スペース対応
+            span.style.animationDelay = `${i * 0.05}s`;
+            heroTitle.appendChild(span);
+        });
+    }
 
-    [...text].forEach((char, i) => {
-        const span = document.createElement('span');
-        span.className = 'char';
-        span.textContent = char === ' ' ? '\u00A0' : char; // 半角スペース対応
-        span.style.animationDelay = `${i * 0.05}s`;
-        heroTitle.appendChild(span);
-    });
-});
-
-document.addEventListener('DOMContentLoaded', () => {
-    const heroTitle = document.getElementById('heroTitle');
-    if (!heroTitle) return;
-
-    const text = heroTitle.textContent;
-    heroTitle.textContent = '';
-
-    [...text].forEach((char, i) => {
-        const span = document.createElement('span');
-        span.className = 'char';
-        span.textContent = char === ' ' ? '\u00A0' : char;
-        span.style.animationDelay = `${i * 0.05}s`;
-        heroTitle.appendChild(span);
-    });
-});
-
-document.addEventListener('DOMContentLoaded', () => {
+    /* ==========================================
+       2. いいね機能（非同期通信）
+       ========================================== */
     document.querySelectorAll('.like-btn').forEach(btn => {
-        btn.addEventListener('click', async () => {
-            const postId = btn.dataset.postId;
-            const response = await fetch('/posts/likes', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: `post_id=${postId}`
-            });
-            if (response.ok) {
-                const result = await response.json();
-                const countSpan = btn.querySelector('.like-count');
-                let count = parseInt(countSpan.textContent);
+        btn.addEventListener('click', async (e) => {
+            // カード本体へのクリックイベント伝播を防止（モーダルが開くのを防ぐ）
+            e.stopPropagation();
 
-                if (result.liked) {
-                    count += 1;
-                    btn.dataset.liked = 'true';
-                } else {
-                    count -= 1;
-                    btn.dataset.liked = 'false';
+            const postId = btn.dataset.postId;
+            try {
+                const response = await fetch('/posts/likes', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `post_id=${postId}`
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    const countSpan = btn.querySelector('.like-count');
+                    let count = parseInt(countSpan.textContent, 10);
+
+                    if (result.liked) {
+                        count += 1;
+                        btn.dataset.liked = 'true';
+                    } else {
+                        count -= 1;
+                        btn.dataset.liked = 'false';
+                    }
+                    countSpan.textContent = count;
                 }
-                countSpan.textContent = count;
+            } catch (error) {
+                console.error('いいね処理エラー:', error);
             }
         });
     });
+
+    /* ==========================================
+       3. スキルカード拡大表示（モーダル） & リクエスト
+       ========================================== */
+    const modal = document.getElementById('cardModal');
+    const modalClose = document.getElementById('modalClose');
+    const requestForm = document.getElementById('requestForm');
+
+    if (modal) {
+        // カードクリック時のモーダル表示処理
+        document.querySelectorAll('.card').forEach(card => {
+            card.addEventListener('click', () => {
+                const data = card.dataset;
+
+                // ログイン中のユーザーIDを取得（top.htmlのhidden inputより）
+                const currentUserIdInput = document.getElementById('currentUserId');
+                const currentUserId = currentUserIdInput ? currentUserIdInput.value : '';
+
+                // 各要素への値のセット（確実に文字列としてセット）
+                document.getElementById('modalPostId').value = data.postId || '';
+                document.getElementById('modalReceiverId').value = data.userId || '';
+                document.getElementById('modalIcon').src = data.icon || '';
+                document.getElementById('modalName').textContent = data.name || '';
+                document.getElementById('modalMeta').textContent = data.meta || '';
+                document.getElementById('modalCategory').textContent = data.category || '';
+                document.getElementById('modalSkill').textContent = data.skill || '';
+                document.getElementById('modalBody').textContent = data.body || '';
+                document.getElementById('modalLikes').textContent = data.likes || '0';
+
+                // バッジ状態の反映
+                const modalType = document.getElementById('modalType');
+                modalType.textContent = data.type || '';
+                modalType.className = `badge ${data.type === '教えたい' ? 'teach' : 'learn'}`;
+
+                // ボタン要素を取得
+                const requestBtn = document.getElementById('requestBtn');
+
+                // ★修正点1: 毎回ボタンの連打・無効化状態をリセット
+                requestBtn.disabled = false;
+                requestBtn.style.opacity = '1';
+                requestBtn.style.cursor = 'pointer';
+
+                // 自分の投稿かどうか判定
+                if (currentUserId && String(currentUserId) === String(data.userId)) {
+                    // 自分の投稿の場合はボタンを無効化
+                    requestBtn.disabled = true;
+                    requestBtn.textContent = '自分の投稿です';
+                    requestBtn.style.opacity = '0.5';
+                    requestBtn.style.cursor = 'not-allowed';
+                } else {
+                    // 他人の投稿の場合はテキスト切り替え
+                    if (data.type === '教えたい') {
+                        requestBtn.textContent = '教わりたい（リクエストを送る）';
+                    } else {
+                        requestBtn.textContent = '教えたい（オファーを送る）';
+                    }
+                }
+
+                // モーダルを開く
+                modal.classList.add('active');
+            });
+        });
+
+        // ★修正点2: フォーム送信時に連打を防止（二重送信防止ガード）
+        if (requestForm) {
+            requestForm.addEventListener('submit', function() {
+                const requestBtn = document.getElementById('requestBtn');
+                if (requestBtn) {
+                    requestBtn.disabled = true;
+                    requestBtn.textContent = '送信中...';
+                    requestBtn.style.opacity = '0.6';
+                }
+            });
+        }
+
+        // モーダルを閉じる処理（閉じるボタン）
+        if (modalClose) {
+            modalClose.addEventListener('click', () => {
+                modal.classList.remove('active');
+            });
+        }
+
+        // モーダル外側（背景）クリック時のみ閉じる
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.classList.remove('active');
+            }
+        });
+    }
 });

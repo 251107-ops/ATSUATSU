@@ -12,14 +12,16 @@ posts = Blueprint('posts', __name__)
 # ---------------------------------------
 def fetch_posts(db, category_id="", post_type="", search_query="", sort_type="new", grade="", department="", user_id=None):
     conditions = []
-    params = []
+    params = []  
 
     if category_id:
         conditions.append("posts.category_id = ?")
         params.append(category_id)
+        params.append(category_id)
 
     if post_type:
         conditions.append("posts.post_type = ?")
+        params.append(post_type)
         params.append(post_type)
 
     if grade:
@@ -28,6 +30,7 @@ def fetch_posts(db, category_id="", post_type="", search_query="", sort_type="ne
 
     if department:
         conditions.append("users.department = ?")
+        params.append(department)
         params.append(department)
 
     if search_query:

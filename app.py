@@ -105,3 +105,19 @@ def add_header(response):
 
 if __name__ == "__main__":
     socketio.run(app, debug=True)
+    # app.py などに追記
+@app.context_processor
+def inject_notifications():
+    user_id = session.get('user_id')
+    if not user_id:
+        return dict(unread_count=0)
+    
+    db = get_db()
+    # is_read = 0 (未読) の通知数をカウント
+    row = db.execute(
+        "SELECT COUNT(*) FROM notifications WHERE user_id = ? AND is_read = 0",
+        (user_id,)
+    ).fetchone()
+    
+    unread_count = row[0] if row else 0
+    return dict(unread_count=unread_count)
