@@ -8,7 +8,7 @@ from routes.skill import skill
 from routes.chat import chat, init_chat_events
 from routes.category import categories
 from routes.auth import get_db
-
+from routes.requests import requests 
 app = Flask(__name__)
 
 # 💡 修正点: 開発中は固定の文字列にするか、Blueprintを登録する「前」に必ず設定します
@@ -22,6 +22,7 @@ app.register_blueprint(posts)
 app.register_blueprint(skill)
 app.register_blueprint(chat)
 app.register_blueprint(categories)
+app.register_blueprint(requests)
 
 init_chat_events(socketio)
 

@@ -40,7 +40,7 @@
         <p class="main__note"><span class="required">*</span>は必須項目です</p>
       </div>
 
-      <form id="profileForm" class="profile-card" action="/profile_edit" method="POST" enctype="multipart/form-data" novalidate>
+      <form id="profileForm" class="profile-card" action="/profile" method="POST" enctype="multipart/form-data" novalidate>
         {% if csrf_token %}
           <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         {% endif %}

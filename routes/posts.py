@@ -1,15 +1,16 @@
 import os
 import json  
 from datetime import datetime
-from flask import Blueprint, render_template, redirect, session, request, jsonify
+from flask import Blueprint, render_template, redirect, session, request, jsonify, current_app
 from werkzeug.utils import secure_filename
 from routes.auth import get_db
 
 posts = Blueprint('posts', __name__)
 
-
+# ---------------------------------------
+# ヘルパー関数: 投稿データの取得
+# ---------------------------------------
 def fetch_posts(db, category_id="", post_type="", search_query="", sort_type="new", grade="", department="", user_id=None):
-
     conditions = []
     params = []
 
@@ -81,6 +82,9 @@ def fetch_posts(db, category_id="", post_type="", search_query="", sort_type="ne
     return posts_list
 
 
+# ---------------------------------------
+# 1. トップページ系 (ALL / LEARN / TEACH)
+# ---------------------------------------
 @posts.route("/")
 def top():
     if 'user_email' not in session:
@@ -165,6 +169,7 @@ def top_learn():
         search_query=search_query
     )
 
+
 @posts.route("/top/teach")
 def top_teach():
     if 'user_email' not in session:
@@ -208,6 +213,9 @@ def top_teach():
     )
 
 
+# ---------------------------------------
+# 2. プロフィール画面 (表示 & 更新保存)
+# ---------------------------------------
 @posts.route("/profile", methods=['GET', 'POST'])
 def profile():
     if 'user_email' not in session:
@@ -217,7 +225,7 @@ def profile():
     user_id = session.get('user_id')
     db = get_db()
 
-    # --- POSTリクエスト（編集保存時の処理） ---
+    # --- POST: プロフィール更新処理 ---
     if request.method == 'POST':
         name = request.form.get('name', '').strip()
         department = request.form.get('department', '')
@@ -237,6 +245,7 @@ def profile():
             teach_skill_names = []
             learn_skill_names = []
 
+        # スキル同期用の関数（差分更新）
         def sync_skills(post_type, skill_names):
             current_rows = db.execute("""
                 SELECT skills.skill_id, skills.skill_name
@@ -245,6 +254,7 @@ def profile():
             """, (user_id, post_type)).fetchall()
             current_names = {row[1]: row[0] for row in current_rows}
 
+            # 追加処理 (INSERT)
             for name_ in skill_names:
                 if name_ not in current_names:
                     skill_row = db.execute("SELECT skill_id, category_id FROM skills WHERE skill_name = ?", (name_,)).fetchone()
@@ -256,6 +266,7 @@ def profile():
                             (user_id, skill_id, post_type, '', datetime.now().strftime('%Y-%m-%d %H:%M:%S'), skill_category_id)
                         )
 
+            # 削除処理 (DELETE)
             for name_, skill_id in current_names.items():
                 if name_ not in skill_names:
                     db.execute(
@@ -266,7 +277,7 @@ def profile():
         sync_skills('教えたい', teach_skill_names)
         sync_skills('学びたい', learn_skill_names)
 
-        # アイコン画像の保存
+        # アイコン画像の保存処理
         icon_path = None
         avatar_file = request.files.get('avatar') or request.files.get('icon')
         if avatar_file and avatar_file.filename:
@@ -276,14 +287,14 @@ def profile():
                 return jsonify({'message': '対応していない画像形式です'}), 400
 
             filename = secure_filename(f"user_{user_id}{ext}")
-            upload_dir = os.path.join('static', 'uploads')
+            upload_dir = os.path.join(current_app.root_path, 'static', 'uploads')
             os.makedirs(upload_dir, exist_ok=True)
             save_path = os.path.join(upload_dir, filename)
             avatar_file.save(save_path)
 
             icon_path = f"uploads/{filename}"
 
-        # データベース更新
+        # ユーザー基本情報の更新 (UPDATE)
         if icon_path:
             db.execute(
                 "UPDATE users SET name = ?, department = ?, grade = ?, introduction = ?, icon_path = ? WHERE email = ?",
@@ -302,7 +313,7 @@ def profile():
         else:
             return redirect('/profile')
 
-    # ↓ GET時の表示処理
+    # --- GET: プロフィール表示処理 ---
     row = db.execute(
         "SELECT name, email, department, grade, introduction, icon_path FROM users WHERE email = ?",
         (user_email,)
@@ -364,7 +375,10 @@ def profile():
     return render_template('profile.html', user=user, skills_teach=skills_teach, skills_learn=skills_learn, my_posts=my_posts)
 
 
-@posts.route("/profile_edit", methods=['GET', 'POST'])
+# ---------------------------------------
+# 3. プロフィール編集画面（表示専用）
+# ---------------------------------------
+@posts.route("/profile_edit", methods=['GET'])
 def profile_edit():
     if 'user_email' not in session:
         return redirect('/login')
@@ -372,6 +386,7 @@ def profile_edit():
     user_email = session['user_email']
     user_id = session.get('user_id')
     db = get_db()
+
     row = db.execute(
         "SELECT name, email, department, grade, introduction, icon_path FROM users WHERE email = ?",
         (user_email,)
@@ -407,81 +422,15 @@ def profile_edit():
     return render_template('profile_edit.html', user=user, teach_skills=teach_skills, learn_skills=learn_skills)
 
 
-@posts.route("/profile/edit", methods=['GET', 'POST'])
-def edit_profile():
-    if 'user_email' not in session:
-        return redirect('/login')
-
-    user_email = session['user_email']
-    user_id = session.get('user_id')
-    db = get_db()
-
-    row = db.execute(
-        "SELECT name, email, department, grade, introduction, icon_path FROM users WHERE email = ?",
-        (user_email,)
-    ).fetchone()
-
-    user = None
-    if row:
-        user = {
-            'name': row[0],
-            'email': row[1],
-            'department': row[2],
-            'grade': row[3],
-            'introduction': row[4],
-            'icon_path': row[5]
-        }
-
-    teach_rows = db.execute("""
-        SELECT DISTINCT skills.skill_id, skills.skill_name 
-        FROM posts
-        JOIN skills ON posts.skill_id = skills.skill_id
-        WHERE posts.user_id = ? AND posts.post_type = '教えたい'
-    """, (user_id,)).fetchall()
-    skills_teach = [{'skill_id': r[0], 'skill_name': r[1]} for r in teach_rows]
-
-    learn_rows = db.execute("""
-        SELECT DISTINCT skills.skill_id, skills.skill_name 
-        FROM posts
-        JOIN skills ON posts.skill_id = skills.skill_id
-        WHERE posts.user_id = ? AND posts.post_type = '学びたい'
-    """, (user_id,)).fetchall()
-    skills_learn = [{'skill_id': r[0], 'skill_name': r[1]} for r in learn_rows]
-
-    my_posts_rows = db.execute("""
-        SELECT
-            categories.category_name,
-            skills.skill_name,
-            posts.post_type, posts.post_text, posts.post_id,
-            (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.post_id) AS like_count,
-            (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.post_id AND likes.user_id = ?) AS liked_by_me
-        FROM posts
-        JOIN skills ON posts.skill_id = skills.skill_id
-        JOIN categories ON posts.category_id = categories.category_id
-        WHERE posts.user_id = ?
-        ORDER BY posts.post_date DESC
-    """, (user_id, user_id)).fetchall()
-
-    my_posts = []
-    for row in my_posts_rows:
-        my_posts.append({
-            'category_name': row[0],
-            'skill_name': row[1],
-            'post_type': row[2],
-            'post_text': row[3],
-            'post_id': row[4],
-            'like_count': row[5] if row[5] else 0,
-            'liked_by_me': bool(row[6])
-        })
-
-    return render_template('profile.html', user=user, skills_teach=skills_teach, skills_learn=skills_learn, my_posts=my_posts)
-
-
+# ---------------------------------------
+# 4. 新規投稿作成
+# ---------------------------------------
 @posts.route("/posts", methods=['GET', 'POST'])
 def create_post():
-    db = get_db()
     if 'user_email' not in session:
         return redirect('/login')
+
+    db = get_db()
 
     if request.method == 'POST':
         skill_id = request.form.get('skill_id', '')
@@ -517,7 +466,10 @@ def create_post():
     return render_template('posts.html', categories=categories, skills=skills, preset_type=preset_type)
 
 
-@posts.route("/posts/search", methods=['GET', 'POST'])
+# ---------------------------------------
+# 5. 検索機能
+# ---------------------------------------
+@posts.route("/posts/search", methods=['GET'])
 def search_posts():
     if 'user_email' not in session:
         return redirect('/login')
@@ -565,6 +517,9 @@ def search_posts():
     return redirect('/')
 
 
+# ---------------------------------------
+# 6. いいね（Like）機能（トグル非同期処理）
+# ---------------------------------------
 @posts.route("/posts/likes", methods=['POST'])
 def like_post():
     if 'user_email' not in session:
@@ -591,6 +546,9 @@ def like_post():
     return jsonify({'liked': liked})
 
 
+# ---------------------------------------
+# 7. いいね一覧ページ
+# ---------------------------------------
 @posts.route("/likes/page", methods=["GET"])
 def get_like():
     if 'user_email' not in session:
@@ -618,6 +576,7 @@ def get_like():
         )
         ORDER BY posts.post_date DESC
     """, (user_id, user_id)).fetchall()
+
     posts_list = []
     for row in rows:
         posts_list.append({

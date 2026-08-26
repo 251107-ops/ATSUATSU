@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
     avatarInput.click();
   }
 
-  if (avatarCamBtn) avatarCamBtn.addEventListener('click', openFilePicker);
+  // if (avatarCamBtn) avatarCamBtn.addEventListener('click', openFilePicker);
   if (avatarChangeBtn) avatarChangeBtn.addEventListener('click', openFilePicker);
 
   if (avatarInput) {
