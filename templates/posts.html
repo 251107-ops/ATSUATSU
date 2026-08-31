@@ -18,7 +18,6 @@
             <h2>新規投稿作成</h2>
             <form method="POST" action="/posts">
 
-                <!-- 募集タイプ -->
                 <div class="form-group">
                     <p>募集タイプを選択してください：</p>
                     <select name="post_type">
@@ -27,7 +26,6 @@
                     </select>
                 </div>
 
-                <!-- カテゴリ選択（JSの連動とサーバー送信を兼用） -->
                 <div class="form-group">
                     <p>カテゴリを選択してください：</p>
                     <select id="category_select" name="category_id" required>
@@ -38,7 +36,6 @@
                     </select>
                 </div>
 
-                <!-- スキル選択（カテゴリ連動で動的に変わる） -->
                 <div class="form-group">
                     <p>対応するスキルを選択してください：</p>
                     <select id="skill_select" name="skill_id" required>
@@ -55,7 +52,6 @@
             </form>
         </div>
 
-        <!-- 新規スキル追加カード -->
         <div class="skill-add-card">
             <h2>新しいスキルをシステムに追加</h2>
             <form method="POST" action="/skill_edit">
@@ -67,35 +63,20 @@
             </form>
         </div>
 
-        <!-- 新規カテゴリ追加カード -->
-        <div class="skill-add-card">
-            <h2>新しいカテゴリをシステムに追加</h2>
-            <form method="POST" action="/categories-add">
-                <p>選択肢にないカテゴリを追加したい場合はここに入力してください：</p>
-                <div class="category-add-row">
-                    <input type="text" name="category_name" placeholder="例: Programming, IT" required>
-                    <button type="submit" class="btn-outline-small">カテゴリを登録</button>
-                </div>
-            </form>
-        </div>
 
     </div>
-
     {% include 'footer.html' %}
 
     <script>
-        // サーバーから渡された全スキルデータ
         const allSkills = [
             {% for s in skills %}
             { id: {{ s.skill_id }}, name: "{{ s.skill_name }}", categoryId: {{ s.category_id if s.category_id else 'null' }} },
             {% endfor %}
-        ];
+        ]
 
         document.getElementById('category_select').addEventListener('change', function() {
             const categoryId = parseInt(this.value);
             const skillSelect = document.getElementById('skill_select');
-            
-            // スキル選択肢をいったんリセット
             skillSelect.innerHTML = '';
 
             if (!categoryId) {
@@ -103,7 +84,6 @@
                 return;
             }
 
-            // 選択されたカテゴリに一致するスキルをフィルタリング
             const filtered = allSkills.filter(s => s.categoryId === categoryId);
 
             if (filtered.length === 0) {
@@ -111,10 +91,7 @@
                 return;
             }
 
-            // 選択肢の初期メッセージを追加
             skillSelect.innerHTML = '<option value="">-- スキルを選択してください --</option>';
-            
-            // フィルタリングしたスキルをプルダウンに追加
             filtered.forEach(s => {
                 const opt = document.createElement('option');
                 opt.value = s.id;
