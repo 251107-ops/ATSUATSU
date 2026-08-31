@@ -185,14 +185,14 @@ def chat_room(room_id):
             'time': row['send_time'],
         })
 
-        req_row = db.execute(
-            "SELECT request_id FROM requests WHERE room_id = ? AND requester_id = ?",
-            (room_id, user_id)
-        ).fetchone()
+    req_row = db.execute(
+        "SELECT request_id FROM requests WHERE room_id = ? AND requester_id = ?",
+        (room_id, user_id)
+    ).fetchone()
 
-        return render_template(
-            'chat.html', name=name, room=room_id, chats=history, user_id=user_id, req_row=req_row
-        )
+    return render_template(
+        'chat.html', name=name, room=room_id, chats=history, user_id=user_id, req_row=req_row
+    )
 
 # =====================================================================
 # 3. 公開ルームの作成
