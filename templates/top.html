@@ -45,16 +45,14 @@
                 <button type="submit" class="btn-primary">検索</button>
             </form>
             <div class="filters">
-                <select name="category" onchange="updateFilter('category', this.value)">
-                    <option value="" {% if not selected_category %}selected{% endif %}>
-                        詳細検索
-                    </option>
-
-                {% for category in categories %}
-                    <option value="{{ category[0] }}" {% if selected_category|string == category[0]|string %}selected{% endif %}>
-                         {{ category[1] }}
-                    </option>
-                {% endfor %}
+                <select name="category" onchange="this.form.submit()">
+                    <option value="">詳細検索</option>
+                    {% for category in categories %}
+                        <option value="{{ category.category_id if category.category_id is defined else category[0] }}"
+                            {{ 'selected' if selected_category|string == (category.category_id if category.category_id is defined else category[0])|string }}>
+                            {{ category.category_name if category.category_name is defined else category[1] }}
+                        </option>
+                    {% endfor %}
                 </select>
                 <a href="/" class="filter-btn {% if active_tab == 'all' %}active{% endif %}">すべて</a>
                 <a href="/top/teach" class="filter-btn {% if active_tab == 'teach' %}active{% endif %}">教えたい</a>

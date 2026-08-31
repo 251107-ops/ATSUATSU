@@ -94,7 +94,7 @@ def top():
     selected_department = request.args.get('department', '')
     search_query = request.args.get('query', '')
 
-    category_data = db.execute("SELECT * FROM categories").fetchall()
+    category_data = db.execute("SELECT MIN(category_id) AS category_id, category_name FROM categories GROUP BY category_name ORDER BY category_id").fetchall()
     grade_data = db.execute("SELECT DISTINCT grade FROM users WHERE grade IS NOT NULL AND grade != ''").fetchall()
     department_data = db.execute("SELECT DISTINCT department FROM users WHERE department IS NOT NULL AND department != ''").fetchall()
 
