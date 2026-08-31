@@ -1,9 +1,34 @@
+import os
 import secrets
-from flask import Blueprint, redirect, render_template, request, session, url_for
+import uuid
+from flask import (
+    Blueprint,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    session,
+    url_for,
+)
 from flask_socketio import emit, join_room, leave_room
 from routes.auth import get_db
+from werkzeug.utils import secure_filename
 
 chat = Blueprint('chat', __name__)
+
+# ---------------------------------------------------------------------
+# 画像アップロード設定
+# ---------------------------------------------------------------------
+UPLOAD_FOLDER = os.path.join('static', 'uploads')
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+
+def allowed_file(filename):
+    return (
+        '.' in filename
+        and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+    )
 
 
 # =====================================================================
@@ -25,11 +50,9 @@ def create_chat_room(user1_id, user2_id, skill_id=None):
         (user1_id, user2_id),
     ).fetchone()
 
-    # ★ 修正: カラム名 'room_id' を指定して安全に取得
     if existing_room:
         return str(existing_room['room_id'])
 
-    # 1. room_id を指定せず INSERT し、自動採番（AUTOINCREMENT）させる
     cursor = db.execute(
         """
         INSERT INTO rooms (skill_id, is_public, created_by) 
@@ -38,10 +61,8 @@ def create_chat_room(user1_id, user2_id, skill_id=None):
         (skill_id, user1_id),
     )
 
-    # 自動生成された数値IDを取得
     new_room_id = cursor.lastrowid
 
-    # 2. 生成された room_id を使ってメンバー登録
     db.execute(
         'INSERT INTO room_members (room_id, user_id) VALUES (?, ?)',
         (new_room_id, user1_id),
@@ -56,6 +77,35 @@ def create_chat_room(user1_id, user2_id, skill_id=None):
 
 
 # =====================================================================
+# 0.5 画像アップロード API
+# =====================================================================
+@chat.route('/upload-image', methods=['POST'])
+def upload_image():
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': '認証が必要です'}), 401
+
+    if 'image' not in request.files:
+        return jsonify({'error': 'ファイルが添付されていません'}), 400
+
+    file = request.files['image']
+    if file.filename == '':
+        return jsonify({'error': 'ファイルが選択されていません'}), 400
+
+    if file and allowed_file(file.filename):
+        ext = file.filename.rsplit('.', 1)[1].lower()
+        new_filename = f'{uuid.uuid4().hex}.{ext}'
+        save_path = os.path.join(UPLOAD_FOLDER, new_filename)
+
+        file.save(save_path)
+
+        image_url = url_for('static', filename=f'uploads/{new_filename}')
+        return jsonify({'image_url': image_url})
+
+    return jsonify({'error': '許可されていない画像形式です'}), 400
+
+
+# =====================================================================
 # 1. チャットハブへのルーティング
 # =====================================================================
 @chat.route('/chat', methods=['GET', 'POST'])
@@ -64,7 +114,6 @@ def chat_hub():
     if not user_id:
         return redirect('/login')
 
-    # 💡 ユーザー切り替え時の不正アクセスを防ぐため、アクティブなルームセッションを完全にクリア
     session['room'] = None
     session.modified = True
 
@@ -88,7 +137,6 @@ def chat_room(room_id):
 
     db = get_db()
 
-    # 🔒 安全対策: 現在ログインしているユーザーが本当にこのルームのメンバーかDBで最終確認
     is_member = db.execute(
         """
         SELECT 1 FROM room_members WHERE room_id = ? AND user_id = ?
@@ -96,13 +144,11 @@ def chat_room(room_id):
         (room_id, user_id),
     ).fetchone()
 
-    # メンバーではない場合、ハブ画面へ強制リダイレクト
     if not is_member:
         session['room'] = None
         session.modified = True
         return redirect(url_for('.chat_hub'))
 
-    # 検証成功後、セッションに正しいルームIDを設定
     session['room'] = room_id
     session.modified = True
 
@@ -116,10 +162,10 @@ def chat_room(room_id):
         f' {room_id}'
     )
 
-    # 📥 メッセージ履歴の取得
+    # 📥 削除機能用に id を追加取得
     history_rows = db.execute(
         """
-        SELECT name, content, datetime(send_at, 'localtime') AS send_time
+        SELECT id, user_id, name, content, datetime(send_at, 'localtime') AS send_time
         FROM messages
         WHERE room = ?
         ORDER BY send_at ASC
@@ -130,15 +176,23 @@ def chat_room(room_id):
 
     history = []
     for row in history_rows:
-        history.append({
-            'name': row[0],
-            'content': row[1],
-            'time': row[2]
-        })
         
-    req_row = db.execute("SELECT request_id FROM requests WHERE room_id = ? AND requester_id = ?", (room_id, user_id)).fetchone()
-    return render_template('chat.html', name=name, room=room_id, chats=history, user_id=user_id)
+        history.append({
+            'id': row['id'],
+            'user_id': row['user_id'],
+            'name': row['name'],
+            'content': row['content'],
+            'time': row['send_time'],
+        })
 
+        req_row = db.execute(
+            "SELECT request_id FROM requests WHERE room_id = ? AND requester_id = ?",
+            (room_id, user_id)
+        ).fetchone()
+
+        return render_template(
+            'chat.html', name=name, room=room_id, chats=history, user_id=user_id, req_row=req_row
+        )
 
 # =====================================================================
 # 3. 公開ルームの作成
@@ -152,7 +206,6 @@ def create_public_room(skill_id):
     db = get_db()
     invitation_code = secrets.token_hex(4)
 
-    # ルームを公開設定 (is_public = 1) で作成
     db.execute(
         """
         INSERT INTO rooms (room_id, skill_id, is_public, created_by) 
@@ -181,7 +234,6 @@ def create_private_room(skill_id):
     db = get_db()
     invitation_code = secrets.token_hex(4)
 
-    # ルームを非公開設定 (is_public = 0) で作成
     db.execute(
         """
         INSERT INTO rooms (room_id, skill_id, is_public, created_by) 
@@ -295,7 +347,10 @@ def access_room(room_id):
             (room_id, user_id),
         ).fetchone()
         if not is_invited:
-            return 'アクセス権限がありません。このルームはプライベートです。', 403
+            return (
+                'アクセス権限がありません。このルームはプライベートです。',
+                403,
+            )
 
     return redirect(url_for('.chat_room', room_id=room_id))
 
@@ -425,16 +480,48 @@ def init_chat_events(socketio):
             ).fetchone()
             real_name = user_row['name'] if user_row else 'User'
 
-            db.execute(
+            # メッセージ保存と ID の獲得
+            cursor = db.execute(
                 """
                 INSERT INTO messages (room, user_id, name, content) 
                 VALUES (?, ?, ?, ?)
             """,
                 (room, user_id, real_name, msg_content),
             )
+            msg_id = cursor.lastrowid
             db.commit()
 
-            emit('message', {'msg': f'{real_name}: {msg_content}'}, to=room)
+            # ID・ユーザーIDを付与して全クライアントへ配信
+            emit(
+                'message',
+                {
+                    'id': msg_id,
+                    'user_id': user_id,
+                    'msg': f'{real_name}: {msg_content}',
+                },
+                to=room,
+            )
+
+    # 🗑️ メッセージ削除イベント
+    @socketio.on('delete_message', namespace='/chat')
+    def delete_message(data):
+        room = session.get('room')
+        user_id = session.get('user_id')
+        msg_id = data.get('msg_id')
+
+        if room and user_id and msg_id:
+            db = get_db()
+            # 送信者本人のメッセージかつ現在属しているルームのメッセージか検証して削除
+            cursor = db.execute(
+                'DELETE FROM messages WHERE id = ? AND user_id = ? AND room = ?',
+                (msg_id, user_id, room),
+            )
+            db.commit()
+
+            if cursor.rowcount > 0:
+                print(f'[WS DELETE Success] Msg ID: {msg_id} deleted by User: {user_id}')
+                # ルーム全員の端末の画面から削除する通知を送信
+                emit('message_deleted', {'msg_id': msg_id}, to=room)
 
     @socketio.on('left', namespace='/chat')
     def left(message):

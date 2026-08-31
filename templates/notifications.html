@@ -1,60 +1,50 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <title>通知一覧 - SkillLink</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/variables.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/footer.css') }}">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>通知 | スキルシェア</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/variables.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/footer.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/request_list.css') }}">
 </head>
 <body>
     {% include 'header.html' %}
 
-    <main class="container" style="max-width: 800px; margin: 30px auto; padding: 0 20px;">
-        <h2>通知一覧</h2>
+    <div class="container">
+        <h2>通知</h2>
 
         {% if notifications %}
-            <div class="notification-list" style="display: flex; flex-direction: column; gap: 15px; margin-top: 20px;">
+            <div class="request-list">
                 {% for n in notifications %}
-                    <div class="notification-item {{ 'unread' if n.is_read == 0 else '' }}" 
-                         style="padding: 15px; border-radius: 8px; border: 1px solid #eee;">
-                        
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <span style="font-weight: bold; color: #333;">{{ n.sender_name or 'ユーザー' }} さんより</span>
-                            <small style="color: #888;">{{ n.created_at or '' }}</small>
+                    <div class="request-card {% if not n.is_read %}is-unread{% endif %}">
+                        <div class="request-info">
+                            <p class="request-title">{{ n.message }}</p>
+                            <p class="request-meta">{{ n.created_at }}</p>
                         </div>
 
-                        {% if n.message %}
-                            <p style="margin: 10px 0; color: #555;">{{ n.message }}</p>
+                        {% if n.type == 'new_request' and n.status == 'pending' %}
+                            <div class="request-actions">
+                                <form action="{{ url_for('requests_bp.accept_request', request_id=n.request_id) }}" method="POST">
+                                    <button type="submit" class="btn">承認</button>
+                                </form>
+                                <form action="{{ url_for('requests_bp.decline_request', request_id=n.request_id) }}" method="POST">
+                                    <button type="submit" class="btn btn-outline">拒否</button>
+                                </form>
+                            </div>
+                        {% elif n.type == 'request_accepted' and n.room_id %}
+                            <div class="request-actions">
+                                <a href="{{ url_for('chat.chat_room', room_id=n.room_id) }}" class="btn">チャットへ</a>
+                            </div>
                         {% endif %}
-
-                        <!-- 通知タイプに応じたアクションリンク -->
-                        <div class="notification-action" style="margin-top: 10px;">
-                            {% if n.type == 'new_request' %}
-                                <a href="/requests" class="btn-primary" style="font-size: 13px; padding: 5px 12px; background-color: #007bff; color: white; text-decoration: none; border-radius: 4px;">リクエストを確認する</a>
-
-                            <!-- room_id がある場合は直接チャット画面へ、なければフォールバックでリクエスト一覧へ -->
-                            {% elif n.type == 'request_accepted' %}
-                                {% if n.room_id %}
-                                    <a href="{{ url_for('chat.chat_room', room_id=n.room_id) }}" class="btn-success" style="font-size: 13px; padding: 5px 12px; background-color: #28a745; color: white; text-decoration: none; border-radius: 4px;">チャットルームへ行く</a>
-                                {% else %}
-                                    <a href="/requests" class="btn-success" style="font-size: 13px; padding: 5px 12px; background-color: #28a745; color: white; text-decoration: none; border-radius: 4px;">チャットルームへ行く</a>
-                                {% endif %}
-
-                            {% elif n.type == 'request_declined' %}
-                                <a href="/requests" style="font-size: 13px; color: #6c757d; text-decoration: underline;">リクエスト一覧を見る</a>
-
-                            {% elif n.type in ['request_completed', 'session_completed'] %}
-                                <a href="/requests" class="btn-warning" style="font-size: 13px; padding: 5px 12px; background-color: #ffc107; color: #212529; text-decoration: none; border-radius: 4px;">リクエスト一覧を見る</a>
-                            {% endif %}
-                        </div>
                     </div>
                 {% endfor %}
             </div>
         {% else %}
-            <p style="margin-top: 20px; color: #666;">通知はありません。</p>
+            <p class="empty-state">通知はまだありません。</p>
         {% endif %}
-    </main>
+    </div>
 
     {% include 'footer.html' %}
 </body>

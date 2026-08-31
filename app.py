@@ -9,6 +9,7 @@ from routes.category import categories
 from routes.auth import auth, get_db, init_db
 from routes.requests import requests_bp
 from routes.notifications import notifications_bp
+from routes.reviews import reviews_bp
 
 app = Flask(__name__)
 
@@ -24,6 +25,7 @@ app.register_blueprint(chat)
 app.register_blueprint(categories)
 app.register_blueprint(requests_bp)
 app.register_blueprint(notifications_bp)
+app.register_blueprint(reviews_bp)
 
 init_chat_events(socketio)
 init_db() 
@@ -105,19 +107,3 @@ def add_header(response):
 
 if __name__ == "__main__":
     socketio.run(app, debug=True)
-    # app.py などに追記
-@app.context_processor
-def inject_notifications():
-    user_id = session.get('user_id')
-    if not user_id:
-        return dict(unread_count=0)
-    
-    db = get_db()
-    # is_read = 0 (未読) の通知数をカウント
-    row = db.execute(
-        "SELECT COUNT(*) FROM notifications WHERE user_id = ? AND is_read = 0",
-        (user_id,)
-    ).fetchone()
-    
-    unread_count = row[0] if row else 0
-    return dict(unread_count=unread_count)

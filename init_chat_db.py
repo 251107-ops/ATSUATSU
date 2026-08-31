@@ -4,7 +4,7 @@ import sqlite3
 # Flaskアプリと同じデータベース（nikuman.db）を指定
 DB_PATH = os.path.join(os.path.dirname(__file__), "nikuman.db")
 
-def create_tables():
+def update_tables():
     if not os.path.exists(DB_PATH):
         print(f"エラー: データベースファイルが見つかりません -> {DB_PATH}")
         return
@@ -12,7 +12,7 @@ def create_tables():
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     
-    # 1. rooms テーブルの作成
+    # 1. rooms テーブルの作成・拡張
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS rooms (
             room_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -23,7 +23,6 @@ def create_tables():
         );
     """)
 
-    # 既存の rooms テーブルのカラム拡張
     try:
         cursor.execute("ALTER TABLE rooms ADD COLUMN skill_id INTEGER;")
     except sqlite3.OperationalError:
@@ -45,11 +44,14 @@ def create_tables():
         );
     """)
 
-    # 3. messages テーブルの作成（ここが不足していました）
+    # 3. messages テーブルの再作成
+    cursor.execute("DROP TABLE IF EXISTS messages;")
+    
     cursor.execute("""
-        CREATE TABLE IF NOT EXISTS messages (
-            message_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            room TEXT NOT NULL,
+        CREATE TABLE messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            room_id INTEGER,
+            room TEXT,
             user_id INTEGER,
             name TEXT NOT NULL,
             content TEXT NOT NULL,
@@ -59,7 +61,7 @@ def create_tables():
     
     conn.commit()
     conn.close()
-    print("【成功】messages テーブルの作成・更新が完了しました！")
+    print("【成功】messages テーブルの再作成が完了しました！")
 
 if __name__ == '__main__':
-    create_tables()
+    update_tables()
