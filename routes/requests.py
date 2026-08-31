@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-import secrets
-=======
->>>>>>> 1f189026239adf2ad225951bf4e5846200df897b
 import traceback
 import secrets
 from flask import (
@@ -138,9 +134,6 @@ def list_requests():
 
     db = get_db()
 
-<<<<<<< HEAD
-    # 自分が送ったリクエストを取得
-=======
     if request.method == 'POST':
         post_id = request.form.get('post_id')
         if not post_id:
@@ -176,7 +169,6 @@ def list_requests():
         return redirect(url_for('.list_requests'))
 
     # ↓ GET: 自分が送った/受けたリクエストを両方取得
->>>>>>> 1f189026239adf2ad225951bf4e5846200df897b
     sent = db.execute("""
         SELECT r.request_id, r.status, r.room_id, r.created_at,
                u.name AS partner_name, s.skill_name, p.post_type
@@ -224,18 +216,10 @@ def accept_request(request_id):
 
     post = db.execute("SELECT skill_id FROM posts WHERE post_id = ?", (req['post_id'],)).fetchone()
 
-<<<<<<< HEAD
-    # --- 修正箇所：room_id の INSERT を自動採番に変更 ---
-=======
->>>>>>> 1f189026239adf2ad225951bf4e5846200df897b
     cursor = db.execute(
         "INSERT INTO rooms (skill_id, is_public, created_by) VALUES (?, 0, ?)",
         (post['skill_id'], user_id)
     )
-<<<<<<< HEAD
-    # 自動発行された INTEGER の room_id を取得
-=======
->>>>>>> 1f189026239adf2ad225951bf4e5846200df897b
     room_id = cursor.lastrowid
 
     db.execute("INSERT INTO room_members (room_id, user_id) VALUES (?, ?)", (room_id, req['requester_id']))
@@ -313,9 +297,5 @@ def complete_request(request_id):
     """, (req['receiver_id'], request_id))
     db.commit()
 
-<<<<<<< HEAD
-    return redirect(url_for('.list_requests'))
-=======
     # レビュー機能がまだ無いので、いったん一覧に戻す
     return redirect(url_for('.list_requests'))
->>>>>>> 1f189026239adf2ad225951bf4e5846200df897b

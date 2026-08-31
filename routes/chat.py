@@ -177,22 +177,11 @@ def chat_room(room_id):
     # 修正箇所: 正しいカラム対応（辞書型で安全に読み出し）
     history = []
     for row in history_rows:
-<<<<<<< HEAD
-=======
         
->>>>>>> 1f189026239adf2ad225951bf4e5846200df897b
         history.append({
             'id': row['id'],
             'user_id': row['user_id'],
             'name': row['name'],
-<<<<<<< HEAD
-            'content': str(row['content']),
-            'time': row['send_time']
-        })
-        
-    return render_template('chat.html', name=name, room=room_id, chats=history, user_id=user_id)
-
-=======
             'content': row['content'],
             'time': row['send_time'],
         })
@@ -205,7 +194,6 @@ def chat_room(room_id):
     return render_template(
         'chat.html', name=name, room=room_id, chats=history, user_id=user_id, req_row=req_row
     )
->>>>>>> 1f189026239adf2ad225951bf4e5846200df897b
 
 # =====================================================================
 # 3. 公開ルームの作成
