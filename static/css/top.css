@@ -195,12 +195,13 @@ a {
     display: flex;
     flex-direction: column;
     position: relative;
-    transition: transform 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+    transition: transform 0.3s cubic-bezier(0.25,1,0.5,1), box-shadow 0.2s;
 }
 
 .card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05);
+    transform: scale(1.03);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
 }
 
 .card-top {
@@ -275,20 +276,6 @@ a {
     flex: 1;
 }
 
-.fav {
-    position: absolute;
-    bottom: 20px;
-    right: 20px;
-    font-size: 14px;
-    color: #b0bec5;
-    cursor: pointer;
-    transition: color 0.2s;
-}
-
-.fav:hover {
-    color: #e57373;
-}
-
 .like-btn {
     background: none;
     border: none;
@@ -301,16 +288,184 @@ a {
     bottom: 20px;
     right: 20px;
     transition: color 0.2s;
+    z-index: 2;
 }
 
-.like-btn:hover {
+.like-btn:hover, .like-btn[data-liked="true"] {
     color: #e57373;
 }
 
-.like-btn[data-liked="true"] {
-    color: #e57373;
+/* ==========================================
+   スキルカード詳細モーダル
+   ========================================== */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.4);
+    z-index: 9999;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(2px);
 }
 
-.like-btn[data-liked="true"]:hover {
-    color: #ef5350;
+.modal-overlay.active {
+    display: flex;
+}
+
+.modal-content {
+    background: #ffffff;
+    width: 90%;
+    max-width: 440px;
+    border-radius: 24px;
+    padding: 28px 24px 20px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    position: relative;
+    box-sizing: border-box;
+    z-index: 10000;
+    animation: modalPop 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes modalPop {
+    from {
+        opacity: 0;
+        transform: scale(0.92);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.modal-close {
+    position: absolute;
+    top: 16px;
+    right: 20px;
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: var(--text-sub, #94a3b8);
+    cursor: pointer;
+    line-height: 1;
+    padding: 4px;
+    z-index: 10001;
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 20px;
+}
+
+.modal-header img {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    object-fit: cover;
+    background-color: #e2e8f0;
+}
+
+.modal-header-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.modal-header-info .name {
+    font-weight: bold;
+    font-size: 16px;
+    color: var(--text-main);
+}
+
+.modal-header-info .meta {
+    font-size: 13px;
+    color: var(--text-sub);
+    margin-top: 2px;
+}
+
+.modal-tags {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.modal-tag-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.modal-tag-item {
+    flex: 1;
+    text-align: center;
+    background-color: #ffffff;
+    border: 1px solid var(--border-color, #e2e8f0);
+    padding: 8px 12px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-main);
+}
+
+.modal-body-box {
+    background-color: #ffffff;
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 16px;
+    padding: 16px;
+    min-height: 110px;
+    margin-bottom: 20px;
+    font-size: 14px;
+    color: var(--text-main);
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.modal-action {
+    margin-bottom: 16px;
+    position: relative;
+    z-index: 10001;
+}
+
+.request-btn {
+    width: 100%;
+    padding: 12px;
+    font-size: 15px;
+    font-weight: bold;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    transition: transform 0.1s, opacity 0.2s;
+    background-color: var(--primary-color, #3b82f6);
+    color: #ffffff;
+    position: relative;
+    z-index: 10002;
+}
+
+.request-btn:hover {
+    opacity: 0.9;
+}
+
+.request-btn:active {
+    transform: scale(0.98);
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    font-size: 14px;
+    color: var(--text-sub, #64748b);
+    padding-top: 4px;
+}
+
+.modal-like-count {
+    font-weight: bold;
+    margin-right: 4px;
 }

@@ -1,13 +1,14 @@
 import os
 import sqlite3
-from flask import Blueprint, render_template, g, redirect, request, session
-from werkzeug.security import generate_password_hash, check_password_hash
-from werkzeug.utils import secure_filename
 from argon2 import PasswordHasher
-from argon2.exceptions import VerifyMismatchError, InvalidHashError
+from argon2.exceptions import InvalidHashError, VerifyMismatchError
+from flask import Blueprint, g, redirect, render_template, request, session
+from werkzeug.security import check_password_hash, generate_password_hash
+from werkzeug.utils import secure_filename
+
 ph = PasswordHasher()
 
-DATABASE = os.path.join(os.path.dirname(__file__), "..", "nikuman.db")
+DATABASE = os.path.join(os.path.dirname(__file__), '..', 'nikuman.db')
 
 # 💡 routesフォルダ内に置く場合は template_folder の指定が必要です
 auth = Blueprint('auth', __name__, template_folder='../templates')
@@ -16,8 +17,9 @@ auth.secret_key = os.urandom(24)  # セッション情報の暗号化に必要�
 
 # --- ルーティング設定 ---
 
+
 # ログイン画面
-@auth.route("/login", methods=['GET', 'POST'])
+@auth.route('/login', methods=['GET', 'POST'])
 def login():
     error_message = ''
     email = ''
@@ -30,7 +32,8 @@ def login():
         db = get_db()
         # データベースから該当するメールアドレスのユーザー情報を取得
         user_data = db.execute(
-            "SELECT user_id, name, email, password FROM users WHERE email = ?", [email]
+            'SELECT user_id, name, email, password FROM users WHERE email = ?',
+            [email],
         ).fetchone()
 
         # ⭕ ハッシュ化されたパスワードの検証
@@ -51,11 +54,13 @@ def login():
 
         error_message = '入力されたメールアドレスもしくはパスワードが誤っています'
 
-    return render_template('login.html', email=email, error_message=error_message)
+    return render_template(
+        'login.html', email=email, error_message=error_message
+    )
 
 
 # 新規登録 1ページ目
-@auth.route("/register1", methods=['GET', 'POST'])
+@auth.route('/register1', methods=['GET', 'POST'])
 def register1():
     if request.method == 'POST':
         name = request.form.get('name', '')
@@ -64,29 +69,36 @@ def register1():
 
         # ⭕ method='sha256' を削除（自動で最新の安全なアルゴリズムが使われます）
         pass_hash = ph.hash(password)
-        return render_template('register2.html', name=name, email=email, password=pass_hash)
+        return render_template(
+            'register2.html', name=name, email=email, password=pass_hash
+        )
 
     return render_template('register1.html')
 
 
 # 新規登録 2ページ目
-@auth.route("/register2", methods=['POST'])
+@auth.route('/register2', methods=['POST'])
 def register2():
     name = request.form.get('name', '')
     email = request.form.get('email', '')
-    password = request.form.get('password', '')  # 1ページ目から引き継いだハッシュ化済みパスワード
+    password = request.form.get(
+        'password', ''
+    )  # 1ページ目から引き継いだハッシュ化済みパスワード
     grade = request.form.get('grade', '')
     department = request.form.get('department', '')
     introduction = request.form.get('introduction', '')
 
     db = get_db()
-    user_check = db.execute("SELECT email FROM users WHERE email = ?", (email,)).fetchone()
+    user_check = db.execute(
+        'SELECT email FROM users WHERE email = ?', (email,)
+    ).fetchone()
 
     if not user_check:
         # まずユーザーを登録し、自動採番されたuser_idを取得する
         cursor = db.execute(
-            "INSERT INTO users (name, email, password, grade, department, introduction, icon_path) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            (name, email, password, grade, department, introduction, '')
+            'INSERT INTO users (name, email, password, grade, department,'
+            ' introduction, icon_path) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            (name, email, password, grade, department, introduction, ''),
         )
         db.commit()
         new_user_id = cursor.lastrowid
@@ -98,33 +110,39 @@ def register2():
             ext = os.path.splitext(icon_file.filename)[1].lower()
 
             if ext in allowed_ext:
-                filename = secure_filename(f"user_{new_user_id}{ext}")
+                filename = secure_filename(f'user_{new_user_id}{ext}')
                 upload_dir = os.path.join('static', 'uploads')
                 os.makedirs(upload_dir, exist_ok=True)
                 save_path = os.path.join(upload_dir, filename)
                 icon_file.save(save_path)
 
-                icon_path = f"uploads/{filename}"
+                icon_path = f'uploads/{filename}'
                 db.execute(
-                    "UPDATE users SET icon_path = ? WHERE user_id = ?",
-                    (icon_path, new_user_id)
+                    'UPDATE users SET icon_path = ? WHERE user_id = ?',
+                    (icon_path, new_user_id),
                 )
                 db.commit()
 
         return redirect('/login')  # 登録完了後にログインページへリダイレクト
     else:
         error_message = 'このデータは既に登録されています'
-        return render_template('register1.html', error_message=error_message, name=name, email=email, password=password)
+        return render_template(
+            'register1.html',
+            error_message=error_message,
+            name=name,
+            email=email,
+            password=password,
+        )
 
 
 # ログアウト処理
-@auth.route("/logout")
+@auth.route('/logout')
 def logout():
     session.clear()  # セッションからユーザー情報を削除（ログアウト）
     return redirect('/login')
 
 
-@auth.route("/change-password", methods=["GET", "POST"])
+@auth.route('/change-password', methods=['GET', 'POST'])
 def change_password():
     error_message = ''
     if 'user_id' not in session:
@@ -132,19 +150,23 @@ def change_password():
 
     user_id = session['user_id']
 
-    if request.method == "POST":
+    if request.method == 'POST':
         current_password = request.form.get('current_password', '')
         new_password = request.form.get('new_password', '')
         password_confirm = request.form.get('password_confirm', '')
 
         db = get_db()
-        user_data = db.execute("SELECT password FROM users WHERE user_id=?", (user_id,)).fetchone()
+        user_data = db.execute(
+            'SELECT password FROM users WHERE user_id=?', (user_id,)
+        ).fetchone()
 
         current_valid = False
 
         if user_data:
             try:
-                current_valid = ph.verify(user_data['password'], current_password)
+                current_valid = ph.verify(
+                    user_data['password'], current_password
+                )
             except (VerifyMismatchError, InvalidHashError):
                 current_valid = False
 
@@ -158,19 +180,19 @@ def change_password():
             error_message = 'New password cannot be empty.'
         else:
             new_pass_hash = ph.hash(new_password)
-            db.execute("UPDATE users set password = ? WHERE user_id = ?", (new_pass_hash, user_id))
+            db.execute(
+                'UPDATE users set password = ? WHERE user_id = ?',
+                (new_pass_hash, user_id),
+            )
             db.commit()
             return redirect('/profile')
     return render_template('settings.html', error_message=error_message)
 
 
-# @auth.route("/top")
-# def top():
-#     return render_template('top.html')
-
 # データベース接続関数
 def connect_db():
-    rv = sqlite3.connect(DATABASE)
+    # 💡 timeout=20.0 を追加して DB ロック解除待ち時間を確保
+    rv = sqlite3.connect(DATABASE, timeout=20.0)
     rv.row_factory = sqlite3.Row  # カラム名でのデータ取得を可能にする設定
     return rv
 
@@ -225,8 +247,8 @@ def init_db():
     db.close()
 
 
-# リクエスト終了時に自動でデータベースを閉じる
-# @auth.teardown_appcontext
-# def close_db(error):
-#     if hasattr(g, 'sqlite_db'):
-#         g.sqlite_db.close()
+# 💡 コメントアウトを解除：リクエスト終了時に自動でDB接続を閉じ、ロックを解放する
+@auth.teardown_app_request
+def close_db(error):
+    if hasattr(g, 'sqlite_db'):
+        g.sqlite_db.close()

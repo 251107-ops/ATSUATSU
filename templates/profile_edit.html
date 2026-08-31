@@ -10,28 +10,28 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/footer.css') }}">
 </head>
 <body>
-
+ 
   {% include 'header.html' %}
 
   <div class="layout">
 
     <!-- サイドバー -->
     <aside class="sidebar">
-      <a href="/profile" class="side-link side-link--active">
-        <span class="side-link__icon">◎</span>プロフィール
-      </a>
-      <button type="button" class="side-link" data-target="skills">
+      <button class="side-link side-link--active" data-target="profile">
+       <a href="/profile"><span class="side-link__icon">◎</span>プロフィール</a>
+      </button>
+      <button class="side-link" data-target="skills">
         <span class="side-link__icon">▦</span>スキル管理
       </button>
-      <button type="button" class="side-link" data-target="favorites">
-        <span class="side-link__icon">♡</span>お気に入り
+      <button class="side-link" data-target="favorites">
+        <a href="/likes/page"><span class="side-link__icon">♡</span>お気に入り</a>
       </button>
-      <button type="button" class="side-link" data-target="notifications">
-        <span class="side-link__icon">♪</span>通知
+      <button class="side-link" data-target="notifications">
+        <a href="/notifications"><span class="side-link__icon">♪</span>通知</a>
       </button>
-      <a href="/change-password" class="side-link">
-        <span class="side-link__icon">⚙</span>設定
-      </a>
+      <button class="side-link" data-target="settings">
+        <span class="side-link__icon">⚙</span><a href="/change-password">設定</a>
+      </button>
     </aside>
 
     <main class="main">
@@ -40,7 +40,7 @@
         <p class="main__note"><span class="required">*</span>は必須項目です</p>
       </div>
 
-      <form id="profileForm" class="profile-card" action="/profile_edit" method="POST" enctype="multipart/form-data" novalidate>
+      <form id="profileForm" class="profile-card" action="/profile" method="POST" enctype="multipart/form-data" novalidate>
         {% if csrf_token %}
           <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         {% endif %}

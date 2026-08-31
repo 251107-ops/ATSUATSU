@@ -90,27 +90,102 @@ body {
     padding: 24px;
     overflow-y: auto;
     background-color: var(--bg-color, #f2f5f9); /* トークエリアも心地よい背景色に */
+    display: flex;
+    flex-direction: column;
 }
 
+/* メッセージの左右振り分け */
 .msg-line {
-    margin-bottom: 14px;
+    display: flex;
+    flex-direction: column;
+    max-width: 70%;
+    margin-bottom: 16px;
     font-size: 15px;
     line-height: 1.5;
 }
 
-.msg-user {
-    font-weight: bold;
-    color: var(--text-main, #2c3e50);
+/* 自分のメッセージ：右寄せ */
+.msg-line.msg-mine {
+    align-self: flex-end;
+    align-items: flex-end;
 }
 
-.msg-time {
+/* 相手のメッセージ：左寄せ */
+.msg-line.msg-theirs {
+    align-self: flex-start;
+    align-items: flex-start;
+}
+
+.msg-line .msg-user {
+    font-size: 12px;
+    font-weight: bold;
+    color: var(--text-sub, #7f8c8d);
+    margin-bottom: 4px;
+}
+
+.msg-bubble {
+    padding: 10px 16px;
+    border-radius: 18px;
+    font-size: 15px;
+    line-height: 1.5;
+    word-break: break-word;
+}
+
+/* 自分のメッセージの吹き出し：テーマカラーの背景 */
+.msg-mine .msg-bubble {
+    background-color: var(--primary-color, #385cdb);
+    color: #ffffff;
+    border-bottom-right-radius: 4px;
+}
+
+/* 相手のメッセージの吹き出し：グレー背景 */
+.msg-theirs .msg-bubble {
+    background-color: #eef1f5;
+    color: var(--text-main, #2c3e50);
+    border-bottom-left-radius: 4px;
+}
+
+.msg-line .msg-time {
     font-size: 11px;
     color: var(--text-sub, #7f8c8d);
-    margin-left: 8px;
+    margin-top: 4px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* =====================================================================
+   ✖ メッセージ削除ボタン専用スタイル（赤いバツ印ボタン）
+   ===================================================================== */
+.btn-delete {
+    background-color: #ff4d4f; /* 明るい赤色 */
+    color: #ffffff;             /* 白文字の✕ */
+    border: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;         /* 丸いボタン */
+    font-size: 10px;
+    font-weight: bold;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.6;
+    transition: all 0.2s ease;
+    line-height: 1;
+    margin-left: 2px;
+}
+
+/* マウスホバー時に強調＆わずかに拡大 */
+.btn-delete:hover {
+    opacity: 1.0;
+    background-color: #ff7875;
+    transform: scale(1.15);
 }
 
 /* 入退室などのシステムメッセージ用 */
 .msg-status {
+    align-self: center;
     color: var(--text-sub, #7f8c8d);
     font-style: italic;
     font-size: 13px;
@@ -124,10 +199,11 @@ body {
     border-top: 1px solid var(--border-color, #e2e8f0);
     background-color: var(--card-bg, #ffffff);
     display: flex;
+    align-items: center;
     gap: 12px;
 }
 
-.chat-footer input {
+.chat-footer input[type="text"] {
     flex: 1;
     padding: 12px 16px;
     border: 1px solid var(--border-color, #e2e8f0);
@@ -139,13 +215,13 @@ body {
     transition: border-color 0.2s ease, background-color 0.2s ease;
 }
 
-.chat-footer input:focus {
+.chat-footer input[type="text"]:focus {
     border-color: var(--primary-color, #385cdb);
     background-color: #ffffff;
 }
 
 .btn-send {
-    padding: 0 28px;
+    padding: 12px 28px;
     background-color: var(--primary-color, #385cdb);
     color: #ffffff;
     border: none;
@@ -158,4 +234,51 @@ body {
 
 .btn-send:hover {
     background-color: var(--primary-hover, #2a46b0);
+}
+
+/* =====================================================================
+   📷 画像添付機能専用スタイル
+   ===================================================================== */
+.btn-image-upload {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background-color: var(--bg-color, #f2f5f9);
+    color: var(--primary-color, #385cdb);
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+    flex-shrink: 0;
+}
+
+.btn-image-upload:hover {
+    background-color: var(--tag-blue-bg, #e6f0fa);
+    transform: scale(1.05);
+}
+
+/* 吹き出し内の画像表現 */
+.chat-img {
+    max-width: 100%;
+    max-height: 240px;
+    border-radius: 12px;
+    cursor: pointer;
+    display: block;
+    object-fit: cover;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.chat-img:hover {
+    opacity: 0.9;
+    transform: scale(1.01);
+}
+
+/* 画像送信時の吹き出し背景調整（画像の角丸と綺麗に合わせる） */
+.msg-bubble:has(.chat-img) {
+    padding: 6px;
+    background-color: transparent;
 }

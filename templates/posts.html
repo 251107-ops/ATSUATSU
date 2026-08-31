@@ -30,8 +30,8 @@
                     <p>カテゴリを選択してください：</p>
                     <select id="category_select" name="category_id" required>
                         <option value="">-- カテゴリを選択してください --</option>
-                        {% for c in categories %}
-                        <option value="{{ c.category_id }}">{{ c.category_name }}</option>
+                        {% for category in categories %}
+                            <option value="{{ category[0] if category is iterable else category.category_id }}">{{ category[1] if category is iterable else category.category_name }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -42,7 +42,10 @@
                         <option value="">-- 先にカテゴリを選んでください --</option>
                     </select>
                 </div>
+<<<<<<< HEAD
+=======
 
+>>>>>>> origin/narimatsu
 
                 <div class="form-group">
                     <p>ここに投稿内容を入力してください。</p>

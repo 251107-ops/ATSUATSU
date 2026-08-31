@@ -6,15 +6,23 @@ from routes.posts import posts
 from routes.skill import skill
 from routes.chat import chat, init_chat_events
 from routes.category import categories
+<<<<<<< HEAD
+from routes.auth import get_db
+=======
 from routes.auth import auth, get_db, init_db
 from routes.requests import requests_bp
 from routes.notifications import notifications_bp
 from routes.reviews import reviews_bp
+>>>>>>> origin/narimatsu
 
 app = Flask(__name__)
 
 # :bulb: 修正点: 開発中は固定の文字列にするか、Blueprintを登録する「前」に必ず設定します
 app.secret_key = '.secret_key'
+<<<<<<< HEAD
+
+=======
+>>>>>>> origin/narimatsu
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 # Blueprint の登録
@@ -45,7 +53,11 @@ with app.app_context():
     db.execute('''CREATE TABLE IF NOT EXISTS  posts (post_id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, skill_id INTEGER NOT NULL, post_type TEXT NOT NULL,
         post_text TEXT NOT NULL, post_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP, category_id INTEGER NOT NULL,
         FOREIGN KEY(user_id) REFERENCES users(user_id),  FOREIGN KEY(skill_id) REFERENCES skills(skill_id), FOREIGN KEY(category_id) REFERENCES categories(category_id))''')
+<<<<<<< HEAD
+    db.execute('''CREATE TABLE IF NOT EXISTS skills (skill_id INTEGER PRIMARY KEY AUTOINCREMENT, skill_name TEXT NOT NULL, category_id INTEGER NOT NULL , FOREIGN KEY(category_id) REFERENCES categories(category_id) UNIQUE (skill_name, category_id))''')
+=======
     db.execute('''CREATE TABLE IF NOT EXISTS skills (skill_id INTEGER PRIMARY KEY AUTOINCREMENT, skill_name TEXT NOT NULL, category_id INTEGER NOT NULL , FOREIGN KEY(category_id) REFERENCES categories(category_id), UNIQUE (skill_name, category_id))''')
+>>>>>>> origin/narimatsu
     db.execute('''CREATE TABLE IF NOT EXISTS categories (category_id INTEGER PRIMARY KEY AUTOINCREMENT, category_name TEXT NOT NULL UNIQUE)''')
     db.execute('''CREATE TABLE IF NOT EXISTS likes (user_id INTEGER NOT NULL, post_id INTEGER NOT NULL, PRIMARY KEY (user_id, post_id), FOREIGN KEY (user_id) REFERENCES users(user_id), FOREIGN KEY (post_id) REFERENCES posts(post_id))''')
     db.execute('''INSERT OR IGNORE INTO categories (category_name) VALUES
@@ -85,6 +97,8 @@ with app.app_context():
     ''')
     db.commit()
 
+<<<<<<< HEAD
+=======
 @app.context_processor
 def inject_unread_notifications():
     if 'user_id' in session:
@@ -105,5 +119,6 @@ def add_header(response):
     return response
 
 
+>>>>>>> origin/narimatsu
 if __name__ == "__main__":
     socketio.run(app, debug=True)
