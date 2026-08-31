@@ -123,7 +123,42 @@ def chat_hub():
     ).fetchone()
     name = user_row['name'] if user_row else session.get('name', 'User')
 
-    return render_template('chat_hub.html', name=name)
+    # 👥 サイドバー用：自分が参加しているチャットルーム一覧を取得
+    chat_rooms_rows = db.execute(
+        """
+        SELECT 
+            rm1.room_id AS room_token,
+            u.name AS user_name,
+            u.icon_path,
+            s.skill_name
+        FROM room_members rm1
+        JOIN room_members rm2 ON rm1.room_id = rm2.room_id AND rm1.user_id != rm2.user_id
+        JOIN users u ON rm2.user_id = u.user_id
+        LEFT JOIN rooms r ON rm1.room_id = r.room_id
+        LEFT JOIN skills s ON r.skill_id = s.skill_id
+        WHERE rm1.user_id = ?
+    """,
+        (user_id,),
+    ).fetchall()
+
+    chat_rooms = []
+    for row in chat_rooms_rows:
+        chat_rooms.append({
+            'room_token': str(row['room_token']),
+            'user_name': row['user_name'],
+            'icon_path': row['icon_path'],
+            'skill_name': row['skill_name'] if row['skill_name'] else '',
+        })
+
+    # chat.html へ必要なデータを全て渡して描画
+    return render_template(
+        'chat.html',
+        name=name,
+        chat_rooms=chat_rooms,
+        room=None,
+        chats=[],
+        user_id=user_id
+    )
 
 
 # =====================================================================
@@ -162,7 +197,7 @@ def chat_room(room_id):
         f' {room_id}'
     )
 
-    # 📥 削除機能用に id を追加取得
+    # 📥 過去ログの取得
     history_rows = db.execute(
         """
         SELECT id, user_id, name, content, datetime(send_at, 'localtime') AS send_time
@@ -176,7 +211,6 @@ def chat_room(room_id):
 
     history = []
     for row in history_rows:
-        
         history.append({
             'id': row['id'],
             'user_id': row['user_id'],
@@ -185,13 +219,46 @@ def chat_room(room_id):
             'time': row['send_time'],
         })
 
+    # 👥 サイドバー用：自分が参加しているチャットルームと相手の情報一覧を取得（追加）
+    chat_rooms_rows = db.execute(
+        """
+        SELECT 
+            rm1.room_id AS room_token,
+            u.name AS user_name,
+            u.icon_path,
+            s.skill_name
+        FROM room_members rm1
+        JOIN room_members rm2 ON rm1.room_id = rm2.room_id AND rm1.user_id != rm2.user_id
+        JOIN users u ON rm2.user_id = u.user_id
+        LEFT JOIN rooms r ON rm1.room_id = r.room_id
+        LEFT JOIN skills s ON r.skill_id = s.skill_id
+        WHERE rm1.user_id = ?
+    """,
+        (user_id,),
+    ).fetchall()
+
+    chat_rooms = []
+    for row in chat_rooms_rows:
+        chat_rooms.append({
+            'room_token': str(row['room_token']),
+            'user_name': row['user_name'],
+            'icon_path': row['icon_path'],
+            'skill_name': row['skill_name'] if row['skill_name'] else '',
+        })
+
     req_row = db.execute(
         "SELECT request_id FROM requests WHERE room_id = ? AND requester_id = ?",
         (room_id, user_id)
     ).fetchone()
 
     return render_template(
-        'chat.html', name=name, room=room_id, chats=history, user_id=user_id, req_row=req_row
+        'chat.html',
+        name=name,
+        room=room_id,
+        chats=history,
+        user_id=user_id,
+        req_row=req_row,
+        chat_rooms=chat_rooms,  # ← テンプレートへ渡す
     )
 
 # =====================================================================
@@ -535,3 +602,59 @@ def init_chat_events(socketio):
             real_name = user_row['name'] if user_row else 'Someone'
             leave_room(room)
             emit('status', {'msg': f'{real_name} が退室しました。'}, to=room)
+# =====================================================================
+# ヘッダーの「チャット」ボタン用のリダイレクト処理
+# =====================================================================
+@chat.route('/chat_index')
+def chat_index():
+    user_id = session.get('user_id')
+    if not user_id:
+        return redirect('/login')
+
+    db = get_db()
+
+    # ユーザーが参加している直近のルームを1件取得
+    latest_room = db.execute('''
+        SELECT room_id 
+        FROM room_members 
+        WHERE user_id = ? 
+        ORDER BY room_id DESC 
+        LIMIT 1
+    ''', (user_id,)).fetchone()
+
+    # 参加しているルームがあればその画面へ、なければチャットハブ（未選択画面など）へ
+    if latest_room:
+        return redirect(url_for('chat.chat_room', room_id=latest_room['room_id']))
+    else:
+        return redirect(url_for('chat.chat_hub'))
+        # =====================================================================
+# サイドバーからのチャット削除（ルーム退出）処理
+# =====================================================================
+@chat.route('/chat/room/<string:room_id>/leave', methods=['POST'])
+def leave_room_action(room_id):
+    user_id = session.get('user_id')
+    if not user_id:
+        return redirect('/login')
+
+    db = get_db()
+
+    # 1. room_members から自分を削除
+    db.execute(
+        'DELETE FROM room_members WHERE room_id = ? AND user_id = ?',
+        (room_id, user_id)
+    )
+    db.commit()
+
+    # 2. もしルーム内にメンバーが誰もいなくなったらルーム自体も削除
+    member_count = db.execute(
+        'SELECT COUNT(*) AS count FROM room_members WHERE room_id = ?',
+        (room_id,)
+    ).fetchone()
+
+    if member_count and member_count['count'] == 0:
+        db.execute('DELETE FROM rooms WHERE room_id = ?', (room_id,))
+        db.execute('DELETE FROM messages WHERE room = ?', (room_id,))
+        db.commit()
+
+    # 削除後は他のチャット画面（または一覧インデックス）へリダイレクト
+    return redirect(url_for('chat.chat_index'))
