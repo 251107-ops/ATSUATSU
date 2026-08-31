@@ -24,21 +24,40 @@
 
         <div class="chat-container">
             <div class="chat-header">
-                <h2>ルームコード: <span class="room-token">{{ room }}</span></h2>
-                <p class="user-info">ログイン中: <strong>{{ name }}</strong></p>
+                <div>
+                    <h2>ルームコード: <span class="room-token">{{ room }}</span></h2>
+                    <p class="user-info">ログイン中: <strong>{{ name }}</strong></p>
+                </div>
             </div>
 
             <div class="chat-messages" id="chat-box">
                 {% for chat in chats %}
-                    <div class="msg-line">
-                        <span class="msg-user">{{ chat.name }}</span>: 
-                        <span>{{ chat.content }}</span>
-                        <span class="msg-time">{{ chat.time }}</span>
+                    <div class="msg-line {{ 'msg-mine' if chat.user_id == user_id else 'msg-theirs' }}" id="msg-{{ chat.id }}">
+                        <span class="msg-user">{{ chat.name }}</span>
+                        <div class="msg-bubble">
+                            {% if chat.content.startswith('[IMG]') and chat.content.endswith('[/IMG]') %}
+                                {% set img_url = chat.content[5:-6] %}
+                                <img src="{{ img_url }}" class="chat-img" onclick="window.open('{{ img_url }}', '_blank')" alt="添付画像">
+                            {% else %}
+                                {{ chat.content }}
+                            {% endif %}
+                        </div>
+                        <span class="msg-time">
+                            {{ chat.time }}
+                            {% if chat.user_id == user_id %}
+                                <button class="btn-delete" onclick="deleteMessage({{ chat.id }})" title="削除">✕</button>
+                            {% endif %}
+                        </span>
                     </div>
                 {% endfor %}
             </div>
-
+            
             <div class="chat-footer">
+                <!-- 画像添付ボタン ＆ 非表示ファイルインプット -->
+                <label for="image-input" class="btn-image-upload" title="画像を添付">＋</label>
+                <input type="file" id="image-input" accept="image/*" style="display: none;">
+
+                <!-- テキスト入力 -->
                 <input type="text" id="message-input" placeholder="メッセージを入力してください..." autocomplete="off">
                 <button class="btn-send" id="send-btn">送信</button>
             </div>
@@ -46,12 +65,23 @@
     </div>
 
     <script>
+        // グローバル関数としてメッセージ削除関数を用意
+        function deleteMessage(msgId) {
+            if (confirm("このメッセージを削除しますか？")) {
+                if (window.chatSocket) {
+                    window.chatSocket.emit('delete_message', { msg_id: msgId });
+                }
+            }
+        }
+
         document.addEventListener("DOMContentLoaded", () => {
             window.chatSocket = io('/chat');
             
             const chatBox = document.getElementById('chat-box');
             const msgInput = document.getElementById('message-input');
             const sendBtn = document.getElementById('send-btn');
+            const imageInput = document.getElementById('image-input');
+            const currentUserId = {{ user_id }};
 
             // スクロール位置を一番下に初期化
             chatBox.scrollTop = chatBox.scrollHeight;
@@ -61,20 +91,57 @@
                 window.chatSocket.emit('joined', {});
             });
 
+            // メッセージ描画補助関数
+            const renderMessageContent = (content) => {
+                if (content.startsWith('[IMG]') && content.endsWith('[/IMG]')) {
+                    const imgUrl = content.substring(5, content.length - 6);
+                    return `<img src="${imgUrl}" class="chat-img" onclick="window.open('${imgUrl}', '_blank')" alt="添付画像">`;
+                }
+                // HTMLエスケープ処理
+                const safeText = document.createElement('div');
+                safeText.textContent = content;
+                return safeText.innerHTML;
+            };
+
             // メッセージ受信時の処理
             window.chatSocket.on('message', (data) => {
                 const msgDiv = document.createElement('div');
-                msgDiv.className = 'msg-line';
                 const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-                
-                // 安全なパース処理
+    
                 const separatorIndex = data.msg.indexOf(':');
                 const senderName = separatorIndex !== -1 ? data.msg.substring(0, separatorIndex) : "システム";
-                const messageContent = separatorIndex !== -1 ? data.msg.substring(separatorIndex + 1) : data.msg;
+                const messageContent = separatorIndex !== -1 ? data.msg.substring(separatorIndex + 1).trim() : data.msg;
 
-                msgDiv.innerHTML = `<span class="msg-user">${senderName}</span>: <span>${messageContent}</span> <span class="msg-time">${now}</span>`;
+                // 送信者が自分自身かどうかで判定
+                const isMine = data.user_id === currentUserId;
+                msgDiv.className = `msg-line ${isMine ? 'msg-mine' : 'msg-theirs'}`;
+                if (data.id) {
+                    msgDiv.id = `msg-${data.id}`;
+                }
+
+                const formattedContent = renderMessageContent(messageContent);
+                
+                // 自分のメッセージであれば削除ボタンをアタッチ
+                const deleteBtnHtml = (isMine && data.id) 
+                    ? `<button class="btn-delete" onclick="deleteMessage(${data.id})" title="削除">✕</button>` 
+                    : '';
+
+                msgDiv.innerHTML = `
+                    <span class="msg-user">${senderName}</span>
+                    <div class="msg-bubble">${formattedContent}</div>
+                    <span class="msg-time">${now}${deleteBtnHtml}</span>
+                `;
+                
                 chatBox.appendChild(msgDiv);
                 chatBox.scrollTop = chatBox.scrollHeight;
+            });
+
+            // メッセージ削除通知受信時の処理
+            window.chatSocket.on('message_deleted', (data) => {
+                const targetMsg = document.getElementById(`msg-${data.msg_id}`);
+                if (targetMsg) {
+                    targetMsg.remove();
+                }
             });
 
             // ステータス（入退室通知）受信時の処理
@@ -94,6 +161,37 @@
                     msgInput.value = "";
                 }
             };
+
+            // 画像選択時のアップロード＆リアルタイム送信処理
+            imageInput.addEventListener('change', async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const formData = new FormData();
+                formData.append('image', file);
+
+                try {
+                    // Flask (Python) への画像アップロード処理
+                    const response = await fetch('/upload-image', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok && result.image_url) {
+                        // 画像タグフォーマットで Socket.IO に送信
+                        window.chatSocket.emit('text', { msg: `[IMG]${result.image_url}[/IMG]` });
+                    } else {
+                        alert(result.error || '画像のアップロードに失敗しました。');
+                    }
+                } catch (err) {
+                    console.error('画像送信エラー:', err);
+                    alert('画像の送信中にエラーが発生しました。');
+                } finally {
+                    imageInput.value = ''; // ファイル選択の選択状態をクリア
+                }
+            });
 
             // イベントリスナーの登録
             sendBtn.addEventListener('click', sendMessage);

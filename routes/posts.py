@@ -11,15 +11,15 @@ posts = Blueprint('posts', __name__)
 def fetch_posts(db, category_id="", post_type="", search_query="", sort_type="new", grade="", department="", user_id=None):
 
     conditions = []
-    params = []
+    params = []  
 
     if category_id:
         conditions.append("posts.category_id = ?")
-        where_params.append(category_id)
+        params.append(category_id)
 
     if post_type:
         conditions.append("posts.post_type = ?")
-        where_params.append(post_type)
+        params.append(post_type)
 
     if grade:
         conditions.append("users.grade = ?")
@@ -27,12 +27,58 @@ def fetch_posts(db, category_id="", post_type="", search_query="", sort_type="ne
 
     if department:
         conditions.append("users.department = ?")
-        where_params.append(department)
+        params.append(department)
 
     if search_query:
         conditions.append("(skills.skill_name LIKE ? OR users.department LIKE ? OR users.grade LIKE ?)")
         search_pattern = f"%{search_query}%"
-        where_params.extend([search_pattern, search_pattern, search_pattern])
+        params.extend([search_pattern, search_pattern, search_pattern])
+
+    where_clause = "WHERE " + " AND ".join(conditions) if conditions else ""
+
+    if sort_type == 'popular':
+        order_by = "ORDER BY like_count DESC, posts.post_date DESC"
+    else:
+        order_by = "ORDER BY posts.post_date DESC"
+
+    query = f"""
+        SELECT
+            users.name,
+            users.department,
+            users.grade,
+            users.icon_path,
+            categories.category_name,
+            skills.skill_name,
+            posts.post_type, posts.post_text, posts.post_id,
+            (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.post_id) AS like_count,
+            (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.post_id AND likes.user_id = ?) AS liked_by_me
+        FROM posts
+        JOIN users ON posts.user_id = users.user_id
+        JOIN skills ON posts.skill_id = skills.skill_id
+        JOIN categories ON posts.category_id = categories.category_id
+        {where_clause}
+        {order_by}
+    """
+
+    rows = db.execute(query, [user_id] + params).fetchall()
+
+    posts_list = []
+    for row in rows:
+        posts_list.append({
+            'name': row[0],
+            'department': row[1],
+            'grade': row[2],
+            'icon_path': row[3] if row[3] else 'img/default-avatar.png',
+            'category_name': row[4],
+            'skill_name': row[5],
+            'post_type': row[6],
+            'post_text': row[7],
+            'post_id': row[8],
+            'like_count': row[9] if row[9] else 0,
+            'liked_by_me': bool(row[10])
+        })
+
+    return posts_list
 
     where_clause = "WHERE " + " AND ".join(conditions) if conditions else ""
 
