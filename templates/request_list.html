@@ -1,70 +1,6 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<<<<<<< HEAD
-    <meta charset="UTF-8">
-    <title>リクエスト一覧</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/variables.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/footer.css') }}">
-</head>
-<body>
-    {% include 'header.html' %}
-    <h2>受信したリクエスト</h2>
-    {% for r in received %}
-        <div>
-            <p>{{ r.requester_name }}さんからのリクエスト: {{ r.post_text }}</p>
-            <p>状態: {{ r.status }}</p>
-            {% if r.status == 'pending' %}
-                <form action="/requests/{{ r.request_id }}/accept" method="POST" style="display:inline;">
-                    <button type="submit">承認</button>
-                </form>
-                <form action="/requests/{{ r.request_id }}/decline" method="POST" style="display:inline;">
-                    <button type="submit">拒否</button>
-                </form>
-            {% elif r.status == 'accepted' %}
-                {% if r.room_id %}
-                    <a href="{{ url_for('chat.chat_room', room_id=r.room_id) }}">
-                        <button type="button">チャット画面へ</button>
-                    </a>
-                {% endif %}
-            {% endif %}
-        </div>
-    {% endfor %}
-
-    <h2>送信したリクエスト</h2>
-    {% for r in sent %}
-        <div>
-            <p>{{ r.receiver_name }}さんへ送信: {{ r.post_text }}</p>
-            <p>状態: {{ r.status }}</p>
-            {% if r.status == 'accepted' %}
-                {% if r.room_id %}
-                    <a href="{{ url_for('chat.chat_room', room_id=r.room_id) }}" style="display:inline;">
-                        <button type="button">チャット画面へ</button>
-                    </a>
-                {% endif %}
-                <form action="/requests/{{ r.request_id }}/complete" method="POST" style="display:inline;">
-                    <button type="submit">チャット終了・完了</button>
-                </form>
-            {% endif %}
-        </div>
-    {% endfor %}
-    {% include 'footer.html' %}
-
-    {% with messages = get_flashed_messages() %}
-      {% if messages %}
-        <div id="flash-message-data" data-message="{{ messages[0] }}" style="display: none;"></div>
-        <script>
-          window.addEventListener('DOMContentLoaded', () => {
-            const flashEl = document.getElementById('flash-message-data');
-            if (flashEl && flashEl.dataset.message) {
-              alert(flashEl.dataset.message);
-            }
-          });
-        </script>
-      {% endif %}
-    {% endwith %}
-=======
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>リクエスト一覧 | スキルシェア</title>
@@ -175,6 +111,5 @@
     </div>
 
     {% include 'footer.html' %}
->>>>>>> origin/narimatsu
 </body>
 </html>
