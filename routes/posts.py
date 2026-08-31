@@ -80,52 +80,6 @@ def fetch_posts(db, category_id="", post_type="", search_query="", sort_type="ne
 
     return posts_list
 
-    where_clause = "WHERE " + " AND ".join(conditions) if conditions else ""
-
-    if sort_type == 'popular':
-        order_by = "ORDER BY like_count DESC, posts.post_date DESC"
-    else:
-        order_by = "ORDER BY posts.post_date DESC"
-
-    query = f"""
-        SELECT
-            users.name,
-            users.department,
-            users.grade,
-            users.icon_path,
-            categories.category_name,
-            skills.skill_name,
-            posts.post_type, posts.post_text, posts.post_id,
-            (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.post_id) AS like_count,
-            (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.post_id AND likes.user_id = ?) AS liked_by_me
-        FROM posts
-        JOIN users ON posts.user_id = users.user_id
-        JOIN skills ON posts.skill_id = skills.skill_id
-        JOIN categories ON posts.category_id = categories.category_id
-        {where_clause}
-        {order_by}
-    """
-
-    rows = db.execute(query, [user_id] + params).fetchall()
-
-    posts_list = []
-    for row in rows:
-        posts_list.append({
-            'name': row[0],
-            'department': row[1],
-            'grade': row[2],
-            'icon_path': row[3] if row[3] else 'img/default-avatar.png',
-            'category_name': row[4],
-            'skill_name': row[5],
-            'post_type': row[6],
-            'post_text': row[7],
-            'post_id': row[8],
-            'like_count': row[9] if row[9] else 0,
-            'liked_by_me': bool(row[10])
-        })
-
-    return posts_list
-
 
 @posts.route("/")
 def top():
@@ -211,6 +165,7 @@ def top_learn():
         search_query=search_query
     )
 
+
 @posts.route("/top/teach")
 def top_teach():
     if 'user_email' not in session:
@@ -263,7 +218,6 @@ def profile():
     user_id = session.get('user_id')
     db = get_db()
 
-    # --- POSTリクエスト（編集保存時の処理） ---
     if request.method == 'POST':
         name = request.form.get('name', '').strip()
         department = request.form.get('department', '')
@@ -312,7 +266,6 @@ def profile():
         sync_skills('教えたい', teach_skill_names)
         sync_skills('学びたい', learn_skill_names)
 
-        # アイコン画像の保存
         icon_path = None
         avatar_file = request.files.get('avatar') or request.files.get('icon')
         if avatar_file and avatar_file.filename:
@@ -329,7 +282,6 @@ def profile():
 
             icon_path = f"uploads/{filename}"
 
-        # データベース更新
         if icon_path:
             db.execute(
                 "UPDATE users SET name = ?, department = ?, grade = ?, introduction = ?, icon_path = ? WHERE email = ?",
@@ -348,7 +300,6 @@ def profile():
         else:
             return redirect('/profile')
 
-    # ↓ GET時の表示処理
     row = db.execute(
         "SELECT name, email, department, grade, introduction, icon_path FROM users WHERE email = ?",
         (user_email,)
@@ -453,76 +404,6 @@ def profile_edit():
     return render_template('profile_edit.html', user=user, teach_skills=teach_skills, learn_skills=learn_skills)
 
 
-@posts.route("/profile/edit", methods=['GET', 'POST'])
-def edit_profile():
-    if 'user_email' not in session:
-        return redirect('/login')
-
-    user_email = session['user_email']
-    user_id = session.get('user_id')
-    db = get_db()
-
-    row = db.execute(
-        "SELECT name, email, department, grade, introduction, icon_path FROM users WHERE email = ?",
-        (user_email,)
-    ).fetchone()
-
-    user = None
-    if row:
-        user = {
-            'name': row[0],
-            'email': row[1],
-            'department': row[2],
-            'grade': row[3],
-            'introduction': row[4],
-            'icon_path': row[5]
-        }
-
-    teach_rows = db.execute("""
-        SELECT DISTINCT skills.skill_id, skills.skill_name 
-        FROM posts
-        JOIN skills ON posts.skill_id = skills.skill_id
-        WHERE posts.user_id = ? AND posts.post_type = '教えたい'
-    """, (user_id,)).fetchall()
-    skills_teach = [{'skill_id': r[0], 'skill_name': r[1]} for r in teach_rows]
-
-    learn_rows = db.execute("""
-        SELECT DISTINCT skills.skill_id, skills.skill_name 
-        FROM posts
-        JOIN skills ON posts.skill_id = skills.skill_id
-        WHERE posts.user_id = ? AND posts.post_type = '学びたい'
-    """, (user_id,)).fetchall()
-    skills_learn = [{'skill_id': r[0], 'skill_name': r[1]} for r in learn_rows]
-
-    my_posts_rows = db.execute("""
-        SELECT
-            categories.category_name,
-            skills.skill_name,
-            posts.post_type, posts.post_text, posts.post_id,
-            (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.post_id) AS like_count,
-            (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.post_id AND likes.user_id = ?) AS liked_by_me
-        FROM posts
-        JOIN skills ON posts.skill_id = skills.skill_id
-        JOIN categories ON posts.category_id = categories.category_id
-        WHERE posts.user_id = ?
-        ORDER BY posts.post_date DESC
-    """, (user_id, user_id)).fetchall()
-
-    my_posts = []
-    for row in my_posts_rows:
-        my_posts.append({
-            'category_name': row[0],
-            'skill_name': row[1],
-            'post_type': row[2],
-            'post_text': row[3],
-            'post_id': row[4],
-            'like_count': row[5] if row[5] else 0,
-            'liked_by_me': bool(row[6])
-        })
-
-    return render_template('profile.html', user=user, skills_teach=skills_teach, skills_learn=skills_learn, my_posts=my_posts)
-
-
 @posts.route("/posts", methods=['GET', 'POST'])
 def create_post():
     db = get_db()
@@ -550,8 +431,49 @@ def create_post():
             return redirect('/')
 
     preset_type = request.args.get('type', '')
-    categories = db.execute("SELECT category_id, category_name FROM categories").fetchall()
-    skills = db.execute("SELECT skill_id, skill_name, category_id FROM skills").fetchall()
+
+    # カテゴリ一覧の取得と整形
+    raw_categories = db.execute("SELECT category_id, category_name FROM categories ORDER BY category_id").fetchall()
+    categories = []
+    seen_cat_names = set()
+    for c in raw_categories:
+        try:
+            c_id = c['category_id']
+            c_name = c['category_name']
+        except (TypeError, IndexError):
+            c_id = c[0]
+            c_name = c[1]
+
+        if c_name and c_name not in seen_cat_names:
+            seen_cat_names.add(c_name)
+            categories.append({
+                'category_id': c_id,
+                'category_name': c_name
+            })
+
+    # スキル一覧の取得と整形
+    raw_skills = db.execute("SELECT skill_id, skill_name, category_id FROM skills ORDER BY skill_id").fetchall()
+    skills = []
+    seen_skills = set()
+    for s in raw_skills:
+        try:
+            s_id = s['skill_id']
+            s_name = s['skill_name']
+            s_cat_id = s['category_id']
+        except (TypeError, IndexError):
+            s_id = s[0]
+            s_name = s[1]
+            s_cat_id = s[2]
+
+        key = (s_name, s_cat_id)
+        if s_name and key not in seen_skills:
+            seen_skills.add(key)
+            skills.append({
+                'skill_id': s_id,
+                'skill_name': s_name,
+                'category_id': s_cat_id if s_cat_id is not None else ""
+            })
+
     return render_template('posts.html', categories=categories, skills=skills, preset_type=preset_type)
 
 

@@ -31,7 +31,9 @@
                     <select id="category_select" name="category_id" required>
                         <option value="">-- カテゴリを選択してください --</option>
                         {% for category in categories %}
-                            <option value="{{ category[0] if category is iterable else category.category_id }}">{{ category[1] if category is iterable else category.category_name }}</option>
+                            <option value="{{ category.category_id if category.category_id is defined else category[0] }}">
+                                {{ category.category_name if category.category_name is defined else category[1] }}
+                            </option>
                         {% endfor %}
                     </select>
                 </div>
@@ -80,9 +82,13 @@
     <script>
         const allSkills = [
             {% for s in skills %}
-            { id: {{ s.skill_id }}, name: "{{ s.skill_name }}", categoryId: {{ s.category_id if s.category_id else 'null' }} },
+            { 
+                id: {{ s.skill_id if s.skill_id is defined else s[0] }}, 
+                name: "{{ s.skill_name if s.skill_name is defined else s[1] }}", 
+                categoryId: {{ s.category_id if (s.category_id is defined and s.category_id != '') else (s[2] if s[2] else 'null') }} 
+            },
             {% endfor %}
-        ]
+        ];
 
         document.getElementById('category_select').addEventListener('change', function() {
             const categoryId = parseInt(this.value);
