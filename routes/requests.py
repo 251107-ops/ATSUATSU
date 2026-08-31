@@ -1,4 +1,5 @@
 import traceback
+import secrets
 from flask import (
     Blueprint,
     flash,
@@ -11,7 +12,7 @@ from flask import (
 from routes.auth import get_db
 from routes.chat import create_chat_room
 
-requests_bp = Blueprint('requests', __name__)
+requests_bp = Blueprint('requests_bp', __name__)
 
 
 # POST /requests -- 新規リクエスト送信
@@ -187,11 +188,12 @@ def accept_request(request_id):
 
     post = db.execute("SELECT skill_id FROM posts WHERE post_id = ?", (req['post_id'],)).fetchone()
 
-    room_id = secrets.token_hex(4)
-    db.execute(
-        "INSERT INTO rooms (room_id, skill_id, is_public, created_by) VALUES (?, ?, 0, ?)",
-        (room_id, post['skill_id'], user_id)
+    cursor = db.execute(
+        "INSERT INTO rooms (skill_id, is_public, created_by) VALUES (?, 0, ?)",
+        (post['skill_id'], user_id)
     )
+    room_id = cursor.lastrowid
+
     db.execute("INSERT INTO room_members (room_id, user_id) VALUES (?, ?)", (room_id, req['requester_id']))
     db.execute("INSERT INTO room_members (room_id, user_id) VALUES (?, ?)", (room_id, req['receiver_id']))
     db.execute("""
