@@ -182,11 +182,14 @@ def accept_request(request_id):
 
     post = db.execute("SELECT skill_id FROM posts WHERE post_id = ?", (req['post_id'],)).fetchone()
 
-    room_id = secrets.token_hex(4)
-    db.execute(
-        "INSERT INTO rooms (room_id, skill_id, is_public, created_by) VALUES (?, ?, 0, ?)",
-        (room_id, post['skill_id'], user_id)
+    # --- 修正箇所：room_id の INSERT を自動採番に変更 ---
+    cursor = db.execute(
+        "INSERT INTO rooms (skill_id, is_public, created_by) VALUES (?, 0, ?)",
+        (post['skill_id'], user_id)
     )
+    # 自動発行された INTEGER の room_id を取得
+    room_id = cursor.lastrowid
+
     db.execute("INSERT INTO room_members (room_id, user_id) VALUES (?, ?)", (room_id, req['requester_id']))
     db.execute("INSERT INTO room_members (room_id, user_id) VALUES (?, ?)", (room_id, req['receiver_id']))
     db.execute("""
@@ -200,8 +203,7 @@ def accept_request(request_id):
     db.commit()
 
     return redirect(url_for('chat.chat_room', room_id=room_id))
-
-
+    
 # =====================================================================
 # 4. リクエストの拒否（受信側のみ）
 # =====================================================================

@@ -26,10 +26,10 @@
 
                         {% if n.type == 'new_request' and n.status == 'pending' %}
                             <div class="request-actions">
-                                <form action="{{ url_for('requests_bp.accept_request', request_id=n.request_id) }}" method="POST">
+                                <form action="{{ url_for('requests.accept_request', request_id=n.request_id) }}" method="POST">
                                     <button type="submit" class="btn">承認</button>
                                 </form>
-                                <form action="{{ url_for('requests_bp.decline_request', request_id=n.request_id) }}" method="POST">
+                                <form action="{{ url_for('requests.decline_request', request_id=n.request_id) }}" method="POST">
                                     <button type="submit" class="btn btn-outline">拒否</button>
                                 </form>
                             </div>

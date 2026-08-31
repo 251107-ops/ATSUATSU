@@ -13,15 +13,11 @@
 </head>
 <body>
     {% include 'header.html' %}
-    
-    <div class="chat-layout">
-        
-        <div class="chat-nav-actions">
-            <a href="{{ url_for('chat.show_create_room_form') }}" class="nav-link">＋ ルーム作成</a>
-            <a href="{{ url_for('chat.list_public_rooms') }}" class="nav-link">🔍 入室</a>
-            <a href="{{ url_for('chat.list_public_rooms') }}" class="nav-link">📂 公開ルーム一覧</a>
-        </div>
 
+<div class="container">
+    <!-- ★ここに置かれていた「ルーム作成/入室/公開ルーム一覧」のdivブロックを削除 -->
+
+    <!-- ルーム詳細（ルームコードを表示するエリア）から開始 -->
         <div class="chat-container">
             <div class="chat-header">
                 <div>
