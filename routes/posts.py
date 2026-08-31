@@ -327,6 +327,11 @@ def profile():
     """, (user_id,)).fetchall()
     skills_teach = [{'skill_id': r[0], 'skill_name': r[1]} for r in teach_rows]
 
+    review_stats = db.execute("""
+        SELECT AVG(rating) AS avg_rating, COUNT(*) AS review_count
+        FROM reviews WHERE reviewee_id = ?
+    """, (user_id,)).fetchone()
+
     learn_rows = db.execute("""
         SELECT DISTINCT skills.skill_id, skills.skill_name 
         FROM posts
@@ -361,7 +366,7 @@ def profile():
             'liked_by_me': bool(row[6])
         })
 
-    return render_template('profile.html', user=user, skills_teach=skills_teach, skills_learn=skills_learn, my_posts=my_posts)
+    return render_template('profile.html', user=user, skills_teach=skills_teach, skills_learn=skills_learn, my_posts=my_posts, review_stats=review_stats)
 
 
 @posts.route("/profile_edit", methods=['GET', 'POST'])
