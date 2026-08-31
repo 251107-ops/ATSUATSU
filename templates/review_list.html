@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>評価コメント一覧 | スキルシェア</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/variables.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/footer.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/request_list.css') }}">
+</head>
+<body>
+    {% include 'header.html' %}
+
+    <div class="container">
+        <h2>評価コメント一覧</h2>
+        <p class="rating-summary-text">
+            平均評価：
+            {% if stats.avg_rating %}
+                {{ '%.1f'|format(stats.avg_rating) }} ★（{{ stats.review_count }}件）
+            {% else %}
+                まだ評価がありません
+            {% endif %}
+        </p>
+
+        {% if reviews %}
+            <div class="request-list">
+                {% for r in reviews %}
+                    <div class="request-card">
+                        <div class="request-info">
+                            <p class="request-title">{{ r.comment if r.comment else '（コメントなし）' }}</p>
+                            <p class="request-meta">{{ r.created_at }}</p>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="empty-state">まだ評価コメントはありません。</p>
+        {% endif %}
+    </div>
+
+    {% include 'footer.html' %}
+</body>
+</html>

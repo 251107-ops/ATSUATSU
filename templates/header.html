@@ -2,6 +2,7 @@
     <a href="/">
         <img src="{{ url_for('static', filename='img/logo.png') }}" alt="SkillLink" class="logo">
     </a>
+<<<<<<< HEAD
     <nav class="nav">
         <a href="/">ホーム</a>
         <a href="/notifications" class="nav-item-notification">
@@ -17,4 +18,21 @@
         <a href="/profile">マイページ</a>
     </nav>
     <a href="/logout" class="btn-outline">ログアウト</a>
+=======
+        <nav class="nav">
+            <a href="/">ホーム</a>
+            <a href="/notifications" class="nav-notif">
+                通知
+                {% if unread_notifications and unread_notifications > 0 %}
+                    <span class="notif-badge">{{ unread_notifications }}</span>
+                {% endif %}
+            </a>
+            <a href="/requests">リクエスト</a>
+            <a href="/likes/page">お気に入り</a>
+            <a href="/chat">チャット</a>
+            <a href="/posts">投稿作成</a>
+            <a href="/profile">マイページ</a>
+        </nav>
+       <a href="/logout" class="btn-outline">ログアウト</a>
+>>>>>>> origin/narimatsu
 </header>

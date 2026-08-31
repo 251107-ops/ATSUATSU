@@ -176,6 +176,7 @@ def chat_room(room_id):
 
     history = []
     for row in history_rows:
+<<<<<<< HEAD
         history.append(
             {
                 'id': row['id'],
@@ -189,6 +190,16 @@ def chat_room(room_id):
     return render_template(
         'chat.html', name=name, room=room_id, chats=history, user_id=user_id
     )
+=======
+        history.append({
+            'name': row[0],
+            'content': row[1],
+            'time': row[2]
+        })
+        
+    req_row = db.execute("SELECT request_id FROM requests WHERE room_id = ? AND requester_id = ?", (room_id, user_id)).fetchone()
+    return render_template('chat.html', name=name, room=room_id, chats=history, user_id=user_id)
+>>>>>>> origin/narimatsu
 
 
 # =====================================================================

@@ -451,6 +451,37 @@ body {
   gap: 20px;
 }
 
+.rating-summary {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 12px 0 28px 0;
+  text-decoration: none !important;
+  color: inherit;
+  width: fit-content;
+}
+
+.rating-summary:hover .rating-value {
+  color: var(--color-primary);
+}
+
+.rating-stars {
+  color: #f5a623;
+  font-size: 18px;
+  letter-spacing: 1px;
+}
+
+.rating-value {
+  font-weight: 700;
+  font-size: 15px;
+  transition: color 0.15s;
+}
+
+.rating-count {
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
 /* ---------- RESPONSIVE ---------- */
 @media (max-width: 720px) {
   .header__nav {
