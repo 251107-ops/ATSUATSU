@@ -9,6 +9,7 @@ from routes.category import categories
 from routes.auth import auth, get_db, init_db
 from routes.requests import requests_bp
 from routes.notifications import notifications_bp
+from routes.reviews import reviews_bp
 
 app = Flask(__name__)
 
@@ -24,6 +25,7 @@ app.register_blueprint(chat)
 app.register_blueprint(categories)
 app.register_blueprint(requests_bp)
 app.register_blueprint(notifications_bp)
+app.register_blueprint(reviews_bp)
 
 init_chat_events(socketio)
 init_db() 

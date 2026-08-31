@@ -208,6 +208,19 @@ def init_db():
         )
     """)
 
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS reviews (
+            review_id   INTEGER PRIMARY KEY AUTOINCREMENT,
+            request_id  INTEGER NOT NULL UNIQUE REFERENCES requests(request_id),
+            reviewer_id INTEGER NOT NULL REFERENCES users(user_id),
+            reviewee_id INTEGER NOT NULL REFERENCES users(user_id),
+            rating      INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
+            comment     TEXT,
+            created_at  TEXT DEFAULT (datetime('now','localtime'))
+        );
+    """)
+    
+
     db.commit()
     db.close()
 
