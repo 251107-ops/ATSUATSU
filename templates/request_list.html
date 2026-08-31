@@ -63,8 +63,8 @@
                                 </form>
                             {% elif req.status == 'accepted' %}
                                 <a href="{{ url_for('chat.chat_room', room_id=req.room_id) }}" class="btn">チャットへ</a>
+                                <form action="{{ url_for('requests_bp.complete_request', request_id=req.request_id) }}" method="POST"></form>
                                 
-                                <form action="{{ url_for('requests.complete_request', request_id=req.request_id) }}" method="POST">
                                     <button type="submit" class="btn btn-outline">チャット終了</button>
                                 </form>
                             {% elif req.status == 'completed' %}
