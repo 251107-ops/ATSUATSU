@@ -1,0 +1,29 @@
+.review-target {
+    color: var(--text-sub, #7f8c8d);
+    font-size: 14px;
+    margin: -12px 0 24px 0;
+}
+
+.star-rating {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+    gap: 4px;
+}
+
+.star-rating input {
+    display: none;
+}
+
+.star-rating label {
+    font-size: 32px;
+    color: #d9d9d9;
+    cursor: pointer;
+    transition: color 0.15s;
+}
+
+.star-rating input:checked ~ label,
+.star-rating label:hover,
+.star-rating label:hover ~ label {
+    color: #f5a623;
+}

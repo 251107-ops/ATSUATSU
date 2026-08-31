@@ -1,0 +1,111 @@
+/* static/css/request_list.css */
+body {
+    font-family: var(--font-family-base, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif);
+    color: var(--text-main, #2c3e50);
+    margin: 0;
+    padding: 0;
+    background-color: var(--bg-color, #f2f5f9);
+    min-height: 100vh;
+}
+
+.container {
+    max-width: 860px;
+    margin: 40px auto 80px;
+    padding: 0 20px;
+}
+
+.container > h2 {
+    font-size: 20px;
+    font-weight: bold;
+    margin-top: 32px;
+    margin-bottom: 16px;
+}
+
+.request-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.request-card {
+    background-color: var(--card-bg, #ffffff);
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 16px;
+    padding: 18px 22px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.02);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.request-title {
+    margin: 0 0 4px 0;
+    font-size: 14px;
+}
+
+.request-meta {
+    margin: 0;
+    font-size: 12px;
+    color: var(--text-sub, #7f8c8d);
+}
+
+.badge {
+    display: inline-block;
+    padding: 4px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+.badge-pending   { background-color: var(--tag-learn-bg, #fdf5e2); color: var(--tag-learn-text, #b26a00); }
+.badge-accepted  { background-color: var(--tag-blue-bg, #e6f0fa); color: var(--primary-color, #385cdb); }
+.badge-completed { background-color: #eaf6ed; color: #2e7d32; }
+.badge-reviewed  { background-color: #ece9f9; color: #6b46c1; }
+.badge-declined  { background-color: #fdeaea; color: #c0392b; }
+
+.request-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.btn {
+    padding: 8px 18px;
+    background-color: var(--primary-color, #385cdb);
+    color: #ffffff;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 13px;
+    text-decoration: none;
+    display: inline-block;
+    transition: background-color 0.2s;
+}
+
+.btn:hover {
+    background-color: var(--primary-hover, #2a46b0);
+}
+
+.btn-outline {
+    background-color: #ffffff;
+    color: var(--primary-color, #385cdb);
+    border: 1px solid var(--primary-color, #385cdb);
+}
+
+.empty-state {
+    color: var(--text-sub, #7f8c8d);
+    background-color: var(--card-bg, #ffffff);
+    padding: 32px 20px;
+    border-radius: 16px;
+    text-align: center;
+    border: 1px dashed var(--border-color, #e2e8f0);
+    font-size: 14px;
+}
+
+.request-card.is-unread {
+    border-color: var(--primary-color, #385cdb);
+    background-color: #f5f8ff;
+}

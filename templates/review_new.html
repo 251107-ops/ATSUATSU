@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>評価を投稿 | スキルシェア</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/variables.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/posts.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/footer.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/review_new.css') }}">
+</head>
+<body>
+    {% include 'header.html' %}
+
+    <div class="page-wrap">
+        <div class="post-card">
+            <h2>評価を投稿</h2>
+            <p class="review-target">
+                {{ info.partner_name }}さん「{{ info.skill_name }}」（{{ info.post_type }}）
+            </p>
+
+            <form method="POST">
+                <div class="form-group">
+                    <p>評価（★1〜5）を選んでください：</p>
+                    <div class="star-rating">
+                        {% for i in range(5, 0, -1) %}
+                        <input type="radio" id="star{{ i }}" name="rating" value="{{ i }}" required>
+                        <label for="star{{ i }}">★</label>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <p>コメント（任意・匿名で表示されます）</p>
+                    <textarea name="comment" rows="6" placeholder="感想を入力してください"></textarea>
+                </div>
+
+                <button type="submit" class="btn-submit">評価を送信する</button>
+            </form>
+        </div>
+    </div>
+
+    {% include 'footer.html' %}
+</body>
+</html>
