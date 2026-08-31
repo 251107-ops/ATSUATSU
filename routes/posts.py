@@ -53,9 +53,9 @@ def fetch_posts(db, category_id="", post_type="", search_query="", sort_type="ne
             (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.post_id) AS like_count,
             (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.post_id AND likes.user_id = ?) AS liked_by_me
         FROM posts
-        JOIN users ON posts.user_id = users.user_id
-        JOIN skills ON posts.skill_id = skills.skill_id
-        JOIN categories ON posts.category_id = categories.category_id
+        LEFT JOIN users ON posts.user_id = users.user_id
+        LEFT JOIN skills ON posts.skill_id = skills.skill_id
+        LEFT JOIN categories ON posts.category_id = categories.category_id
         {where_clause}
         {order_by}
     """
@@ -65,12 +65,12 @@ def fetch_posts(db, category_id="", post_type="", search_query="", sort_type="ne
     posts_list = []
     for row in rows:
         posts_list.append({
-            'name': row[0],
-            'department': row[1],
-            'grade': row[2],
-            'icon_path': row[3] if row[3] else 'img/default-avatar.png',
-            'category_name': row[4],
-            'skill_name': row[5],
+            'name': row[0] if row[0] else 'ユーザー',
+            'department': row[1] if row[1] else '',
+            'grade': row[2] if row[2] else '',
+            'icon_path': row[3] if row[3] else 'test.png',
+            'category_name': row[4] if row[4] else '未設定',
+            'skill_name': row[5] if row[5] else '未設定',
             'post_type': row[6],
             'post_text': row[7],
             'post_id': row[8],
@@ -345,8 +345,8 @@ def profile():
             (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.post_id) AS like_count,
             (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.post_id AND likes.user_id = ?) AS liked_by_me
         FROM posts
-        JOIN skills ON posts.skill_id = skills.skill_id
-        JOIN categories ON posts.category_id = categories.category_id
+        LEFT JOIN skills ON posts.skill_id = skills.skill_id
+        LEFT JOIN categories ON posts.category_id = categories.category_id
         WHERE posts.user_id = ?
         ORDER BY posts.post_date DESC
     """, (user_id, user_id)).fetchall()
@@ -354,8 +354,8 @@ def profile():
     my_posts = []
     for row in my_posts_rows:
         my_posts.append({
-            'category_name': row[0],
-            'skill_name': row[1],
+            'category_name': row[0] if row[0] else '未設定',
+            'skill_name': row[1] if row[1] else '未設定',
             'post_type': row[2],
             'post_text': row[3],
             'post_id': row[4],
@@ -416,21 +416,21 @@ def create_post():
         return redirect('/login')
 
     if request.method == 'POST':
-        skill_id = request.form.get('skill_id', '')
-        post_type = request.form.get('post_type', '')
-        post_text = request.form.get('post_text', '')
-        category_id = request.form.get('category_id', '')
+        post_type = request.form.get('post_type') or request.form.get('type', '')
+        category_id = request.form.get('category_id') or request.form.get('category', '')
+        skill_id = request.form.get('skill_id') or request.form.get('skill', '')
+        post_text = request.form.get('post_text') or request.form.get('content', '')
 
         if not skill_id or not post_type or not post_text or not category_id:
-            return "すべてのフィールドを入力してください", 400
+            return f"すべてのフィールドを入力してください。(type:{post_type}, cat:{category_id}, skill:{skill_id}, text:{post_text})", 400
 
         user_id = session.get('user_id')
 
-        if user_id and skill_id and category_id:
+        if user_id:
             post_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             db.execute(
                 "INSERT INTO posts (user_id, skill_id, post_type, post_text, post_date, category_id) VALUES (?, ?, ?, ?, ?, ?)",
-                (user_id, skill_id, post_type, post_text, post_date, category_id)
+                (int(user_id), int(skill_id), post_type, post_text, post_date, int(category_id))
             )
             db.commit()
             return redirect('/')
@@ -501,9 +501,9 @@ def search_posts():
                 (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.post_id) AS like_count,
                 (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.post_id AND likes.user_id = ?) AS liked_by_me
             FROM posts
-            JOIN users ON posts.user_id = users.user_id
-            JOIN skills ON posts.skill_id = skills.skill_id
-            JOIN categories ON posts.category_id = categories.category_id
+            LEFT JOIN users ON posts.user_id = users.user_id
+            LEFT JOIN skills ON posts.skill_id = skills.skill_id
+            LEFT JOIN categories ON posts.category_id = categories.category_id
             WHERE skills.skill_name LIKE ?
             OR users.department LIKE ?
             OR users.grade LIKE ?
@@ -513,12 +513,12 @@ def search_posts():
         posts_list = []
         for row in rows:
             posts_list.append({
-                'name': row[0],
-                'department': row[1],
-                'grade': row[2],
-                'icon_path': row[3] if row[3] else 'img/default-avatar.png',
-                'category_name': row[4],
-                'skill_name': row[5],
+                'name': row[0] if row[0] else 'ユーザー',
+                'department': row[1] if row[1] else '',
+                'grade': row[2] if row[2] else '',
+                'icon_path': row[3] if row[3] else 'test.png',
+                'category_name': row[4] if row[4] else '未設定',
+                'skill_name': row[5] if row[5] else '未設定',
                 'post_type': row[6],
                 'post_text': row[7],
                 'post_id': row[8],
@@ -575,9 +575,9 @@ def get_like():
             (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.post_id) AS like_count,
             (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.post_id AND likes.user_id = ?) AS liked_by_me
         FROM posts
-        JOIN users ON posts.user_id = users.user_id
-        JOIN skills ON posts.skill_id = skills.skill_id
-        JOIN categories ON posts.category_id = categories.category_id
+        LEFT JOIN users ON posts.user_id = users.user_id
+        LEFT JOIN skills ON posts.skill_id = skills.skill_id
+        LEFT JOIN categories ON posts.category_id = categories.category_id
         WHERE posts.post_id IN (
             SELECT likes.post_id FROM likes WHERE likes.user_id = ?
         )
@@ -586,12 +586,12 @@ def get_like():
     posts_list = []
     for row in rows:
         posts_list.append({
-            'name': row[0],
-            'department': row[1],
-            'grade': row[2],
-            'icon_path': row[3] if row[3] else 'img/default-avatar.png',
-            'category_name': row[4],
-            'skill_name': row[5],
+            'name': row[0] if row[0] else 'ユーザー',
+            'department': row[1] if row[1] else '',
+            'grade': row[2] if row[2] else '',
+            'icon_path': row[3] if row[3] else 'test.png',
+            'category_name': row[4] if row[4] else '未設定',
+            'skill_name': row[5] if row[5] else '未設定',
             'post_type': row[6],
             'post_text': row[7],
             'post_id': row[8],

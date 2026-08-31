@@ -20,7 +20,7 @@
 
                 <div class="form-group">
                     <p>募集タイプを選択してください：</p>
-                    <select name="post_type">
+                    <select name="post_type" required>
                         <option value="教えたい" {{ 'selected' if preset_type == '教えたい' }}>教えたい</option>
                         <option value="学びたい" {{ 'selected' if preset_type == '学びたい' }}>学びたい</option>
                     </select>
@@ -65,7 +65,6 @@
             </form>
         </div>
 
-
     </div>
     {% include 'footer.html' %}
 
@@ -73,15 +72,15 @@
         const allSkills = [
             {% for s in skills %}
             { 
-                id: {{ s.skill_id if s.skill_id is defined else s[0] }}, 
+                id: "{{ s.skill_id if s.skill_id is defined else s[0] }}", 
                 name: "{{ s.skill_name if s.skill_name is defined else s[1] }}", 
-                categoryId: {{ s.category_id if (s.category_id is defined and s.category_id != '') else (s[2] if s[2] else 'null') }} 
+                categoryId: "{{ s.category_id if (s.category_id is defined and s.category_id != '') else (s[2] if s[2] else '') }}" 
             },
             {% endfor %}
         ];
 
         document.getElementById('category_select').addEventListener('change', function() {
-            const categoryId = parseInt(this.value);
+            const categoryId = String(this.value);
             const skillSelect = document.getElementById('skill_select');
             skillSelect.innerHTML = '';
 
@@ -90,7 +89,8 @@
                 return;
             }
 
-            const filtered = allSkills.filter(s => s.categoryId === categoryId);
+            // 文字列比較（String）を行うことで型の不一致エラーを防ぐ
+            const filtered = allSkills.filter(s => String(s.categoryId) === categoryId);
 
             if (filtered.length === 0) {
                 skillSelect.innerHTML = '<option value="">-- このカテゴリにスキルがありません --</option>';
