@@ -3,6 +3,7 @@ import secrets
 from flask import (
     Blueprint,
     flash,
+    jsonify,
     redirect,
     render_template,
     request,
@@ -15,22 +16,33 @@ from routes.chat import create_chat_room
 requests_bp = Blueprint('requests_bp', __name__)
 
 
-# POST /requests -- 新規リクエスト送信
+# =====================================================================
+# 1. POST /requests -- 新規リクエスト送信（非同期/同期 両対応）
+# =====================================================================
 @requests_bp.route('/requests', methods=['POST'])
 def send_request():
     user_id = session.get('user_id')
+    
+    # JSON・Form両方のリクエスト形式に対応
     post_id = request.form.get('post_id')
     if not post_id and request.is_json:
         data = request.get_json()
         post_id = data.get('post_id') if data else None
 
+    # 非同期通信（fetch）判定フラグ
+    is_async = request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+
     if not user_id:
+        if is_async:
+            return jsonify({'success': False, 'message': 'ログインが必要です。'}), 401
         flash('ログインが必要です。')
         return redirect('/login')
 
     if not post_id:
+        if is_async:
+            return jsonify({'success': False, 'message': '投稿IDが見つかりません。'}), 400
         flash('投稿IDが見つかりません。')
-        return redirect('/')
+        return redirect(url_for('.list_requests'))
 
     db = get_db()
 
@@ -40,8 +52,10 @@ def send_request():
         ).fetchone()
 
         if not post:
+            if is_async:
+                return jsonify({'success': False, 'message': '該当の投稿が存在しません。'}), 404
             flash('該当の投稿が存在しません。')
-            return redirect('/')
+            return redirect(url_for('.list_requests'))
 
         receiver_id = (
             post['user_id']
@@ -50,8 +64,10 @@ def send_request():
         )
 
         if str(user_id) == str(receiver_id):
+            if is_async:
+                return jsonify({'success': False, 'message': '自分の投稿にはリクエストを送れません。'}), 400
             flash('自分の投稿にはリクエストを送れません。')
-            return redirect('/')
+            return redirect(url_for('.list_requests'))
 
         existing = db.execute(
             """
@@ -64,12 +80,14 @@ def send_request():
         ).fetchone()
 
         if existing:
-            flash(
-                'すでにこの投稿にリクエストを送信しています。相手の承認をお待ちください。'
-            )
-            return redirect('/')
+            msg = 'すでにこの投稿にリクエストを送信しています。'
+            if is_async:
+                return jsonify({'success': False, 'message': msg}), 400
+            flash(msg)
+            return redirect(url_for('.list_requests'))
 
-        db.execute(
+        # リクエスト登録
+        cursor = db.execute(
             """
             INSERT INTO requests (requester_id, receiver_id, post_id, status)
             VALUES (?, ?, ?, 'pending')
@@ -77,28 +95,37 @@ def send_request():
             (user_id, receiver_id, post_id),
         )
 
+        # 通知登録
         db.execute(
             """
-            INSERT INTO notifications (user_id, type)
-            VALUES (?, 'new_request')
+            INSERT INTO notifications (user_id, type, related_id)
+            VALUES (?, 'new_request', ?)
             """,
-            (receiver_id,),
+            (receiver_id, cursor.lastrowid),
         )
 
         db.commit()
+
+        if is_async:
+            return jsonify({'success': True, 'message': 'リクエストを送信しました！'})
+        
         flash('リクエストを送信しました！')
-        return redirect('/requests')
+        return redirect(url_for('.list_requests'))
 
     except Exception as e:
         db.rollback()
         print('========== [ERROR DETAILED TRACEBACK] ==========')
         traceback.print_exc()
         print('=================================================')
+        if is_async:
+            return jsonify({'success': False, 'message': f'送信に失敗しました: {e}'}), 500
         flash(f'送信に失敗しました: {e}')
-        return redirect('/')
+        return redirect(url_for('.list_requests'))
 
 
-# GET /requests -- リクエスト一覧表示
+# =====================================================================
+# 2. GET /requests -- リクエスト一覧表示
+# =====================================================================
 @requests_bp.route('/requests', methods=['GET'])
 def list_requests():
     user_id = session.get('user_id')
@@ -153,6 +180,7 @@ def list_requests():
         ORDER BY r.created_at DESC
     """, (user_id,)).fetchall()
 
+    # 自分が受け取ったリクエストを取得
     received = db.execute("""
         SELECT r.request_id, r.status, r.room_id, r.created_at,
                u.name AS partner_name, s.skill_name, p.post_type
@@ -168,7 +196,7 @@ def list_requests():
 
 
 # =====================================================================
-# 2. リクエストの承諾（受信側のみ） → ルーム自動作成
+# 3. リクエストの承諾（受信側のみ） → ルーム自動作成
 # =====================================================================
 @requests_bp.route('/requests/<int:request_id>/accept', methods=['POST'])
 def accept_request(request_id):
@@ -200,7 +228,6 @@ def accept_request(request_id):
         UPDATE requests SET status = 'accepted', room_id = ?, updated_at = datetime('now','localtime')
         WHERE request_id = ?
     """, (room_id, request_id))
-    db.commit()
 
     db.execute("""
         INSERT INTO notifications (user_id, type, related_id) VALUES (?, 'request_accepted', ?)
@@ -208,10 +235,9 @@ def accept_request(request_id):
     db.commit()
 
     return redirect(url_for('chat.chat_room', room_id=room_id))
-
-
+    
 # =====================================================================
-# 3. リクエストの拒否（受信側のみ）
+# 4. リクエストの拒否（受信側のみ）
 # =====================================================================
 @requests_bp.route('/requests/<int:request_id>/decline', methods=['POST'])
 def decline_request(request_id):
@@ -233,7 +259,6 @@ def decline_request(request_id):
         UPDATE requests SET status = 'declined', updated_at = datetime('now','localtime')
         WHERE request_id = ?
     """, (request_id,))
-    db.commit()
 
     db.execute("""
         INSERT INTO notifications (user_id, type, related_id) VALUES (?, 'request_declined', ?)
@@ -244,7 +269,7 @@ def decline_request(request_id):
 
 
 # =====================================================================
-# 4. セッション完了（申し込んだ側=requesterのみ）
+# 5. セッション完了（申し込んだ側=requesterのみ）
 # =====================================================================
 @requests_bp.route('/requests/<int:request_id>/complete', methods=['POST'])
 def complete_request(request_id):
@@ -266,7 +291,6 @@ def complete_request(request_id):
         UPDATE requests SET status = 'completed', updated_at = datetime('now','localtime')
         WHERE request_id = ?
     """, (request_id,))
-    db.commit()
 
     db.execute("""
         INSERT INTO notifications (user_id, type, related_id) VALUES (?, 'session_completed', ?)
