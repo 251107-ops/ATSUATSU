@@ -162,7 +162,7 @@ def chat_room(room_id):
         f' {room_id}'
     )
 
-    # 📥 削除機能用に id を追加取得
+    # 📥 過去ログの取得
     history_rows = db.execute(
         """
         SELECT id, user_id, name, content, datetime(send_at, 'localtime') AS send_time
@@ -174,15 +174,17 @@ def chat_room(room_id):
         (room_id,),
     ).fetchall()
 
+    # 修正箇所: 正しいカラム対応（辞書型で安全に読み出し）
     history = []
     for row in history_rows:
         history.append({
-            'name': row[0],
-            'content': row[1],
-            'time': row[2]
+            'id': row['id'],
+            'user_id': row['user_id'],
+            'name': row['name'],
+            'content': str(row['content']),
+            'time': row['send_time']
         })
         
-    req_row = db.execute("SELECT request_id FROM requests WHERE room_id = ? AND requester_id = ?", (room_id, user_id)).fetchone()
     return render_template('chat.html', name=name, room=room_id, chats=history, user_id=user_id)
 
 

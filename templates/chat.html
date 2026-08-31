@@ -14,10 +14,7 @@
 <body>
     {% include 'header.html' %}
 
-<div class="container">
-    <!-- ★ここに置かれていた「ルーム作成/入室/公開ルーム一覧」のdivブロックを削除 -->
-
-    <!-- ルーム詳細（ルームコードを表示するエリア）から開始 -->
+    <div class="container">
         <div class="chat-container">
             <div class="chat-header">
                 <div>
@@ -31,8 +28,9 @@
                     <div class="msg-line {{ 'msg-mine' if chat.user_id == user_id else 'msg-theirs' }}" id="msg-{{ chat.id }}">
                         <span class="msg-user">{{ chat.name }}</span>
                         <div class="msg-bubble">
-                            {% if chat.content.startswith('[IMG]') and chat.content.endswith('[/IMG]') %}
-                                {% set img_url = chat.content[5:-6] %}
+                            {% set content_str = chat.content | string %}
+                            {% if content_str.startswith('[IMG]') and content_str.endswith('[/IMG]') %}
+                                {% set img_url = content_str[5:-6] %}
                                 <img src="{{ img_url }}" class="chat-img" onclick="window.open('{{ img_url }}', '_blank')" alt="添付画像">
                             {% else %}
                                 {{ chat.content }}
@@ -61,7 +59,7 @@
     </div>
 
     <script>
-        // グローバル関数としてメッセージ削除関数を用意
+        // メッセージ削除関数
         function deleteMessage(msgId) {
             if (confirm("このメッセージを削除しますか？")) {
                 if (window.chatSocket) {
@@ -79,7 +77,7 @@
             const imageInput = document.getElementById('image-input');
             const currentUserId = {{ user_id }};
 
-            // スクロール位置を一番下に初期化
+            // スクロール位置を一番下に設定
             chatBox.scrollTop = chatBox.scrollHeight;
 
             // 接続完了時にルームへ参加要請
@@ -87,52 +85,67 @@
                 window.chatSocket.emit('joined', {});
             });
 
-            // メッセージ描画補助関数
+            // メッセージ内容の描画判定関数
             const renderMessageContent = (content) => {
-                if (content.startsWith('[IMG]') && content.endsWith('[/IMG]')) {
-                    const imgUrl = content.substring(5, content.length - 6);
+                if (!content) return '';
+                const strContent = String(content).trim();
+                
+                // 画像タグの場合
+                if (strContent.startsWith('[IMG]') && strContent.endsWith('[/IMG]')) {
+                    const imgUrl = strContent.slice(5, -6);
                     return `<img src="${imgUrl}" class="chat-img" onclick="window.open('${imgUrl}', '_blank')" alt="添付画像">`;
                 }
-                // HTMLエスケープ処理
+                
+                // 通常テキストの場合（エスケープ処理）
                 const safeText = document.createElement('div');
-                safeText.textContent = content;
+                safeText.textContent = strContent;
                 return safeText.innerHTML;
             };
 
-            // メッセージ受信時の処理
+            // リアルタイムメッセージ受信時の処理
             window.chatSocket.on('message', (data) => {
-                const msgDiv = document.createElement('div');
-                const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-    
-                const separatorIndex = data.msg.indexOf(':');
-                const senderName = separatorIndex !== -1 ? data.msg.substring(0, separatorIndex) : "システム";
-                const messageContent = separatorIndex !== -1 ? data.msg.substring(separatorIndex + 1).trim() : data.msg;
+                try {
+                    const msgDiv = document.createElement('div');
+                    const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        
+                    // 送信者名と本文の切り分け
+                    let senderName = "システム";
+                    let messageContent = data.msg || "";
 
-                // 送信者が自分自身かどうかで判定
-                const isMine = data.user_id === currentUserId;
-                msgDiv.className = `msg-line ${isMine ? 'msg-mine' : 'msg-theirs'}`;
-                if (data.id) {
-                    msgDiv.id = `msg-${data.id}`;
+                    if (typeof data.msg === 'string' && data.msg.includes(': ')) {
+                        const parts = data.msg.split(': ');
+                        senderName = parts[0];
+                        messageContent = parts.slice(1).join(': ');
+                    }
+
+                    // 自分の送信か相手の送信か判定
+                    const isMine = (data.user_id === currentUserId);
+                    msgDiv.className = `msg-line ${isMine ? 'msg-mine' : 'msg-theirs'}`;
+                    if (data.id) {
+                        msgDiv.id = `msg-${data.id}`;
+                    }
+
+                    const formattedContent = renderMessageContent(messageContent);
+                    
+                    // 削除ボタンの生成
+                    const deleteBtnHtml = (isMine && data.id) 
+                        ? `<button class="btn-delete" onclick="deleteMessage(${data.id})" title="削除">✕</button>` 
+                        : '';
+
+                    msgDiv.innerHTML = `
+                        <span class="msg-user">${senderName}</span>
+                        <div class="msg-bubble">${formattedContent}</div>
+                        <span class="msg-time">${now}${deleteBtnHtml}</span>
+                    `;
+                    
+                    chatBox.appendChild(msgDiv);
+                    chatBox.scrollTop = chatBox.scrollHeight;
+                } catch (err) {
+                    console.error("メッセージ描画エラー:", err);
                 }
-
-                const formattedContent = renderMessageContent(messageContent);
-                
-                // 自分のメッセージであれば削除ボタンをアタッチ
-                const deleteBtnHtml = (isMine && data.id) 
-                    ? `<button class="btn-delete" onclick="deleteMessage(${data.id})" title="削除">✕</button>` 
-                    : '';
-
-                msgDiv.innerHTML = `
-                    <span class="msg-user">${senderName}</span>
-                    <div class="msg-bubble">${formattedContent}</div>
-                    <span class="msg-time">${now}${deleteBtnHtml}</span>
-                `;
-                
-                chatBox.appendChild(msgDiv);
-                chatBox.scrollTop = chatBox.scrollHeight;
             });
 
-            // メッセージ削除通知受信時の処理
+            // メッセージ削除通知
             window.chatSocket.on('message_deleted', (data) => {
                 const targetMsg = document.getElementById(`msg-${data.msg_id}`);
                 if (targetMsg) {
@@ -140,7 +153,7 @@
                 }
             });
 
-            // ステータス（入退室通知）受信時の処理
+            // 入退室通知
             window.chatSocket.on('status', (data) => {
                 const statusDiv = document.createElement('div');
                 statusDiv.className = 'msg-line msg-status';
@@ -149,7 +162,7 @@
                 chatBox.scrollTop = chatBox.scrollHeight;
             });
 
-            // メッセージ送信関数
+            // メッセージ送信処理
             const sendMessage = () => {
                 const text = msgInput.value.trim();
                 if (text !== "") {
@@ -158,7 +171,7 @@
                 }
             };
 
-            // 画像選択時のアップロード＆リアルタイム送信処理
+            // 画像選択＆アップロード処理
             imageInput.addEventListener('change', async (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
@@ -167,7 +180,6 @@
                 formData.append('image', file);
 
                 try {
-                    // Flask (Python) への画像アップロード処理
                     const response = await fetch('/upload-image', {
                         method: 'POST',
                         body: formData
@@ -176,7 +188,6 @@
                     const result = await response.json();
 
                     if (response.ok && result.image_url) {
-                        // 画像タグフォーマットで Socket.IO に送信
                         window.chatSocket.emit('text', { msg: `[IMG]${result.image_url}[/IMG]` });
                     } else {
                         alert(result.error || '画像のアップロードに失敗しました。');
@@ -185,27 +196,19 @@
                     console.error('画像送信エラー:', err);
                     alert('画像の送信中にエラーが発生しました。');
                 } finally {
-                    imageInput.value = ''; // ファイル選択の選択状態をクリア
+                    imageInput.value = '';
                 }
             });
 
-            // イベントリスナーの登録
+            // イベント登録
             sendBtn.addEventListener('click', sendMessage);
             msgInput.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') sendMessage();
             });
         });
 
-        // ページ切断時のクリーンアップ処理
+        // 離脱処理
         window.addEventListener('beforeunload', function() {
-            if (window.chatSocket) {
-                window.chatSocket.emit('left', {});
-                window.chatSocket.disconnect();
-            }
-        });
-
-        // ログアウトボタン押下時
-        document.getElementById('logout-btn')?.addEventListener('click', function() {
             if (window.chatSocket) {
                 window.chatSocket.emit('left', {});
                 window.chatSocket.disconnect();
