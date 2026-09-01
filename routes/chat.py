@@ -247,8 +247,13 @@ def chat_room(room_id):
         })
 
     req_row = db.execute(
-        "SELECT request_id FROM requests WHERE room_id = ? AND requester_id = ?",
-        (room_id, user_id)
+        """
+        SELECT request_id, status, requester_id, receiver_id,
+               requester_completed, receiver_completed
+        FROM requests
+        WHERE room_id = ? AND (requester_id = ? OR receiver_id = ?)
+        """,
+        (room_id, user_id, user_id)
     ).fetchone()
 
     return render_template(
@@ -540,6 +545,13 @@ def init_chat_events(socketio):
                     f'[WS TEXT REJECTED] ユーザーID {user_id} はルーム {room}'
                     ' への発言権限がありません。'
                 )
+                return False
+            
+            req_status = db.execute(
+                "SELECT status FROM requests WHERE room_id = ?", (room,)
+            ).fetchone()
+            if req_status and req_status['status'] == 'completed':
+                print(f'[WS TEXT REJECTED] room {room} は終了済みのため送信できません。')
                 return False
 
             user_row = db.execute(

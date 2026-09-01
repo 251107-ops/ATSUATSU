@@ -356,6 +356,15 @@ def init_db():
         )
     """)
 
+    try:
+        db.execute("ALTER TABLE requests ADD COLUMN requester_completed INTEGER NOT NULL DEFAULT 0")
+    except sqlite3.OperationalError:
+        pass
+    try:
+        db.execute("ALTER TABLE requests ADD COLUMN receiver_completed INTEGER NOT NULL DEFAULT 0")
+    except sqlite3.OperationalError:
+        pass
+
     db.execute("""
         CREATE TABLE IF NOT EXISTS notifications (
             notification_id INTEGER PRIMARY KEY AUTOINCREMENT,
