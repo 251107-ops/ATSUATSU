@@ -48,6 +48,30 @@ with app.app_context():
     db.execute('''CREATE TABLE IF NOT EXISTS skills (skill_id INTEGER PRIMARY KEY AUTOINCREMENT, skill_name TEXT NOT NULL, category_id INTEGER NOT NULL , FOREIGN KEY(category_id) REFERENCES categories(category_id), UNIQUE (skill_name, category_id))''')
     db.execute('''CREATE TABLE IF NOT EXISTS categories (category_id INTEGER PRIMARY KEY AUTOINCREMENT, category_name TEXT NOT NULL UNIQUE)''')
     db.execute('''CREATE TABLE IF NOT EXISTS likes (user_id INTEGER NOT NULL, post_id INTEGER NOT NULL, PRIMARY KEY (user_id, post_id), FOREIGN KEY (user_id) REFERENCES users(user_id), FOREIGN KEY (post_id) REFERENCES posts(post_id))''')
+    # requests テーブルの作成（既存のテーブルがある場合は削除して再作成）
+    db.execute('''CREATE TABLE IF NOT EXISTS rooms (
+        room_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        skill_id INTEGER,
+        created_by INTEGER,
+        is_public INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
+    # room_members テーブルの作成（既存のテーブルがある場合は削除して再作成）
+    db.execute('''CREATE TABLE IF NOT EXISTS room_members (
+        room_id INTEGER,
+        user_id INTEGER,
+        PRIMARY KEY (room_id, user_id),
+        FOREIGN KEY (room_id) REFERENCES rooms(room_id),
+        FOREIGN KEY (user_id) REFERENCES users(user_id))''')
+    # messages テーブルの作成（既存のテーブルがある場合は削除して再作成）
+    db.execute('''CREATE TABLE IF NOT EXISTS messages (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        room_id INTEGER,
+        room TEXT,
+        user_id INTEGER,
+        name TEXT NOT NULL,
+        content TEXT NOT NULL,
+        send_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
+
     db.execute('''INSERT OR IGNORE INTO categories (category_name) VALUES
         ('IT・PCスキル'),
         ('語学'),
