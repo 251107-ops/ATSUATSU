@@ -468,3 +468,95 @@ body {
     letter-spacing: 2px;
     margin-bottom: 4px;
 }
+
+.chat-session-action { margin-top: 10px; }
+.btn.is-disabled { pointer-events: none; opacity: 0.55; cursor: not-allowed; }
+.msg-locked-notice {
+    width: 100%;
+    text-align: center;
+    color: var(--text-sub, #7f8c8d);
+    font-size: 13px;
+    padding: 8px 0;
+    margin: 0;
+}
+
+/* =====================================================================
+   チャット終了アクション（ヘッダー内）
+   ===================================================================== */
+   .chat-session-action {
+    margin-top: 10px;
+}
+
+/* 「チャット終了を申請」ボタン */
+.btn-end-chat {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 20px;
+    background-color: #ffffff;
+    color: #e57373;
+    border: 1px solid #e57373;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease, transform 0.1s ease;
+}
+
+.btn-end-chat:hover {
+    background-color: #e57373;
+    color: #ffffff;
+}
+
+.btn-end-chat:active {
+    transform: scale(0.97);
+}
+
+/* 「終了承認待ち」表示（押せない状態） */
+.btn-end-pending {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 20px;
+    background-color: #f2f5f9;
+    color: var(--text-sub, #7f8c8d);
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: bold;
+    cursor: not-allowed;
+}
+
+.btn-end-pending::before {
+    content: '⏳';
+    font-size: 12px;
+}
+
+/* 「セッション完了」バッジ */
+.badge-session-done {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 16px;
+    background-color: #eaf6ed;
+    color: #2e7d32;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: bold;
+}
+
+.badge-session-done::before {
+    content: '✓';
+}
+
+/* メッセージ送信ロック時の注意文（既存流用でも可） */
+.msg-locked-notice {
+    width: 100%;
+    text-align: center;
+    color: var(--text-sub, #7f8c8d);
+    font-size: 13px;
+    padding: 10px 0;
+    margin: 0;
+    background-color: var(--bg-color, #f2f5f9);
+    border-radius: 12px;
+}
