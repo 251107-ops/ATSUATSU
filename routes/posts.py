@@ -1,11 +1,17 @@
 import os
 import json  
+import uuid
 from datetime import datetime
 from flask import Blueprint, render_template, redirect, session, request, jsonify
 from werkzeug.utils import secure_filename
 from routes.auth import get_db
 
 posts = Blueprint('posts', __name__)
+
+# 添付画像の保存フォルダと許可する拡張子設定
+UPLOAD_FOLDER = os.path.join('static', 'uploads')
+ALLOWED_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.gif', '.webp'}
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 
 def fetch_posts(db, category_id="", post_type="", search_query="", sort_type="new", grade="", department="", user_id=None):
@@ -41,6 +47,7 @@ def fetch_posts(db, category_id="", post_type="", search_query="", sort_type="ne
     else:
         order_by = "ORDER BY posts.post_date DESC"
 
+    # 💡 SELECT文に posts.image_path を追加
     query = f"""
         SELECT
             users.name,
@@ -51,7 +58,8 @@ def fetch_posts(db, category_id="", post_type="", search_query="", sort_type="ne
             skills.skill_name,
             posts.post_type, posts.post_text, posts.post_id,
             (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.post_id) AS like_count,
-            (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.post_id AND likes.user_id = ?) AS liked_by_me
+            (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.post_id AND likes.user_id = ?) AS liked_by_me,
+            posts.image_path
         FROM posts
         LEFT JOIN users ON posts.user_id = users.user_id
         LEFT JOIN skills ON posts.skill_id = skills.skill_id
@@ -75,7 +83,8 @@ def fetch_posts(db, category_id="", post_type="", search_query="", sort_type="ne
             'post_text': row[7],
             'post_id': row[8],
             'like_count': row[9] if row[9] else 0,
-            'liked_by_me': bool(row[10])
+            'liked_by_me': bool(row[10]),
+            'image_path': row[11]  # 💡 画像パスを追加
         })
 
     return posts_list
@@ -269,15 +278,12 @@ def profile():
         icon_path = None
         avatar_file = request.files.get('avatar') or request.files.get('icon')
         if avatar_file and avatar_file.filename:
-            allowed_ext = {'.png', '.jpg', '.jpeg', '.gif'}
             ext = os.path.splitext(avatar_file.filename)[1].lower()
-            if ext not in allowed_ext:
+            if ext not in ALLOWED_EXTENSIONS:
                 return jsonify({'message': '対応していない画像形式です'}), 400
 
             filename = secure_filename(f"user_{user_id}{ext}")
-            upload_dir = os.path.join('static', 'uploads')
-            os.makedirs(upload_dir, exist_ok=True)
-            save_path = os.path.join(upload_dir, filename)
+            save_path = os.path.join(UPLOAD_FOLDER, filename)
             avatar_file.save(save_path)
 
             icon_path = f"uploads/{filename}"
@@ -343,7 +349,8 @@ def profile():
             skills.skill_name,
             posts.post_type, posts.post_text, posts.post_id,
             (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.post_id) AS like_count,
-            (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.post_id AND likes.user_id = ?) AS liked_by_me
+            (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.post_id AND likes.user_id = ?) AS liked_by_me,
+            posts.image_path
         FROM posts
         LEFT JOIN skills ON posts.skill_id = skills.skill_id
         LEFT JOIN categories ON posts.category_id = categories.category_id
@@ -360,7 +367,8 @@ def profile():
             'post_text': row[3],
             'post_id': row[4],
             'like_count': row[5] if row[5] else 0,
-            'liked_by_me': bool(row[6])
+            'liked_by_me': bool(row[6]),
+            'image_path': row[7]
         })
 
     return render_template('profile.html', user=user, skills_teach=skills_teach, skills_learn=skills_learn, my_posts=my_posts, review_stats=review_stats)
@@ -426,11 +434,23 @@ def create_post():
 
         user_id = session.get('user_id')
 
+        # 💡 画像添付の処理を追加
+        image_path = None
+        post_file = request.files.get('post_image')
+        if post_file and post_file.filename != '':
+            ext = os.path.splitext(post_file.filename)[1].lower()
+            if ext in ALLOWED_EXTENSIONS:
+                filename = secure_filename(f"post_{uuid.uuid4().hex}{ext}")
+                save_path = os.path.join(UPLOAD_FOLDER, filename)
+                post_file.save(save_path)
+                image_path = f"uploads/{filename}"
+
         if user_id:
             post_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            # 💡 INSERT INTO posts に image_path を追加
             db.execute(
-                "INSERT INTO posts (user_id, skill_id, post_type, post_text, post_date, category_id) VALUES (?, ?, ?, ?, ?, ?)",
-                (int(user_id), int(skill_id), post_type, post_text, post_date, int(category_id))
+                "INSERT INTO posts (user_id, skill_id, post_type, post_text, image_path, post_date, category_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (int(user_id), int(skill_id), post_type, post_text, image_path, post_date, int(category_id))
             )
             db.commit()
             return redirect('/')
@@ -499,7 +519,8 @@ def search_posts():
                 skills.skill_name,
                 posts.post_type, posts.post_text, posts.post_id,
                 (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.post_id) AS like_count,
-                (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.post_id AND likes.user_id = ?) AS liked_by_me
+                (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.post_id AND likes.user_id = ?) AS liked_by_me,
+                posts.image_path
             FROM posts
             LEFT JOIN users ON posts.user_id = users.user_id
             LEFT JOIN skills ON posts.skill_id = skills.skill_id
@@ -523,7 +544,8 @@ def search_posts():
                 'post_text': row[7],
                 'post_id': row[8],
                 'like_count': row[9] if row[9] else 0,
-                'liked_by_me': bool(row[10])
+                'liked_by_me': bool(row[10]),
+                'image_path': row[11]
             })
         return render_template('top.html', posts=posts_list, active_tab='all', search_query=search_query)
 
@@ -573,7 +595,8 @@ def get_like():
             skills.skill_name,
             posts.post_type, posts.post_text, posts.post_id,
             (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.post_id) AS like_count,
-            (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.post_id AND likes.user_id = ?) AS liked_by_me
+            (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.post_id AND likes.user_id = ?) AS liked_by_me,
+            posts.image_path
         FROM posts
         LEFT JOIN users ON posts.user_id = users.user_id
         LEFT JOIN skills ON posts.skill_id = skills.skill_id
@@ -596,6 +619,7 @@ def get_like():
             'post_text': row[7],
             'post_id': row[8],
             'like_count': row[9] if row[9] else 0,
-            'liked_by_me': bool(row[10])
+            'liked_by_me': bool(row[10]),
+            'image_path': row[11]
         })
     return render_template('like_page.html', posts=posts_list)

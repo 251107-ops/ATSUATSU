@@ -1,3 +1,46 @@
+/* ==========================================
+   グローバル関数（HTMLのonchange属性などから呼び出し）
+   ========================================== */
+
+/**
+ * URLクエリパラメーターを更新してページをリロードする関数
+ */
+function updateFilter(key, value) {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (value) {
+        urlParams.set(key, value);
+    } else {
+        urlParams.delete(key);
+    }
+    window.location.search = urlParams.toString();
+}
+
+/**
+ * 添付画像拡大モーダルを開く関数（必要に応じて単体画像用に使用）
+ */
+function openImageModal(imgSrc) {
+    const imageModal = document.getElementById('imageModal');
+    const modalImg = document.getElementById('imgModalTarget');
+    if (imageModal && modalImg) {
+        modalImg.src = imgSrc;
+        imageModal.style.display = 'flex';
+    }
+}
+
+/**
+ * 添付画像拡大モーダルを閉じる関数
+ */
+function closeImageModal() {
+    const imageModal = document.getElementById('imageModal');
+    if (imageModal) {
+        imageModal.style.display = 'none';
+    }
+}
+
+
+/* ==========================================
+   DOM構築後のイベント設定
+   ========================================== */
 document.addEventListener('DOMContentLoaded', () => {
 
     /* ==========================================
@@ -70,7 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const currentUserIdInput = document.getElementById('currentUserId');
                 const currentUserId = currentUserIdInput ? currentUserIdInput.value : '';
 
-                // 各要素への値のセット（確実に文字列としてセット）
+                // 各要素への値のセット
                 document.getElementById('modalPostId').value = data.postId || '';
                 document.getElementById('modalReceiverId').value = data.userId || '';
                 document.getElementById('modalIcon').src = data.icon || '';
@@ -86,10 +129,31 @@ document.addEventListener('DOMContentLoaded', () => {
                 modalType.textContent = data.type || '';
                 modalType.className = `badge ${data.type === '教えたい' ? 'teach' : 'learn'}`;
 
+                // 💡 【修正点】カードを開いた時にそのまま画像も表示する処理
+                const attachmentArea = document.getElementById('modalAttachmentArea');
+                const previewImg = document.getElementById('modalPreviewImg');
+
+                if (attachmentArea) {
+                    if (data.image) {
+                        // 画像要素（#modalPreviewImg）が存在する場合はsrcを設定
+                        if (previewImg) {
+                            previewImg.src = data.image;
+                            previewImg.style.display = 'block';
+                        }
+                        attachmentArea.style.display = 'block';
+                    } else {
+                        if (previewImg) {
+                            previewImg.src = '';
+                            previewImg.style.display = 'none';
+                        }
+                        attachmentArea.style.display = 'none';
+                    }
+                }
+
                 // ボタン要素を取得
                 const requestBtn = document.getElementById('requestBtn');
 
-                // ★修正点1: 毎回ボタンの連打・無効化状態をリセット
+                // 毎回ボタンの連打・無効化状態をリセット
                 requestBtn.disabled = false;
                 requestBtn.style.opacity = '1';
                 requestBtn.style.cursor = 'pointer';
@@ -115,7 +179,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        // ★修正点2: フォーム送信時に連打を防止（二重送信防止ガード）
+        // フォーム送信時に連打を防止（二重送信防止ガード）
         if (requestForm) {
             requestForm.addEventListener('submit', function() {
                 const requestBtn = document.getElementById('requestBtn');
@@ -138,6 +202,19 @@ document.addEventListener('DOMContentLoaded', () => {
         modal.addEventListener('click', (e) => {
             if (e.target === modal) {
                 modal.classList.remove('active');
+            }
+        });
+    }
+
+    /* ==========================================
+       4. 添付画像プレビューモーダルのイベント設定
+       ========================================== */
+    const imageModal = document.getElementById('imageModal');
+    if (imageModal) {
+        // 画像モーダルの背景クリックで閉じる
+        imageModal.addEventListener('click', (e) => {
+            if (e.target === imageModal || e.target.classList.contains('close-modal')) {
+                closeImageModal();
             }
         });
     }

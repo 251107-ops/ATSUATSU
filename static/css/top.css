@@ -469,3 +469,121 @@ a {
     font-weight: bold;
     margin-right: 4px;
 }
+/* バッジを配置する領域 */
+.attachment-container {
+    margin-top: 8px;
+    display: flex;
+    justify-content: flex-start;
+}
+
+/* 「ファイルあり」バッジのデザイン */
+.badge-attachment {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background-color: #f1f5f9;
+    color: #475569;
+    font-size: 0.75rem;
+    font-weight: 500;
+    padding: 3px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+    user-select: none;
+}
+
+/* ホバー時にほんのり色が変わる演出 */
+.badge-attachment:hover {
+    background-color: #e2e8f0;
+    color: #1e293b;
+}
+
+/* モーダル表示（全体背景） */
+.image-modal {
+    display: none;
+    position: fixed;
+    z-index: 9999;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.75);
+    justify-content: center;
+    align-items: center;
+}
+
+/* モーダル内の画像 */
+.modal-content {
+    max-width: 85%;
+    max-height: 85vh;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    object-fit: contain;
+}
+
+/* 閉じるボタン */
+.close-modal {
+    position: absolute;
+    top: 20px;
+    right: 30px;
+    color: #fff;
+    font-size: 36px;
+    cursor: pointer;
+}
+/* モーダル全体をコンパクト化 */
+#cardModal .modal-content {
+    max-width: 500px !important; /* 横幅をコンパクトに固定 */
+    width: 90%;
+    max-height: 85vh;            /* 画面の高さをはみ出さないように設定 */
+    overflow-y: auto;           /* 内容が多い場合は内部でスクロール */
+    padding: 20px;
+    border-radius: 16px;
+}
+
+/* 添付画像表示エリアと画像のサイズ制限 */
+#modalAttachmentArea {
+    margin-top: 12px;
+    text-align: center;
+}
+
+#modalPreviewImg {
+    max-width: 100% !important;  /* 親要素（モーダル幅）内に収める */
+    max-height: 250px !important; /* 高くなりすぎないよう制限 */
+    width: auto !important;
+    height: auto !important;
+    object-fit: contain;         /* アスペクト比を維持して収める */
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    display: block;
+    margin: 0 auto;
+}
+/* タグ全体の並び設定 */
+.card .tags {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+/* 「教えたい」の横に並ぶ添付画像ありラベル */
+.card .badge-attachment {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    font-size: 0.75rem;
+    color: #64748b;
+    background-color: #f1f5f9;
+    border-radius: 4px;
+    border: none;
+    cursor: default !important;
+    pointer-events: none;
+    user-select: none;
+}
+
+/* ホバー時の装飾変化を無効化 */
+.card .badge-attachment:hover {
+    background-color: #f1f5f9 !important;
+    color: #64748b !important;
+}
