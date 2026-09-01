@@ -37,6 +37,14 @@
                             <div class="request-actions">
                                 <a href="{{ url_for('chat.chat_room', room_id=n.room_id) }}" class="btn">チャットへ</a>
                             </div>
+                        {% elif n.type == 'session_completed' and n.status == 'completed' %}
+                            <div class="request-actions">
+                                <a href="{{ url_for('reviews_bp.new_review', request_id=n.request_id) }}" class="btn">評価する</a>
+                            </div>
+                        {% elif n.type == 'completion_pending' and n.room_id %}
+                            <div class="request-actions">
+                                <a href="{{ url_for('chat.chat_room', room_id=n.room_id) }}" class="btn">チャットへ</a>
+                            </div>
                         {% endif %}
                     </div>
                 {% endfor %}

@@ -171,6 +171,7 @@ def list_requests():
     # ↓ GET: 自分が送った/受けたリクエストを両方取得
     sent = db.execute("""
         SELECT r.request_id, r.status, r.room_id, r.created_at,
+               r.requester_completed, r.receiver_completed,
                u.name AS partner_name, s.skill_name, p.post_type
         FROM requests r
         JOIN posts p ON r.post_id = p.post_id
@@ -183,6 +184,7 @@ def list_requests():
     # 自分が受け取ったリクエストを取得
     received = db.execute("""
         SELECT r.request_id, r.status, r.room_id, r.created_at,
+               r.requester_completed, r.receiver_completed,
                u.name AS partner_name, s.skill_name, p.post_type
         FROM requests r
         JOIN posts p ON r.post_id = p.post_id
@@ -282,19 +284,51 @@ def complete_request(request_id):
 
     if not req:
         return "リクエストが見つかりません", 404
-    if req['requester_id'] != user_id:
-        return "セッション完了にできるのは申し込んだ本人のみです", 403
+
+    if user_id not in (req['requester_id'], req['receiver_id']):
+        return "この操作を行う権限がありません", 403
+
+
+
     if req['status'] != 'accepted':
         return redirect(url_for('.list_requests'))
-
-    db.execute("""
-        UPDATE requests SET status = 'completed', updated_at = datetime('now','localtime')
-        WHERE request_id = ?
-    """, (request_id,))
-
-    db.execute("""
-        INSERT INTO notifications (user_id, type, related_id) VALUES (?, 'session_completed', ?)
-    """, (req['receiver_id'], request_id))
+    
+        # 自分がどちら側かでカラムを決定
+    if user_id == req['requester_id']:
+        db.execute(
+            "UPDATE requests SET requester_completed = 1, updated_at = datetime('now','localtime') WHERE request_id = ?",
+            (request_id,)
+        )
+        partner_id = req['receiver_id']
+    else:
+        db.execute(
+            "UPDATE requests SET receiver_completed = 1, updated_at = datetime('now','localtime') WHERE request_id = ?",
+            (request_id,)
+        )
+        partner_id = req['requester_id']
     db.commit()
 
-    return redirect(url_for('reviews_bp.new_review', request_id=request_id))
+
+    # 最新状態を取り直して両者揃ったか確認
+    updated = db.execute("SELECT * FROM requests WHERE request_id = ?", (request_id,)).fetchone()
+
+    if updated['requester_completed'] == 1 and updated['receiver_completed'] == 1:
+        # 両者合意 → completed に確定
+        db.execute(
+            "UPDATE requests SET status = 'completed', updated_at = datetime('now','localtime') WHERE request_id = ?",
+            (request_id,)
+        )
+        db.execute(
+            "INSERT INTO notifications (user_id, type, related_id) VALUES (?, 'session_completed', ?)",
+            (req['receiver_id'], request_id)
+        )
+        db.commit()
+        return redirect(url_for('reviews_bp.new_review', request_id=request_id))
+    else:
+        # まだ片方だけ → 相手に「あなたも押してください」通知
+        db.execute(
+            "INSERT INTO notifications (user_id, type, related_id) VALUES (?, 'completion_pending', ?)",
+            (partner_id, request_id)
+        )
+        db.commit()
+        return redirect(url_for('.list_requests'))

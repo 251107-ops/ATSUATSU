@@ -14,7 +14,6 @@
 
     <div class="container">
 
-        <!-- ★ フラッシュメッセージを取り出して消費（他画面への流出を防止） -->
         {% with messages = get_flashed_messages() %}
           {% if messages %}
             <div class="flash-messages" style="margin-bottom: 20px;">
@@ -56,17 +55,22 @@
 
                         <div class="request-actions">
                             {% if req.status == 'pending' %}
-                            <form action="{{ url_for('requests_bp.accept_request', request_id=req.request_id) }}" method="POST">
-                                <button type="submit" class="btn">承認</button>
-                            </form>
-                            <form action="{{ url_for('requests_bp.decline_request', request_id=req.request_id) }}" method="POST">
-                                <button type="submit" class="btn btn-outline">拒否</button>
-                            </form>
-                        {% elif req.status == 'accepted' %}
-                            <a href="{{ url_for('chat.chat_room', room_id=req.room_id) }}" class="btn">チャットへ</a>
-                        {% elif req.status == 'completed' %}
-                            <a href="{{ url_for('reviews_bp.new_review', request_id=req.request_id) }}" class="btn">評価する</a>
-                        {% endif %}
+                                <form action="{{ url_for('requests_bp.accept_request', request_id=req.request_id) }}" method="POST">
+                                    <button type="submit" class="btn">承認</button>
+                                </form>
+                                <form action="{{ url_for('requests_bp.decline_request', request_id=req.request_id) }}" method="POST">
+                                    <button type="submit" class="btn btn-outline">拒否</button>
+                                </form>
+                            {% elif req.status == 'accepted' %}
+                                {% if req.receiver_completed %}
+                                    <span class="btn btn-outline" style="pointer-events:none; opacity:0.6;">終了承認待ち</span>
+                                {% else %}
+                                    <form action="{{ url_for('requests_bp.complete_request', request_id=req.request_id) }}" method="POST">
+                                        <button type="submit" class="btn">チャット終了を申請</button>
+                                    </form>
+                                {% endif %}
+                            {% endif %}
+                            <!-- 受け取った側（教える側）は評価しない -->
                         </div>
                     </div>
                 {% endfor %}
@@ -104,11 +108,21 @@
 
                         <div class="request-actions">
                             {% if req.status == 'accepted' %}
-                            <a href="{{ url_for('chat.chat_room', room_id=req.room_id) }}" class="btn">チャットへ</a>
-                            <form action="{{ url_for('requests_bp.complete_request', request_id=req.request_id) }}" method="POST">
-                                <button type="submit" class="btn btn-outline">チャット終了</button>
-                            </form>
-                        {% endif %}                        </div>
+                            {% if req.requester_completed %}
+                                <span class="btn btn-outline" style="pointer-events:none; opacity:0.6;">終了承認待ち</span>
+                            {% elif req.receiver_completed %}
+                                <form action="{{ url_for('requests_bp.complete_request', request_id=req.request_id) }}" method="POST">
+                                    <button type="submit" class="btn">チャット終了を承認</button>
+                                </form>
+                            {% else %}
+                                <form action="{{ url_for('requests_bp.complete_request', request_id=req.request_id) }}" method="POST">
+                                    <button type="submit" class="btn">チャット終了を申請</button>
+                                </form>
+                            {% endif %}
+                        {% elif req.status == 'completed' %}
+                            <a href="{{ url_for('reviews_bp.new_review', request_id=req.request_id) }}" class="btn">評価する</a>
+                        {% endif %}
+                        </div>
                     </div>
                 {% endfor %}
             </div>

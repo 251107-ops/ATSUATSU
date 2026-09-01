@@ -53,6 +53,23 @@
                     <div>
                         <h2>{{ target_user_name if target_user_name else 'チャット' }}</h2>
                         <p class="user-info">ログイン中: <strong>{{ name }}</strong></p>
+                        {% if req_row %}
+                            {% set my_completed = (req_row.requester_id == user_id and req_row.requester_completed)
+                                                or (req_row.receiver_id == user_id and req_row.receiver_completed) %}
+                            <div class="chat-session-action">
+                                {% if req_row.status == 'accepted' %}
+                                    {% if my_completed %}
+                                        <span class="btn-end-pending">終了承認待ち</span>
+                                    {% else %}
+                                        <form action="{{ url_for('requests_bp.complete_request', request_id=req_row.request_id) }}" method="POST">
+                                            <button type="submit" class="btn-end-chat">チャット終了を申請</button>
+                                        </form>
+                                    {% endif %}
+                                {% elif req_row.status == 'completed' %}
+                                    <span class="badge-session-done">セッション完了</span>
+                                {% endif %}
+                            </div>
+                        {% endif %}
                     </div>
                 </div>
 
@@ -80,10 +97,14 @@
                 </div>
                 
                 <div class="chat-footer">
+                    {% if req_row and req_row.status == 'completed' %}
+                    <p class="msg-locked-notice">このチャットは終了しました。新しいメッセージは送信できません。</p>
+                {% else %}
                     <label for="image-input" class="btn-image-upload" title="画像を添付">＋</label>
                     <input type="file" id="image-input" accept="image/*" style="display: none;">
                     <input type="text" id="message-input" placeholder="メッセージを入力してください..." autocomplete="off">
                     <button class="btn-send" id="send-btn">送信</button>
+                {% endif %}
                 </div>
             {% else %}
                 <!-- ルーム未選択時 -->
