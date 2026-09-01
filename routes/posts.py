@@ -557,7 +557,13 @@ def like_post():
     if 'user_email' not in session:
         return jsonify({'error': 'unauthorized'}), 401
 
-    post_id = request.form.get('post_id')
+    # 💡 JSON形式とForm送信（FormData）の両方から post_id を取得できるように修正
+    if request.is_json:
+        data = request.get_json()
+        post_id = data.get('post_id') if data else None
+    else:
+        post_id = request.form.get('post_id')
+
     user_id = session.get('user_id')
     if not post_id or not user_id:
         return jsonify({'error': 'invalid request'}), 400
@@ -575,7 +581,7 @@ def like_post():
         liked = True
 
     db.commit()
-    return jsonify({'liked': liked})
+    return jsonify({'liked': liked, 'post_id': post_id})
 
 
 @posts.route("/likes/page", methods=["GET"])
