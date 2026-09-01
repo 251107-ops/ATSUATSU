@@ -13,15 +13,14 @@ def add_skill():
     if request.method == 'POST':
         db = get_db()
         skill_name = request.form.get('skill_name', '').strip()
-        category_id = request.form.get('category_id')
-        skill_id = request.form.get('skill_id', '')
+        category_id = request.form.get('category_id') 
 
         if skill_name:
             try:
                 # DBへの挿入処理
                 db.execute(
-                    "INSERT INTO skills (skill_name) VALUES (?,?)",
-                    (skill_name,category_id)
+                    "INSERT INTO skills (skill_name) VALUES (?)",
+                    (skill_name,)
                 )
                 db.commit()
             except Exception as e:
