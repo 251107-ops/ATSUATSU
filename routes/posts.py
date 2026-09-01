@@ -47,7 +47,7 @@ def fetch_posts(db, category_id="", post_type="", search_query="", sort_type="ne
     else:
         order_by = "ORDER BY posts.post_date DESC"
 
-    # 💡 SELECT文に posts.image_path を追加
+    # 💡 SELECT文に users.user_id を追加
     query = f"""
         SELECT
             users.name,
@@ -59,7 +59,8 @@ def fetch_posts(db, category_id="", post_type="", search_query="", sort_type="ne
             posts.post_type, posts.post_text, posts.post_id,
             (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.post_id) AS like_count,
             (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.post_id AND likes.user_id = ?) AS liked_by_me,
-            posts.image_path
+            posts.image_path,
+            users.user_id
         FROM posts
         LEFT JOIN users ON posts.user_id = users.user_id
         LEFT JOIN skills ON posts.skill_id = skills.skill_id
@@ -84,7 +85,8 @@ def fetch_posts(db, category_id="", post_type="", search_query="", sort_type="ne
             'post_id': row[8],
             'like_count': row[9] if row[9] else 0,
             'liked_by_me': bool(row[10]),
-            'image_path': row[11]  # 💡 画像パスを追加
+            'image_path': row[11],
+            'user_id': row[12]  # 💡 投稿者の user_id を追加
         })
 
     return posts_list
@@ -434,7 +436,6 @@ def create_post():
 
         user_id = session.get('user_id')
 
-        # 💡 画像添付の処理を追加
         image_path = None
         post_file = request.files.get('post_image')
         if post_file and post_file.filename != '':
@@ -447,7 +448,6 @@ def create_post():
 
         if user_id:
             post_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            # 💡 INSERT INTO posts に image_path を追加
             db.execute(
                 "INSERT INTO posts (user_id, skill_id, post_type, post_text, image_path, post_date, category_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
                 (int(user_id), int(skill_id), post_type, post_text, image_path, post_date, int(category_id))
@@ -457,7 +457,6 @@ def create_post():
 
     preset_type = request.args.get('type', '')
 
-    # カテゴリ一覧の取得と整形
     raw_categories = db.execute("SELECT category_id, category_name FROM categories ORDER BY category_id").fetchall()
     categories = []
     seen_cat_names = set()
@@ -476,7 +475,6 @@ def create_post():
                 'category_name': c_name
             })
 
-    # スキル一覧の取得と整形
     raw_skills = db.execute("SELECT skill_id, skill_name, category_id FROM skills ORDER BY skill_id").fetchall()
     skills = []
     seen_skills = set()
@@ -512,6 +510,7 @@ def search_posts():
     search_query = request.args.get('query', '')
 
     if search_query:
+        # 💡 SELECT文に users.user_id を追加
         rows = db.execute("""
             SELECT
                 users.name, users.department, users.grade, users.icon_path,
@@ -520,7 +519,8 @@ def search_posts():
                 posts.post_type, posts.post_text, posts.post_id,
                 (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.post_id) AS like_count,
                 (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.post_id AND likes.user_id = ?) AS liked_by_me,
-                posts.image_path
+                posts.image_path,
+                users.user_id
             FROM posts
             LEFT JOIN users ON posts.user_id = users.user_id
             LEFT JOIN skills ON posts.skill_id = skills.skill_id
@@ -545,7 +545,8 @@ def search_posts():
                 'post_id': row[8],
                 'like_count': row[9] if row[9] else 0,
                 'liked_by_me': bool(row[10]),
-                'image_path': row[11]
+                'image_path': row[11],
+                'user_id': row[12]  # 💡 user_id を追加
             })
         return render_template('top.html', posts=posts_list, active_tab='all', search_query=search_query)
 
@@ -557,7 +558,6 @@ def like_post():
     if 'user_email' not in session:
         return jsonify({'error': 'unauthorized'}), 401
 
-    # 💡 JSON形式とForm送信（FormData）の両方から post_id を取得できるように修正
     if request.is_json:
         data = request.get_json()
         post_id = data.get('post_id') if data else None
@@ -594,6 +594,7 @@ def get_like():
         return redirect('/login')
 
     db = get_db()
+    # 💡 SELECT文に users.user_id を追加
     rows = db.execute("""
         SELECT
             users.name, users.department, users.grade, users.icon_path,
@@ -602,7 +603,8 @@ def get_like():
             posts.post_type, posts.post_text, posts.post_id,
             (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.post_id) AS like_count,
             (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.post_id AND likes.user_id = ?) AS liked_by_me,
-            posts.image_path
+            posts.image_path,
+            users.user_id
         FROM posts
         LEFT JOIN users ON posts.user_id = users.user_id
         LEFT JOIN skills ON posts.skill_id = skills.skill_id
@@ -612,6 +614,7 @@ def get_like():
         )
         ORDER BY posts.post_date DESC
     """, (user_id, user_id)).fetchall()
+
     posts_list = []
     for row in rows:
         posts_list.append({
@@ -626,6 +629,103 @@ def get_like():
             'post_id': row[8],
             'like_count': row[9] if row[9] else 0,
             'liked_by_me': bool(row[10]),
-            'image_path': row[11]
+            'image_path': row[11],
+            'user_id': row[12]  # 💡 user_id を追加
         })
     return render_template('like_page.html', posts=posts_list)
+
+
+# --- 💡 他のユーザーのプロフィール画面 ---
+@posts.route("/users/<int:user_id>")
+def other_profile(user_id):
+    if 'user_email' not in session:
+        return redirect('/login')
+
+    my_user_id = session.get('user_id')
+
+    # 自分自身のページを開こうとした場合は自分のプロフィールにリダイレクト
+    if user_id == my_user_id:
+        return redirect('/profile')
+
+    db = get_db()
+
+    # 相手のユーザー情報
+    row = db.execute(
+        "SELECT user_id, name, email, department, grade, introduction, icon_path FROM users WHERE user_id = ?",
+        (user_id,)
+    ).fetchone()
+
+    if not row:
+        return "指定されたユーザーは見つかりません", 404
+
+    user = {
+        'user_id': row[0],
+        'name': row[1],
+        'email': row[2],
+        'department': row[3],
+        'grade': row[4],
+        'introduction': row[5],
+        'icon_path': row[6] if row[6] else 'test.png'
+    }
+
+    # 「教えたい」スキル一覧
+    teach_rows = db.execute("""
+        SELECT DISTINCT skills.skill_id, skills.skill_name 
+        FROM posts
+        JOIN skills ON posts.skill_id = skills.skill_id
+        WHERE posts.user_id = ? AND posts.post_type = '教えたい'
+    """, (user_id,)).fetchall()
+    skills_teach = [{'skill_id': r[0], 'skill_name': r[1]} for r in teach_rows]
+
+    # 「学びたい」スキル一覧
+    learn_rows = db.execute("""
+        SELECT DISTINCT skills.skill_id, skills.skill_name 
+        FROM posts
+        JOIN skills ON posts.skill_id = skills.skill_id
+        WHERE posts.user_id = ? AND posts.post_type = '学びたい'
+    """, (user_id,)).fetchall()
+    skills_learn = [{'skill_id': r[0], 'skill_name': r[1]} for r in learn_rows]
+
+    # レビュー評価
+    review_stats = db.execute("""
+        SELECT AVG(rating) AS avg_rating, COUNT(*) AS review_count
+        FROM reviews WHERE reviewee_id = ?
+    """, (user_id,)).fetchone()
+
+    # 相手の投稿一覧
+    user_posts_rows = db.execute("""
+        SELECT
+            categories.category_name,
+            skills.skill_name,
+            posts.post_type, posts.post_text, posts.post_id,
+            (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.post_id) AS like_count,
+            (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.post_id AND likes.user_id = ?) AS liked_by_me,
+            posts.image_path
+        FROM posts
+        LEFT JOIN skills ON posts.skill_id = skills.skill_id
+        LEFT JOIN categories ON posts.category_id = categories.category_id
+        WHERE posts.user_id = ?
+        ORDER BY posts.post_date DESC
+    """, (my_user_id, user_id)).fetchall()
+
+    user_posts = []
+    for r in user_posts_rows:
+        user_posts.append({
+            'category_name': r[0] if r[0] else '未設定',
+            'skill_name': r[1] if r[1] else '未設定',
+            'post_type': r[2],
+            'post_text': r[3],
+            'post_id': r[4],
+            'like_count': r[5] if r[5] else 0,
+            'liked_by_me': bool(r[6]),
+            'image_path': r[7]
+        })
+
+    return render_template(
+        'other_profile.html',
+        user=user,
+        skills_teach=skills_teach,
+        skills_learn=skills_learn,
+        user_posts=user_posts,
+        review_stats=review_stats
+    )

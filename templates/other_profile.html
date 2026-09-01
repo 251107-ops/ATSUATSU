@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ user.name }}さんのプロフィール | スキルシェア</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/profile.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/variables.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/footer.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/top.css') }}">
+</head>
+<body>
+
+  {% include 'header.html' %}
+
+  <!-- 💡 classに layout--no-sidebar を指定 -->
+  <div class="layout layout--no-sidebar">
+
+    <div class="page-content">
+
+      <div class="main__head">
+        <h1 class="main__title" id="profileTitle">{{ user.name }}さんのプロフィール</h1>
+      </div>
+
+      <div class="main profile-block">
+        <div class="profile-card-content">
+          <div class="avatar-block">
+            <div class="avatar-wrap">
+              {% if user and user.icon_path %}
+                <img id="avatarImg" class="avatar-img" src="{{ url_for('static', filename=user.icon_path) }}" alt="プロフィール画像">
+              {% else %}
+                <span id="avatarPlaceholder" class="avatar-placeholder">{{ user.name[:2] if user else 'ユーザー' }}</span>
+              {% endif %}
+            </div>
+            <div class="rating-summary">
+              <span class="rating-stars">
+                  {% set avg = review_stats.avg_rating or 0 %}
+                  {% for i in range(1, 6) %}
+                      {% if i <= avg|round(0, 'floor') %}★{% else %}☆{% endif %}
+                  {% endfor %}
+              </span>
+              {% if review_stats.avg_rating %}
+                  <span class="rating-value">{{ '%.1f'|format(review_stats.avg_rating) }}</span>
+                  <span class="rating-count">（{{ review_stats.review_count }}件）</span>
+              {% else %}
+                  <span class="rating-value">評価なし</span>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="field-grid">
+            <div class="field field--wide">
+              <label>名前</label>
+              <p class="profile-text-value">{{ user.name if user else '' }}</p>
+            </div>
+
+            <div class="field">
+              <label>学年</label>
+              <p class="profile-text-value">{{ user.grade if user else '' }}</p>
+            </div>
+
+            <div class="field">
+              <label>学科</label>
+              <p class="profile-text-value">{{ user.department if user else '' }}</p>
+            </div>
+
+            <div class="field field--wide">
+                <label>自己紹介</label>
+                <div class="bio-text-block">
+                     {% if user and user.introduction %}
+                          {{ user.introduction }}
+                     {% else %}
+                          <span class="bio-empty">まだ自己紹介が登録されていません。</span>
+                     {% endif %}
+                </div>
+           </div>
+          </div>
+        </div>
+
+        <div class="skill-field">
+          <label>教えたいスキル</label>
+          <div class="tag-list">
+            {% for skill in skills_teach %}
+              <span class="tag tag--teach">{{ skill.skill_name }}</span>
+            {% else %}
+              <span class="no-tags-notice">登録されていません</span>
+            {% endfor %}
+          </div>
+          <label style="margin-top: 16px;">学びたいスキル</label>
+          <div class="tag-list">
+            {% for skill in skills_learn %}
+              <span class="tag tag--learn">{{ skill.skill_name }}</span>
+            {% else %}
+              <span class="no-tags-notice">登録されていません</span>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <div class="main my-posts-section">
+        <h2>{{ user.name }}さんの投稿</h2>
+        <div class="cards">
+            {% for post in user_posts %}
+            <div class="card">
+                <div class="card-top">
+                    {% if user and user.icon_path %}
+                        <img src="{{ url_for('static', filename=user.icon_path) }}" alt="">
+                    {% else %}
+                        <img src="{{ url_for('static', filename='img/default-avatar.png') }}" alt="">
+                    {% endif %}
+                    <div>
+                        <span class="name">{{ user.name if user else '' }}</span>
+                        <span class="meta">{{ user.department if user else '' }} {{ user.grade if user else '' }}</span>
+                    </div>
+                </div>
+                <div class="tags">
+                    <span class="tag">{{ post.category_name }}</span>
+                    <span class="tag">{{ post.skill_name }}</span>
+                    <span class="badge {{ 'teach' if post.post_type == '教えたい' else 'learn' }}">{{ post.post_type }}</span>
+                </div>
+                <p class="body">{{ post.post_text }}</p>
+                {% if post.image_path %}
+                  <div class="post-image" style="margin-top: 10px;">
+                    <img src="{{ url_for('static', filename=post.image_path) }}" alt="投稿画像" style="max-width: 100%; border-radius: 8px;">
+                  </div>
+                {% endif %}
+                <button type="button" class="like-btn" data-post-id="{{ post.post_id }}" data-liked="{{ 'true' if post.liked_by_me else 'false' }}">
+                  <span class="like-count">{{ post.like_count }}</span>♥
+                </button>
+            </div>
+            {% else %}
+            <p style="color: #666; padding: 20px 0;">まだ投稿がありません。</p>
+            {% endfor %}
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <script src="{{ url_for('static', filename='js/profile.js') }}"></script>
+  {% include 'footer.html' %}
+</body>
+</html>

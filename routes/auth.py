@@ -252,3 +252,64 @@ def init_db():
 def close_db(error):
     if hasattr(g, 'sqlite_db'):
         g.sqlite_db.close()
+ # 他人のプロフィール画面表示
+@auth.route('/profile/<int:user_id>')
+def view_other_profile(user_id):
+    if 'user_id' not in session:
+        return redirect('/login')
+
+    if session['user_id'] == user_id:
+        return redirect('/profile')
+
+    db = get_db()
+    
+    user = db.execute(
+        'SELECT user_id, name, email, grade, department, introduction, icon_path FROM users WHERE user_id = ?',
+        (user_id,)
+    ).fetchone()
+
+    if not user:
+        return render_template('404.html'), 404
+
+    user_posts = db.execute(
+        '''
+        SELECT p.*, s.skill_name, c.category_name,
+               (SELECT COUNT(*) FROM likes WHERE post_id = p.post_id) AS like_count
+        FROM posts p
+        JOIN skills s ON p.skill_id = s.skill_id
+        JOIN categories c ON p.category_id = c.category_id
+        WHERE p.user_id = ?
+        ORDER BY p.post_date DESC
+        ''',
+        (user_id,)
+    ).fetchall()
+
+    reviews = db.execute(
+        '''
+        SELECT r.*, u.name AS reviewer_name, u.icon_path AS reviewer_icon
+        FROM reviews r
+        JOIN users u ON r.reviewer_id = u.user_id
+        WHERE r.reviewee_id = ?
+        ORDER BY r.created_at DESC
+        ''',
+        (user_id,)
+    ).fetchall()
+
+    avg_rating_val = db.execute(
+        'SELECT AVG(rating) FROM reviews WHERE reviewee_id = ?',
+        (user_id,)
+    ).fetchone()[0] or 0
+
+    review_stats = {
+        'avg_rating': round(avg_rating_val, 1),
+        'count': len(reviews)
+    }
+
+    return render_template(
+        'other_profile.html',
+        user=user,
+        posts=user_posts,
+        reviews=reviews,
+        review_stats=review_stats,
+        avg_rating=round(avg_rating_val, 1)
+    )

@@ -124,6 +124,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('modalBody').textContent = data.body || '';
                 document.getElementById('modalLikes').textContent = data.likes || '0';
 
+                //ユーザーアイコン・名前のリンク先を動的にセット
+                const userProfileUrl = '/profile/${data.userId}';
+                const modalUserLink = document.getElementById('modalUserLink');
+                if (modalUserLink) {
+                    modalUserLink.href = '/profile/' + data.userId;
+                }
+
                 // バッジ状態の反映
                 const modalType = document.getElementById('modalType');
                 modalType.textContent = data.type || '';

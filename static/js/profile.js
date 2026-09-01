@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const headerAvatarInitial = document.getElementById('headerAvatarInitial');
 
   function openFilePicker() {
-    avatarInput.click();
+    if (avatarInput) avatarInput.click();
   }
 
   if (avatarCamBtn) avatarCamBtn.addEventListener('click', openFilePicker);
@@ -211,13 +211,11 @@ document.addEventListener('DOMContentLoaded', () => {
       formData.append('grade', document.getElementById('grade')?.value || '');
       formData.append('department', document.getElementById('department')?.value || '');
 
-      // ★Flask側（routes/posts.py）の受け取り名 'bio' に合わせる
       formData.append('bio', bioInput ? bioInput.value : '');
 
       formData.append('teachSkills', JSON.stringify(teachSkillsDisplay));
       formData.append('learnSkills', JSON.stringify(learnSkillsDisplay));
 
-      // ★Flask側（routes/posts.py）の受け取り名 'avatar' に合わせる
       if (avatarInput && avatarInput.files[0]) {
         formData.append('avatar', avatarInput.files[0]);
       }
@@ -282,9 +280,10 @@ document.addEventListener('DOMContentLoaded', () => {
   /* ---------------------------------------
      6. アニメーション & いいねボタン
   --------------------------------------- */
+  // タイトルの転がる回転アニメーション
   const title = document.getElementById('profileTitle');
   if (title) {
-    const text = title.textContent;
+    const text = title.textContent.trim();
     title.textContent = '';
     [...text].forEach((char, i) => {
       const span = document.createElement('span');
@@ -295,28 +294,33 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // 「いいね」ボタンの非同期処理
   document.querySelectorAll('.like-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
       const postId = btn.dataset.postId;
-      const response = await fetch('/posts/likes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: `post_id=${postId}`
-      });
-      if (response.ok) {
-        const result = await response.json();
-        const countSpan = btn.querySelector('.like-count');
-        if (countSpan) {
-          let count = parseInt(countSpan.textContent) || 0;
-          if (result.liked) {
-            count += 1;
-            btn.dataset.liked = 'true';
-          } else {
-            count -= 1;
-            btn.dataset.liked = 'false';
+      try {
+        const response = await fetch('/posts/likes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: `post_id=${postId}`
+        });
+        if (response.ok) {
+          const result = await response.json();
+          const countSpan = btn.querySelector('.like-count');
+          if (countSpan) {
+            let count = parseInt(countSpan.textContent) || 0;
+            if (result.liked) {
+              count += 1;
+              btn.dataset.liked = 'true';
+            } else {
+              count -= 1;
+              btn.dataset.liked = 'false';
+            }
+            countSpan.textContent = count;
           }
-          countSpan.textContent = count;
         }
+      } catch (err) {
+        console.error('いいね処理に失敗しました:', err);
       }
     });
   });
