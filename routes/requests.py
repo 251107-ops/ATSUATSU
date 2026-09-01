@@ -297,5 +297,4 @@ def complete_request(request_id):
     """, (req['receiver_id'], request_id))
     db.commit()
 
-    # レビュー機能がまだ無いので、いったん一覧に戻す
-    return redirect(url_for('.list_requests'))
+    return redirect(url_for('reviews_bp.new_review', request_id=request_id))

@@ -132,7 +132,7 @@
                     if (!content) return '';
                     const strContent = String(content).trim();
         
-                    if (strContent.startsWith('[IMG]') and strContent.endswith('[/IMG]')) {
+                    if (strContent.startsWith('[IMG]') && strContent.endsWith('[/IMG]')) {
                         const imgUrl = strContent.slice(5, -6);
                         return `<img src="${imgUrl}" class="chat-img" onclick="window.open('${imgUrl}', '_blank')" alt="添付画像">`;
                     }

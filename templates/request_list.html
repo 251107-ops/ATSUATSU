@@ -56,14 +56,17 @@
 
                         <div class="request-actions">
                             {% if req.status == 'pending' %}
-                            <form action="{{ url_for('requests_bp.accept_request', request_id=req.request_id) }}" method="POST">                                    <button type="submit" class="btn">承認</button>
-                                </form>
-                                <form action="{{ url_for('requests_bp.decline_request', request_id=req.request_id) }}" method="POST">
-                                    <button type="submit" class="btn btn-outline">拒否</button>
-                                </form>
-                            {% elif req.status == 'completed' %}
-                                <a href="{{ url_for('reviews_bp.new_review', request_id=req.request_id) }}" class="btn">評価する</a>
-                            {% endif %}
+                            <form action="{{ url_for('requests_bp.accept_request', request_id=req.request_id) }}" method="POST">
+                                <button type="submit" class="btn">承認</button>
+                            </form>
+                            <form action="{{ url_for('requests_bp.decline_request', request_id=req.request_id) }}" method="POST">
+                                <button type="submit" class="btn btn-outline">拒否</button>
+                            </form>
+                        {% elif req.status == 'accepted' %}
+                            <a href="{{ url_for('chat.chat_room', room_id=req.room_id) }}" class="btn">チャットへ</a>
+                        {% elif req.status == 'completed' %}
+                            <a href="{{ url_for('reviews_bp.new_review', request_id=req.request_id) }}" class="btn">評価する</a>
+                        {% endif %}
                         </div>
                     </div>
                 {% endfor %}
@@ -100,8 +103,12 @@
                         </div>
 
                         <div class="request-actions">
-                            <!-- 対応中のアクションボタンは不要のため空（必要に応じて別ボタンを追加可能） -->
-                        </div>
+                            {% if req.status == 'accepted' %}
+                            <a href="{{ url_for('chat.chat_room', room_id=req.room_id) }}" class="btn">チャットへ</a>
+                            <form action="{{ url_for('requests_bp.complete_request', request_id=req.request_id) }}" method="POST">
+                                <button type="submit" class="btn btn-outline">チャット終了</button>
+                            </form>
+                        {% endif %}                        </div>
                     </div>
                 {% endfor %}
             </div>
