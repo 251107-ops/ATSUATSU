@@ -326,3 +326,105 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
 });
+/* ---------------------------------------
+     7. 投稿詳細モーダルの開閉処理
+  --------------------------------------- */
+  window.openPostModal = function(cardElem) {
+    const data = cardElem.dataset;
+
+    // モーダル内の要素を取得してデータをセット
+    const userIcon = document.getElementById('modalUserIcon');
+    const userName = document.getElementById('modalUserName');
+    const userMeta = document.getElementById('modalUserMeta');
+    const category = document.getElementById('modalCategory');
+    const skill = document.getElementById('modalSkill');
+    const postType = document.getElementById('modalPostType');
+    const postText = document.getElementById('modalPostText');
+    const imgWrap = document.getElementById('modalImageWrap');
+    const img = document.getElementById('modalImage');
+    const modal = document.getElementById('postModal');
+
+    if (!modal) return;
+
+    if (userIcon) userIcon.src = data.userIcon;
+    if (userName) userName.textContent = data.userName;
+    if (userMeta) userMeta.textContent = data.userMeta;
+    if (category) category.textContent = data.category;
+    if (skill) skill.textContent = data.skill;
+    
+    if (postType) {
+      postType.textContent = data.postType;
+      postType.className = 'badge ' + (data.postType === '教えたい' ? 'teach' : 'learn');
+    }
+
+    if (postText) postText.textContent = data.postText;
+
+    // 画像の表示制御
+    if (imgWrap && img) {
+      if (data.imagePath) {
+        img.src = data.imagePath;
+        imgWrap.style.display = 'block';
+      } else {
+        imgWrap.style.display = 'none';
+      }
+    }
+
+    // モーダルを表示
+    modal.style.display = 'flex';
+  };
+
+  window.closePostModal = function(e) {
+    const modal = document.getElementById('postModal');
+    if (modal) {
+      modal.style.display = 'none';
+    }
+  };
+  /* モーダルを開く関数 */
+window.openPostModal = function(cardElem) {
+  const data = cardElem.dataset;
+
+  const modal = document.getElementById('postModal');
+  const userIcon = document.getElementById('modalUserIcon');
+  const userName = document.getElementById('modalUserName');
+  const userMeta = document.getElementById('modalUserMeta');
+  const category = document.getElementById('modalCategory');
+  const skill = document.getElementById('modalSkill');
+  const postType = document.getElementById('modalPostType');
+  const postText = document.getElementById('modalPostText');
+  const imgWrap = document.getElementById('modalImageWrap');
+  const img = document.getElementById('modalImage');
+
+  if (!modal) return;
+
+  if (userIcon) userIcon.src = data.userIcon || '';
+  if (userName) userName.textContent = data.userName || '';
+  if (userMeta) userMeta.textContent = data.userMeta || '';
+  if (category) category.textContent = data.category || '';
+  if (skill) skill.textContent = data.skill || '';
+  if (postText) postText.textContent = data.postText || '';
+
+  if (postType) {
+    postType.textContent = data.postType;
+    postType.className = 'badge ' + (data.postType === '教えたい' ? 'teach' : 'learn');
+  }
+
+  // 添付画像が存在する場合のみモーダル内に拡大表示
+  if (imgWrap && img) {
+    if (data.imagePath && data.imagePath !== 'None' && data.imagePath !== '') {
+      img.src = data.imagePath;
+      imgWrap.style.display = 'block';
+    } else {
+      imgWrap.style.display = 'none';
+    }
+  }
+
+  modal.style.display = 'flex';
+};
+
+/* モーダルを閉じる関数 */
+window.closePostModal = function() {
+  const modal = document.getElementById('postModal');
+  if (modal) {
+    modal.style.display = 'none';
+  }
+};

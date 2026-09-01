@@ -588,3 +588,147 @@ body {
   from { opacity: 0; }
   to { opacity: 1; }
 }
+
+/* ==========================================
+   投稿カード & アイコンの個別スタイル調整
+   ========================================== */
+
+/* 1. ユーザーアイコン（丸型・サイズ44px固定） */
+.card-top img {
+    width: 44px !important;
+    height: 44px !important;
+    max-width: 44px !important;
+    max-height: 44px !important;
+    border-radius: 50% !important;
+    object-fit: cover !important;
+    flex-shrink: 0 !important;
+}
+
+/* 2. 投稿カードのヘッダー（ユーザー情報）を横並びに固定 */
+.card-top {
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+    margin-bottom: 12px !important;
+}
+
+/* 名前と学科・学年の上下配置 */
+.card-top div {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+}
+
+/* ユーザー名 */
+.card-top .name {
+    font-weight: bold !important;
+    font-size: 0.95rem !important;
+    color: #333 !important;
+    line-height: 1.2 !important;
+}
+
+/* 学科・学年 */
+.card-top .meta {
+    font-size: 0.75rem !important;
+    color: #777 !important;
+    margin-top: 2px !important;
+}
+
+/* 3. 投稿本文の「画像のみ」をリサイズ（アバターには影響させない） */
+.card .post-image {
+    width: 100% !important;
+    margin-top: 10px !important;
+    overflow: hidden !important;
+}
+
+.card .post-image img {
+    width: 100% !important;
+    height: auto !important;
+    max-height: 200px !important;
+    object-fit: cover !important;
+    border-radius: 8px !important;
+    display: block !important;
+}
+/* top.css などの影響を完全に断ち切る強力な画像サイズ修正 */
+.cards .card img.avatar-img,
+.cards .card .card-top img {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+    max-width: 44px !important;
+    max-height: 44px !important;
+    border-radius: 50% !important;
+    object-fit: cover !important;
+    flex-shrink: 0 !important;
+    margin: 0 !important;
+}
+
+/* 投稿画像以外の直接配下 img も縮小 */
+.cards .card > img:not(.post-image img) {
+    max-width: 100% !important;
+    max-height: 200px !important;
+    width: auto !important;
+    height: auto !important;
+    border-radius: 8px !important;
+    object-fit: cover !important;
+}
+
+/* 投稿本文画像のコンテナ指定 */
+.cards .card .post-image img {
+    width: 100% !important;
+    max-height: 200px !important;
+    object-fit: cover !important;
+    border-radius: 8px !important;
+}
+/* 普段のカード内画像サムネイル */
+.card .post-image {
+    width: 100%;
+    margin-top: 12px;
+    max-height: 160px;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #f1f5f9;
+}
+
+.card .post-image img {
+    width: 100%;
+    height: 160px;
+    object-fit: cover; /* 枠に合わせて綺麗にトリミング */
+    display: block;
+}
+
+.card {
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* モーダル表示時の拡大画像 */
+#modalImageWrap {
+    width: 100%;
+    max-height: 400px;
+    margin-top: 16px;
+    overflow: hidden;
+    border-radius: 12px;
+}
+
+#modalImage {
+    width: 100%;
+    height: auto;
+    max-height: 400px;
+    object-fit: contain; /* モーダル内では全体を表示 */
+}
+/* 添付画像ありバッジのスタイル */
+.badge--image {
+    background-color: #f1f5f9 !important;
+    color: #475569 !important;
+    border: 1px solid #cbd5e1 !important;
+    font-size: 11px !important;
+    padding: 3px 8px !important;
+    border-radius: 6px !important;
+}

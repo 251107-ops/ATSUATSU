@@ -89,7 +89,7 @@
                      {% if user and user.introduction %}
                           {{ user.introduction }}
                      {% else %}
-                         <span class="bio-empty">まだ自己紹介が登録されていません。プロフィール編集から追加してみましょう。</span>
+                          <span class="bio-empty">まだ自己紹介が登録されていません。プロフィール編集から追加してみましょう。</span>
                      {% endif %}
                 </div>
            </div>
@@ -105,7 +105,7 @@
               <span class="no-tags-notice">登録されていません</span>
             {% endfor %}
           </div>
-          <label>学びたいスキル</label>
+          <label style="margin-top: 16px;">学びたいスキル</label>
           <div class="tag-list">
             {% for skill in skills_learn %}
               <span class="tag tag--learn">{{ skill.skill_name }}</span>
@@ -120,38 +120,143 @@
         <h2>自分の投稿</h2>
         <div class="cards">
             {% for post in my_posts %}
-            <div class="card">
+            <div class="card" style="cursor: pointer;" onclick="openPostModal(this)"
+                 data-post-id="{{ post.post_id }}"
+                 data-user-id="{{ user.user_id if user else '' }}"
+                 data-name="{{ user.name if user else '' }}"
+                 data-meta="{{ user.department if user else '' }} {{ user.grade if user else '' }}年"
+                 data-icon="{{ url_for('static', filename=user.icon_path) if user and user.icon_path else url_for('static', filename='img/default-avatar.png') }}"
+                 data-category="{{ post.category_name }}"
+                 data-skill="{{ post.skill_name }}"
+                 data-type="{{ post.post_type }}"
+                 data-body="{{ post.post_text }}"
+                 data-likes="{{ post.like_count }}"
+                 data-image="{{ url_for('static', filename=post.image_path) if post.image_path else '' }}">
+                
                 <div class="card-top">
-                    {% if user and user.icon_path %}
-                        <img src="{{ url_for('static', filename=user.icon_path) }}" alt="">
-                    {% else %}
-                        <img src="{{ url_for('static', filename='img/default-avatar.png') }}" alt="">
-                    {% endif %}
+                    <a href="/profile" class="user-icon-link" title="{{ user.name }}さんのプロフィールを見る" onclick="event.stopPropagation();">
+                        <img src="{{ url_for('static', filename=user.icon_path) if user and user.icon_path else url_for('static', filename='img/default-avatar.png') }}" alt="アバター" class="user-icon-img">
+                    </a>
                     <div>
-                        <span class="name">{{ user.name if user else '' }}</span>
-                        <span class="meta">{{ user.department if user else '' }} {{ user.grade if user else '' }}</span>
+                        <a href="/profile" class="name-link" title="{{ user.name }}さんのプロフィールを見る" onclick="event.stopPropagation();">
+                            <span class="name">{{ user.name if user else '' }}</span>
+                        </a>
+                        <span class="meta">{{ user.department if user else '' }} {{ user.grade if user else '' }}年</span>
                     </div>
                 </div>
+
                 <div class="tags">
                     <span class="tag">{{ post.category_name }}</span>
                     <span class="tag">{{ post.skill_name }}</span>
                     <span class="badge {{ 'teach' if post.post_type == '教えたい' else 'learn' }}">{{ post.post_type }}</span>
+                    
+                    {% if post.image_path %}
+                    <span class="badge-attachment">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
+                        </svg>
+                        添付画像あり
+                    </span>
+                    {% endif %}
                 </div>
+
                 <p class="body">{{ post.post_text }}</p>
-                <button type="button" class="like-btn" data-post-id="{{ post.post_id }}" data-liked="{{ 'true' if post.liked_by_me else 'false' }}">
+
+                <button type="button" class="like-btn" onclick="event.stopPropagation();" data-post-id="{{ post.post_id }}" data-liked="{{ 'true' if post.liked_by_me else 'false' }}">
                   <span class="like-count">{{ post.like_count }}</span>♥
-              </button>
+                </button>
             </div>
+            {% else %}
+            <p style="color: #666; padding: 20px 0;">まだ投稿がありません。</p>
             {% endfor %}
         </div>
-      </div>
       </div>
 
     </div>
 
   </div>
 
-  <script src="{{ url_for('static', filename='js/profile.js') }}"></script>
+  <div id="cardModal" class="modal-overlay">
+      <div class="modal-content">
+          <button type="button" class="modal-close" id="modalClose" onclick="closeModal()">&times;</button>
+          
+          <div class="modal-header">
+              <a id="modalUserLink" href="#" class="modal-user-link" title="プロフィールを見る" style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 12px;">
+                  <img id="modalIcon" src="" alt="ユーザーアイコン" class="modal-user-icon" style="width: 48px; height: 48px;">
+                  <div>
+                      <div id="modalName" style="font-weight: bold;"></div>
+                      <div id="modalMeta" style="font-size: 12px; color: #666;"></div>
+                  </div>
+              </a>
+          </div>
+
+          <div class="modal-tags">
+              <div class="modal-tag-row">
+                  <div id="modalCategory" class="modal-tag-item"></div>
+                  <span id="modalType" class="badge"></span>
+              </div>
+              <div class="modal-tag-row">
+                  <div id="modalSkill" class="modal-tag-item"></div>
+              </div>
+          </div>
+
+          <div class="modal-body-box">
+              <p id="modalBody"></p>
+          </div>
+
+          <div id="modalAttachmentArea" class="modal-attachment-container" style="display: none; margin-top: 12px;">
+              <img id="modalPreviewImg" src="" alt="添付画像" style="max-width: 100%; height: auto; border-radius: 8px; border: 1px solid #e2e8f0; display: block;">
+          </div>
+
+          <div class="modal-action" style="margin-top: 20px;">
+              <button class="btn btn--disabled" disabled style="width: 100%; padding: 12px; background-color: #a0aec0; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: not-allowed;">自分の投稿です</button>
+          </div>
+
+          <div class="modal-footer">
+              <span id="modalLikes" class="modal-like-count">0</span> ♥
+          </div>
+      </div>
+  </div>
+
+  <script>
+      function openPostModal(cardEl) {
+          const ds = cardEl.dataset;
+          document.getElementById('modalIcon').src = ds.icon;
+          document.getElementById('modalName').textContent = ds.name;
+          document.getElementById('modalMeta').textContent = ds.meta;
+          document.getElementById('modalCategory').textContent = ds.category;
+          document.getElementById('modalSkill').textContent = ds.skill;
+          
+          const typeBadge = document.getElementById('modalType');
+          typeBadge.textContent = ds.type;
+          typeBadge.className = 'badge ' + (ds.type === '教えたい' ? 'teach' : 'learn');
+
+          document.getElementById('modalBody').textContent = ds.body;
+          document.getElementById('modalLikes').textContent = ds.likes;
+          document.getElementById('modalUserLink').href = '/profile';
+
+          const imgArea = document.getElementById('modalAttachmentArea');
+          const previewImg = document.getElementById('modalPreviewImg');
+          if (ds.image) {
+              previewImg.src = ds.image;
+              imgArea.style.display = 'block';
+          } else {
+              imgArea.style.display = 'none';
+          }
+
+          document.getElementById('cardModal').classList.add('active');
+          document.getElementById('cardModal').style.display = 'flex';
+      }
+
+      function closeModal() {
+          document.getElementById('cardModal').classList.remove('active');
+          document.getElementById('cardModal').style.display = 'none';
+      }
+
+      document.getElementById('cardModal').addEventListener('click', (e) => {
+          if (e.target.id === 'cardModal') closeModal();
+      });
+  </script>
   {% include 'footer.html' %}
 </body>
 </html>

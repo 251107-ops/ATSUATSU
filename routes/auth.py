@@ -263,6 +263,7 @@ def view_other_profile(user_id):
 
     db = get_db()
     
+    # 1. ユーザー基本情報の取得
     user = db.execute(
         'SELECT user_id, name, email, grade, department, introduction, icon_path FROM users WHERE user_id = ?',
         (user_id,)
@@ -271,19 +272,44 @@ def view_other_profile(user_id):
     if not user:
         return render_template('404.html'), 404
 
+    # 2. 教えたいスキルの取得 (HTMLに合わせて skills_teach に指定)
+    skills_teach = db.execute(
+        '''
+        SELECT DISTINCT s.skill_name
+        FROM posts p
+        JOIN skills s ON p.skill_id = s.skill_id
+        WHERE p.user_id = ? AND p.post_type = '教えたい'
+        ''',
+        (user_id,)
+    ).fetchall()
+
+    # 3. 学びたいスキルの取得 (HTMLに合わせて skills_learn に指定)
+    skills_learn = db.execute(
+        '''
+        SELECT DISTINCT s.skill_name
+        FROM posts p
+        JOIN skills s ON p.skill_id = s.skill_id
+        WHERE p.user_id = ? AND p.post_type = '学びたい'
+        ''',
+        (user_id,)
+    ).fetchall()
+
+    # 4. 投稿一覧の取得
     user_posts = db.execute(
         '''
         SELECT p.*, s.skill_name, c.category_name,
-               (SELECT COUNT(*) FROM likes WHERE post_id = p.post_id) AS like_count
+               (SELECT COUNT(*) FROM likes WHERE post_id = p.post_id) AS like_count,
+               EXISTS(SELECT 1 FROM likes WHERE post_id = p.post_id AND user_id = ?) AS liked_by_me
         FROM posts p
         JOIN skills s ON p.skill_id = s.skill_id
         JOIN categories c ON p.category_id = c.category_id
         WHERE p.user_id = ?
         ORDER BY p.post_date DESC
         ''',
-        (user_id,)
+        (session['user_id'], user_id)
     ).fetchall()
 
+    # 5. レビュー情報の取得
     reviews = db.execute(
         '''
         SELECT r.*, u.name AS reviewer_name, u.icon_path AS reviewer_icon
@@ -302,14 +328,15 @@ def view_other_profile(user_id):
 
     review_stats = {
         'avg_rating': round(avg_rating_val, 1),
-        'count': len(reviews)
+        'review_count': len(reviews)
     }
 
     return render_template(
         'other_profile.html',
         user=user,
-        posts=user_posts,
+        skills_teach=skills_teach,
+        skills_learn=skills_learn,
+        user_posts=user_posts,
         reviews=reviews,
-        review_stats=review_stats,
-        avg_rating=round(avg_rating_val, 1)
+        review_stats=review_stats
     )
