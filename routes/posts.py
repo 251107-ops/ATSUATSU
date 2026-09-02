@@ -2,7 +2,7 @@ import os
 import json  
 import uuid
 from datetime import datetime
-from flask import Blueprint, render_template, redirect, session, request, jsonify
+from flask import Blueprint, render_template, redirect, session, request, jsonify, flash
 from werkzeug.utils import secure_filename
 from routes.auth import get_db
 
@@ -47,7 +47,6 @@ def fetch_posts(db, category_id="", post_type="", search_query="", sort_type="ne
     else:
         order_by = "ORDER BY posts.post_date DESC"
 
-    # 💡 SELECT文に users.user_id を追加
     query = f"""
         SELECT
             users.name,
@@ -86,7 +85,7 @@ def fetch_posts(db, category_id="", post_type="", search_query="", sort_type="ne
             'like_count': row[9] if row[9] else 0,
             'liked_by_me': bool(row[10]),
             'image_path': row[11],
-            'user_id': row[12]  # 💡 投稿者の user_id を追加
+            'user_id': row[12]
         })
 
     return posts_list
@@ -262,10 +261,18 @@ def profile():
                     if skill_row:
                         skill_id = skill_row[0]
                         skill_category_id = skill_row[1]
-                        db.execute(
-                            "INSERT INTO posts (user_id, skill_id, post_type, post_text, post_date, category_id) VALUES (?, ?, ?, ?, ?, ?)",
-                            (user_id, skill_id, post_type, '', datetime.now().strftime('%Y-%m-%d %H:%M:%S'), skill_category_id)
-                        )
+                        
+                        # 💡 同一スキル・タイプの既存投稿がないかダブルチェック
+                        check_exist = db.execute(
+                            "SELECT 1 FROM posts WHERE user_id = ? AND skill_id = ? AND post_type = ?",
+                            (user_id, skill_id, post_type)
+                        ).fetchone()
+                        
+                        if not check_exist:
+                            db.execute(
+                                "INSERT INTO posts (user_id, skill_id, post_type, post_text, post_date, category_id) VALUES (?, ?, ?, ?, ?, ?)",
+                                (user_id, skill_id, post_type, '', datetime.now().strftime('%Y-%m-%d %H:%M:%S'), skill_category_id)
+                            )
 
             for name_, skill_id in current_names.items():
                 if name_ not in skill_names:
@@ -425,6 +432,8 @@ def create_post():
     if 'user_email' not in session:
         return redirect('/login')
 
+    user_id = session.get('user_id')
+
     if request.method == 'POST':
         post_type = request.form.get('post_type') or request.form.get('type', '')
         category_id = request.form.get('category_id') or request.form.get('category', '')
@@ -434,7 +443,15 @@ def create_post():
         if not skill_id or not post_type or not post_text or not category_id:
             return f"すべてのフィールドを入力してください。(type:{post_type}, cat:{category_id}, skill:{skill_id}, text:{post_text})", 400
 
-        user_id = session.get('user_id')
+        # 💡 【追加】同じユーザーが同じスキル・タイプで既に投稿していないかチェック
+        existing_post = db.execute("""
+            SELECT post_id FROM posts 
+            WHERE user_id = ? AND skill_id = ? AND post_type = ?
+        """, (int(user_id), int(skill_id), post_type)).fetchone()
+
+        if existing_post:
+            flash("このスキルに関する投稿はすでに作成されています。（1つのスキルにつき1つまで）")
+            return redirect('/posts')
 
         image_path = None
         post_file = request.files.get('post_image')
@@ -510,7 +527,6 @@ def search_posts():
     search_query = request.args.get('query', '')
 
     if search_query:
-        # 💡 SELECT文に users.user_id を追加
         rows = db.execute("""
             SELECT
                 users.name, users.department, users.grade, users.icon_path,
@@ -546,7 +562,7 @@ def search_posts():
                 'like_count': row[9] if row[9] else 0,
                 'liked_by_me': bool(row[10]),
                 'image_path': row[11],
-                'user_id': row[12]  # 💡 user_id を追加
+                'user_id': row[12]
             })
         return render_template('top.html', posts=posts_list, active_tab='all', search_query=search_query)
 
@@ -594,7 +610,6 @@ def get_like():
         return redirect('/login')
 
     db = get_db()
-    # 💡 SELECT文に users.user_id を追加
     rows = db.execute("""
         SELECT
             users.name, users.department, users.grade, users.icon_path,
@@ -630,12 +645,11 @@ def get_like():
             'like_count': row[9] if row[9] else 0,
             'liked_by_me': bool(row[10]),
             'image_path': row[11],
-            'user_id': row[12]  # 💡 user_id を追加
+            'user_id': row[12]
         })
     return render_template('like_page.html', posts=posts_list)
 
 
-# --- 💡 他のユーザーのプロフィール画面 ---
 @posts.route("/users/<int:user_id>")
 def other_profile(user_id):
     if 'user_email' not in session:
@@ -643,13 +657,11 @@ def other_profile(user_id):
 
     my_user_id = session.get('user_id')
 
-    # 自分自身のページを開こうとした場合は自分のプロフィールにリダイレクト
     if user_id == my_user_id:
         return redirect('/profile')
 
     db = get_db()
 
-    # 相手のユーザー情報
     row = db.execute(
         "SELECT user_id, name, email, department, grade, introduction, icon_path FROM users WHERE user_id = ?",
         (user_id,)
@@ -668,7 +680,6 @@ def other_profile(user_id):
         'icon_path': row[6] if row[6] else 'test.png'
     }
 
-    # 「教えたい」スキル一覧
     teach_rows = db.execute("""
         SELECT DISTINCT skills.skill_id, skills.skill_name 
         FROM posts
@@ -677,7 +688,6 @@ def other_profile(user_id):
     """, (user_id,)).fetchall()
     skills_teach = [{'skill_id': r[0], 'skill_name': r[1]} for r in teach_rows]
 
-    # 「学びたい」スキル一覧
     learn_rows = db.execute("""
         SELECT DISTINCT skills.skill_id, skills.skill_name 
         FROM posts
@@ -686,13 +696,11 @@ def other_profile(user_id):
     """, (user_id,)).fetchall()
     skills_learn = [{'skill_id': r[0], 'skill_name': r[1]} for r in learn_rows]
 
-    # レビュー評価
     review_stats = db.execute("""
         SELECT AVG(rating) AS avg_rating, COUNT(*) AS review_count
         FROM reviews WHERE reviewee_id = ?
     """, (user_id,)).fetchone()
 
-    # 相手の投稿一覧
     user_posts_rows = db.execute("""
         SELECT
             categories.category_name,

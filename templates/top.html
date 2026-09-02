@@ -9,7 +9,7 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/footer.css') }}">
 
-<!-- 💡 アイコンのホバー演出用CSS（必要に応じて top.css へ移動しても構いません） -->
+<!-- 💡 アイコンのホバー演出用CSS -->
 <style>
   /* アイコン・名前のインタラクティブ演出 */
   .user-icon-link, .modal-user-link {
@@ -37,7 +37,7 @@
   .user-icon-link:hover .user-icon-img,
   .modal-user-link:hover .modal-user-icon {
     transform: scale(1.08);
-    border-color: #4f46e5; /* テーマカラーの青/紫系 */
+    border-color: #4f46e5;
     box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
     opacity: 0.9;
   }
@@ -77,7 +77,7 @@
         if (flashEl) {
           const msg = flashEl.dataset.message;
           if (msg) {
-            alert(msg); // フォーム送信後のレスポンスとして来たメッセージのみ1度だけ表示
+            alert(msg);
           }
         }
       });
@@ -90,43 +90,55 @@
             <p class="hero-sub">学内のスキルをシェアして、お互いに高め合えるコミュニティ</p>
         </section>
 
+        <!-- 💡 検索・詳細フィルターエリア（全体を1つのformで包んで送信できるように修正） -->
         <section class="search-area">
-            <form action="/posts/search" method="GET" class="search-form">
-                <input type="text" name="query" placeholder="スキル名・学科・学年で検索">
-                <button type="submit" class="btn-primary">検索</button>
-            </form>
-            <div class="filters">
-                <select name="category" onchange="this.form.submit()">
-                    <option value="">詳細検索</option>
-                    {% for category in categories %}
-                        <option value="{{ category.category_id if category.category_id is defined else category[0] }}"
-                            {{ 'selected' if selected_category|string == (category.category_id if category.category_id is defined else category[0])|string }}>
-                            {{ category.category_name if category.category_name is defined else category[1] }}
-                        </option>
-                    {% endfor %}
-                </select>
-                <a href="/" class="filter-btn {% if active_tab == 'all' %}active{% endif %}">すべて</a>
-                <a href="/top/teach" class="filter-btn {% if active_tab == 'teach' %}active{% endif %}">教えたい</a>
-                <a href="/top/learn" class="filter-btn {% if active_tab == 'learn' %}active{% endif %}">学びたい</a>
-                <select name="department" onchange="updateFilter('department', this.value)">
-                    <option value="" {% if not selected_department %}selected{% endif %}>学科：すべて</option>
-                    {% for department in departments %}
-                    <option value="{{ department[0] }}" {% if selected_department|string == department[0]|string %}selected{% endif %}>
-                        {{ department[0] }}
-                    </option>
-                    {% endfor %}
-                </select>
-                <select name="grade" onchange="updateFilter('grade', this.value)">
-                        <option value="" {% if not selected_grade %}selected{% endif %}>
-                            学年：すべて
-                        </option>
+            <form action="" method="GET" class="search-form-container">
+                <!-- フリーワード検索 -->
+                <div class="search-form">
+                    <input type="text" name="query" value="{{ request.args.get('query', '') }}" placeholder="スキル名・学科・学年で検索">
+                    <button type="submit" class="btn-primary">検索</button>
+                </div>
+
+                <!-- 詳細フィルター -->
+                <div class="filters">
+                    <!-- カテゴリー絞り込み -->
+                    <select name="category" onchange="this.form.submit()">
+                        <option value="">カテゴリー：すべて</option>
+                        {% for category in categories %}
+                            {% set cat_id = category.category_id if category.category_id is defined else category[0] %}
+                            {% set cat_name = category.category_name if category.category_name is defined else category[1] %}
+                            <option value="{{ cat_id }}" {{ 'selected' if request.args.get('category')|string == cat_id|string or selected_category|string == cat_id|string }}>
+                                {{ cat_name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+
+                    <!-- タブ切替 -->
+                    <a href="/" class="filter-btn {% if active_tab == 'all' or not active_tab %}active{% endif %}">すべて</a>
+                    <a href="/top/teach" class="filter-btn {% if active_tab == 'teach' %}active{% endif %}">教えたい</a>
+                    <a href="/top/learn" class="filter-btn {% if active_tab == 'learn' %}active{% endif %}">学びたい</a>
+
+                    <!-- 学科絞り込み -->
+                    <select name="department" onchange="this.form.submit()">
+                        <option value="">学科：すべて</option>
+                        {% for department in departments %}
+                            <option value="{{ department[0] }}" {{ 'selected' if request.args.get('department')|string == department[0]|string or selected_department|string == department[0]|string }}>
+                                {{ department[0] }}
+                            </option>
+                        {% endfor %}
+                    </select>
+
+                    <!-- 学年絞り込み -->
+                    <select name="grade" onchange="this.form.submit()">
+                        <option value="">学年：すべて</option>
                         {% for grade in grades %}
-                            <option value="{{ grade[0] }}" {% if selected_grade|string == grade[0]|string %}selected{% endif %}>
+                            <option value="{{ grade[0] }}" {{ 'selected' if request.args.get('grade')|string == grade[0]|string or selected_grade|string == grade[0]|string }}>
                                 {{ grade[0] }}
                             </option>
                         {% endfor %}
-                </select>
-            </div>
+                    </select>
+                </div>
+            </form>
         </section>
 
         <section class="skills-section">
@@ -153,7 +165,6 @@
                      data-likes="{{ post.like_count }}"
                      data-image="{{ url_for('static', filename=post.image_path) if post.image_path else '' }}">
                     
-                    <!-- 💡 アイコンと名前をクリック可能に修正 -->
                     <div class="card-top">
                         <a href="/profile/{{ post.user_id }}" class="user-icon-link" title="{{ post.name }}さんのプロフィールを見る" onclick="event.stopPropagation();">
                             <img src="{{ url_for('static', filename=post.icon_path) }}" alt="{{ post.name }}のアイコン" class="user-icon-img">
@@ -200,7 +211,6 @@
         <div class="modal-content">
             <button type="button" class="modal-close" id="modalClose">&times;</button>
             
-            <!-- 💡 モーダル内のユーザーエリア（ホバークラス適用） -->
             <div class="modal-header">
                 <a id="modalUserLink" href="#" class="modal-user-link" title="プロフィールを見る" style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 12px;">
                     <img id="modalIcon" src="" alt="ユーザーアイコン" class="modal-user-icon" style="width: 48px; height: 48px;">
@@ -225,7 +235,6 @@
                 <p id="modalBody"></p>
             </div>
 
-            <!-- モーダル内の画像表示エリア -->
             <div id="modalAttachmentArea" class="modal-attachment-container" style="display: none; margin-top: 12px;">
                 <img id="modalPreviewImg" src="" alt="添付画像" style="max-width: 100%; height: auto; border-radius: 8px; border: 1px solid #e2e8f0; display: block;">
             </div>
