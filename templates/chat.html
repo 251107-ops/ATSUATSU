@@ -78,6 +78,7 @@
                                     </form>
                                 {% endif %}
                             {% elif req_row.status == 'completed' %}
+
                                 <span class="badge-session-done">セッション完了</span>
                             {% endif %}
                         </div>
@@ -107,7 +108,6 @@
                     {% endfor %}
                 </div>
                 
-                <div class="chat-footer">
                     {% if is_reviewed %}
                     <div class="chat-footer">
                         <p style="text-align:center; color:var(--text-sub,#7f8c8d); width:100%; margin:0;">
@@ -122,7 +122,7 @@
                         <button class="btn-send" id="send-btn">送信</button>
                     </div>
                 {% endif %}
-                </div>
+                
             {% else %}
                 <!-- ルーム未選択時 -->
                 <div class="no-chat-selected">
