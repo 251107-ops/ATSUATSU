@@ -70,10 +70,10 @@ def list_reviews():
     db = get_db()
 
     reviews = db.execute("""
-        SELECT rv.comment, rv.created_at, s.skill_name
+        SELECT rv.comment, rv.created_at, s.skill_name, p.post_type
         FROM reviews rv
-        JOIN requests r ON rv.request_id = r.request_id
-        JOIN posts p ON r.post_id = p.post_id
+        JOIN requests req ON rv.request_id = req.request_id
+        JOIN posts p ON req.post_id = p.post_id
         JOIN skills s ON p.skill_id = s.skill_id
         WHERE rv.reviewee_id = ?
         ORDER BY rv.created_at DESC

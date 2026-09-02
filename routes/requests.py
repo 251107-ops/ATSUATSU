@@ -285,31 +285,22 @@ def complete_request(request_id):
     if not req:
         return "リクエストが見つかりません", 404
 
-    if user_id not in (req['requester_id'], req['receiver_id']):
-        return "この操作を行う権限がありません", 403
-
-
+    if user_id == req['requester_id']:
+        my_col = 'requester_completed'
+        partner_id = req['receiver_id']
+    elif user_id == req['receiver_id']:
+        my_col = 'receiver_completed'
+        partner_id = req['requester_id']
+    else:
+        return "このセッションの当事者ではありません", 403
 
     if req['status'] != 'accepted':
-        return redirect(url_for('.list_requests'))
-    
-        # 自分がどちら側かでカラムを決定
-    if user_id == req['requester_id']:
-        db.execute(
-            "UPDATE requests SET requester_completed = 1, updated_at = datetime('now','localtime') WHERE request_id = ?",
-            (request_id,)
-        )
-        partner_id = req['receiver_id']
-    else:
-        db.execute(
-            "UPDATE requests SET receiver_completed = 1, updated_at = datetime('now','localtime') WHERE request_id = ?",
-            (request_id,)
-        )
-        partner_id = req['requester_id']
+        return redirect(url_for('chat.chat_room', room_id=req['room_id']))
+
+    db.execute(f"UPDATE requests SET {my_col} = 1, updated_at = datetime('now','localtime') WHERE request_id = ?",
+               (request_id,))
     db.commit()
 
-
-    # 最新状態を取り直して両者揃ったか確認
     updated = db.execute("SELECT * FROM requests WHERE request_id = ?", (request_id,)).fetchone()
 
     if updated['requester_completed'] == 1 and updated['receiver_completed'] == 1:
@@ -322,8 +313,17 @@ def complete_request(request_id):
             "INSERT INTO notifications (user_id, type, related_id) VALUES (?, 'session_completed', ?)",
             (req['receiver_id'], request_id)
         )
+        db.execute(
+            "INSERT INTO notifications (user_id, type, related_id) VALUES (?, 'awaiting_review', ?)",
+            (req['requester_id'], request_id))
+
         db.commit()
-        return redirect(url_for('reviews_bp.new_review', request_id=request_id))
+
+        # requesterが最後に押した場合だけ評価画面へ、receiverならリクエスト一覧へ
+        if user_id == req['requester_id']:
+            return redirect(url_for('reviews_bp.new_review', request_id=request_id))
+        else:
+            return redirect(url_for('.list_requests'))
     else:
         # まだ片方だけ → 相手に「あなたも押してください」通知
         db.execute(
