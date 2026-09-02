@@ -192,10 +192,15 @@ body {
 /* ---------------------------------------------------------------------
    チャットヘッダー・メッセージ・入力エリア
    --------------------------------------------------------------------- */
-.chat-header {
+   .chat-header {
     padding: 18px 24px;
     border-bottom: 1px solid var(--border-color, #e2e8f0);
     background-color: var(--card-bg, #ffffff);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
 }
 
 .chat-header h2 {
@@ -469,7 +474,10 @@ body {
     margin-bottom: 4px;
 }
 
-.chat-session-action { margin-top: 10px; }
+.chat-session-action {
+    margin-top: 0;
+    flex-shrink: 0;
+}
 .btn.is-disabled { pointer-events: none; opacity: 0.55; cursor: not-allowed; }
 .msg-locked-notice {
     width: 100%;

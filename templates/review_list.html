@@ -29,7 +29,7 @@
                     <div class="request-card">
                         <div class="request-info">
                             <p class="request-title">
-                                {% if r.skill_name %}<span class="tag">{{ r.skill_name }}</span>{% endif %}
+                                <span class="badge badge-accepted">{{ r.skill_name }}</span>
                                 {{ r.comment if r.comment else '（コメントなし）' }}
                             </p>
                             <p class="request-meta">{{ r.created_at }}</p>

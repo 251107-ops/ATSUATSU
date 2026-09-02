@@ -109,6 +109,7 @@ def upload_image():
 # 1. チャットハブへのルーティング
 # =====================================================================
 @chat.route('/chat', methods=['GET', 'POST'])
+@chat.route('/chat', methods=['GET', 'POST'])
 def chat_hub():
     user_id = session.get('user_id')
     if not user_id:
@@ -150,14 +151,16 @@ def chat_hub():
             'skill_name': row['skill_name'] if row['skill_name'] else '',
         })
 
-    # chat.html へ必要なデータを全て渡して描画
+    # ルーム未選択状態なので room / chats / req_row は空のまま渡す
     return render_template(
         'chat.html',
         name=name,
         chat_rooms=chat_rooms,
         room=None,
         chats=[],
-        user_id=user_id
+        user_id=user_id,
+        req_row=None,
+        is_reviewed=False,
     )
 
 
@@ -249,12 +252,14 @@ def chat_room(room_id):
     req_row = db.execute(
         """
         SELECT request_id, status, requester_id, receiver_id,
-               requester_completed, receiver_completed
+            requester_completed, receiver_completed
         FROM requests
         WHERE room_id = ? AND (requester_id = ? OR receiver_id = ?)
         """,
         (room_id, user_id, user_id)
     ).fetchone()
+
+    is_reviewed = bool(req_row and req_row['status'] != 'accepted')
 
     return render_template(
         'chat.html',
@@ -263,7 +268,8 @@ def chat_room(room_id):
         chats=history,
         user_id=user_id,
         req_row=req_row,
-        chat_rooms=chat_rooms,  # ← テンプレートへ渡す
+        chat_rooms=chat_rooms,
+        is_reviewed=is_reviewed,
     )
 
 # =====================================================================
@@ -550,8 +556,9 @@ def init_chat_events(socketio):
             req_status = db.execute(
                 "SELECT status FROM requests WHERE room_id = ?", (room,)
             ).fetchone()
-            if req_status and req_status['status'] == 'completed':
-                print(f'[WS TEXT REJECTED] room {room} は終了済みのため送信できません。')
+
+            if req_status and req_status['status'] != 'accepted':
+                print(f'[WS TEXT REJECTED] room {room} はセッション終了/評価済みのため送信できません。')
                 return False
 
             user_row = db.execute(
