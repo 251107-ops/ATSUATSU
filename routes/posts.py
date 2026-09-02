@@ -8,9 +8,9 @@ from routes.auth import get_db
 
 posts = Blueprint('posts', __name__)
 
-# 添付画像の保存フォルダと許可する拡張子設定
+# 添付ファイル（画像・PDF）の保存フォルダと許可する拡張子設定
 UPLOAD_FOLDER = os.path.join('static', 'uploads')
-ALLOWED_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.gif', '.webp'}
+ALLOWED_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.gif', '.webp', '.pdf'}
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 
@@ -262,7 +262,7 @@ def profile():
                         skill_id = skill_row[0]
                         skill_category_id = skill_row[1]
                         
-                        # 💡 同一スキル・タイプの既存投稿がないかダブルチェック
+                        # 同一スキル・タイプの既存投稿がないかダブルチェック
                         check_exist = db.execute(
                             "SELECT 1 FROM posts WHERE user_id = ? AND skill_id = ? AND post_type = ?",
                             (user_id, skill_id, post_type)
@@ -288,7 +288,8 @@ def profile():
         avatar_file = request.files.get('avatar') or request.files.get('icon')
         if avatar_file and avatar_file.filename:
             ext = os.path.splitext(avatar_file.filename)[1].lower()
-            if ext not in ALLOWED_EXTENSIONS:
+            # プロフィールアイコンは画像のみ許容（PDF除外）
+            if ext not in {'.png', '.jpg', '.jpeg', '.gif', '.webp'}:
                 return jsonify({'message': '対応していない画像形式です'}), 400
 
             filename = secure_filename(f"user_{user_id}{ext}")
@@ -443,7 +444,7 @@ def create_post():
         if not skill_id or not post_type or not post_text or not category_id:
             return f"すべてのフィールドを入力してください。(type:{post_type}, cat:{category_id}, skill:{skill_id}, text:{post_text})", 400
 
-        # 💡 【追加】同じユーザーが同じスキル・タイプで既に投稿していないかチェック
+        # 同じユーザーが同じスキル・タイプで既に投稿していないかチェック
         existing_post = db.execute("""
             SELECT post_id FROM posts 
             WHERE user_id = ? AND skill_id = ? AND post_type = ?
@@ -453,6 +454,7 @@ def create_post():
             flash("このスキルに関する投稿はすでに作成されています。（1つのスキルにつき1つまで）")
             return redirect('/posts')
 
+        # 💡 画像・PDFファイルのアップロード処理
         image_path = None
         post_file = request.files.get('post_image')
         if post_file and post_file.filename != '':
@@ -462,6 +464,9 @@ def create_post():
                 save_path = os.path.join(UPLOAD_FOLDER, filename)
                 post_file.save(save_path)
                 image_path = f"uploads/{filename}"
+            else:
+                flash("許可されていないファイル形式です（PNG, JPEG, PDFのみ対応）。")
+                return redirect('/posts')
 
         if user_id:
             post_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
