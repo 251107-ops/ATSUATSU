@@ -237,27 +237,41 @@ def chat_room(room_id):
     ).fetchall()
 
     chat_rooms = []
+    target_user_name = None  # ヘッダー用の相手の名前
+
     for row in chat_rooms_rows:
+        token_str = str(row['room_token'])
         chat_rooms.append({
-            'room_token': str(row['room_token']),
+            'room_token': token_str,
             'user_name': row['user_name'],
             'icon_path': row['icon_path'],
             'skill_name': row['skill_name'] if row['skill_name'] else '',
         })
+        # 現在開いているルームの相手の名前を保持
+        if token_str == str(room_id):
+            target_user_name = row['user_name']
 
+    # ★ 修正ポイント: room_id の型キャスト対応 ＆ SQLの条件調整
+    # room_id が文字列か数値かどちらでも対応できるように CAST して比較します
     req_row = db.execute(
         """
         SELECT request_id, status, requester_id, receiver_id,
                requester_completed, receiver_completed
         FROM requests
-        WHERE room_id = ? AND (requester_id = ? OR receiver_id = ?)
+        WHERE CAST(room_id AS TEXT) = CAST(? AS TEXT)
+          AND (requester_id = ? OR receiver_id = ?)
         """,
         (room_id, user_id, user_id),
     ).fetchone()
 
+    # dict化して確実にJinja2でプロパティ参照できるように対応
+    if req_row:
+        req_row = dict(req_row)
+
     return render_template(
         'chat.html',
         name=name,
+        target_user_name=target_user_name, # 追加：相手の名前
         room=room_id,
         chats=history,
         user_id=user_id,
@@ -685,3 +699,22 @@ def leave_room_action(room_id):
 
     # 削除後は他のチャット画面（または一覧インデックス）へリダイレクト
     return redirect(url_for('chat.chat_index'))
+
+
+# =====================================================================
+# HTTP送信時のフォールバック処理（必要に応じて使用）
+# =====================================================================
+@chat.route('/chat/send', methods=['POST'])
+def send_message():
+    db = get_db()
+    room_id = request.form.get('room_id')
+    message_text = request.form.get('message')
+
+    # ルームの状態を確認
+    room = db.execute("SELECT status FROM requests WHERE room_id = ?", (room_id,)).fetchone()
+
+    # チャットが終了している場合は送信を拒否
+    if room and room['status'] == 'completed':
+        return jsonify({'error': 'このチャットは既に終了しています'}), 400
+
+    return jsonify({'status': 'ok'})

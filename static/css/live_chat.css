@@ -496,3 +496,13 @@ body {
     background-color: var(--bg-color, #f2f5f9);
     border-radius: 12px;
 }
+.chat-closed-message {
+    width: 100%;
+    padding: 12px;
+    background-color: #f1f5f9;
+    color: #64748b;
+    text-align: center;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
