@@ -32,7 +32,8 @@
             name="password"
             placeholder="パスワード">
 
-        <a href="#" class="forgot">パスワードを忘れましたか？</a>
+        <!-- 💡 hrefのリンク先を変更しました -->
+        <a href="{{ url_for('auth.forgot_password') }}" class="forgot">パスワードを忘れましたか？</a>
 
         <input
             type="submit"

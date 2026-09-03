@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ワンタイムパスワードの確認</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+</head>
+<body>
+<div class="login-box" style="text-align: center;">
+    <h2>ワンタイムパスワード</h2>
+    <p style="font-size: 0.9em; color: #666; margin-bottom: 20px;">
+        以下の6桁の認証コードを控え、次の画面で入力してください。
+    </p>
+
+    <!-- 大きくコードを表示 -->
+    <div style="background-color: #f4f4f4; border: 2px dashed #007bff; padding: 20px; border-radius: 8px; margin-bottom: 25px;">
+        <span style="font-size: 2.5em; font-weight: bold; letter-spacing: 8px; color: #007bff;">
+            {{ otp_code }}
+        </span>
+    </div>
+
+    <!-- 入力画面に進むボタン -->
+    <form action="{{ url_for('auth.enter_code') }}" method="POST">
+        <input type="hidden" name="email" value="{{ email }}">
+        <input type="submit" value="コード入力画面へ進む" class="login-btn">
+    </form>
+</div>
+</body>
+</html>
