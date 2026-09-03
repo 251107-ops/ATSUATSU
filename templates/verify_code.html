@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>認証コード入力</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+</head>
+<body>
+<div class="login-box">
+    <h2>認証コード入力</h2>
+    <p style="font-size: 0.85em; color: #666; margin-bottom: 15px;">発行された6桁の認証コードを入力してください。</p>
+
+    {% if error_message %}
+        <p class="error" style="color: red; font-size: 0.9em;">{{ error_message }}</p>
+    {% endif %}
+
+    <form action="{{ url_for('auth.verify_code') }}" method="POST">
+        <input type="hidden" name="email" value="{{ email }}">
+
+        <label>6桁の認証コード</label>
+        <input type="text" name="code" placeholder="123456" maxlength="6" required style="letter-spacing: 6px; font-size: 1.3em; text-align: center;">
+
+        <input type="submit" value="認証して次へ" class="login-btn" style="margin-top: 15px;">
+    </form>
+</div>
+</body>
+</html>

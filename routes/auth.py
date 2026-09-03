@@ -1,5 +1,8 @@
 import os
+import random
 import sqlite3
+import uuid
+from datetime import datetime, timedelta
 from argon2 import PasswordHasher
 from argon2.exceptions import InvalidHashError, VerifyMismatchError
 from flask import Blueprint, g, redirect, render_template, request, session, url_for
@@ -488,3 +491,108 @@ def view_other_profile(user_id):
         reviews=reviews,
         review_stats=review_stats
     )
+
+
+# ==========================================
+# パスワード再設定フロー (4ステップ構造)
+# ==========================================
+
+# 1. メールアドレス入力 ＆ 6桁コード生成
+@auth.route('/forgot-password', methods=['GET', 'POST'])
+def forgot_password():
+    error_message = ''
+
+    if request.method == 'POST':
+        email = request.form.get('email', '').strip()
+        db = get_db()
+
+        user = db.execute(
+            'SELECT user_id FROM users WHERE email = ?', (email,)
+        ).fetchone()
+
+        if user:
+            # 6桁の数字コード（ワンタイムパス）を生成（例: 482910）
+            otp_code = f"{random.randint(0, 999999):06d}"
+            # 有効期限（10分間）
+            expiration = datetime.now() + timedelta(minutes=10)
+
+            db.execute(
+                'UPDATE users SET reset_token = ?, token_expiration = ? WHERE email = ?',
+                (otp_code, expiration, email)
+            )
+            db.commit()
+
+            # コード表示専用画面 (show_code.html) へ遷移
+            return render_template('show_code.html', email=email, otp_code=otp_code)
+        else:
+            error_message = '指定されたメールアドレスのアカウントは見つかりませんでした。'
+
+    return render_template('forgot_password.html', error_message=error_message)
+
+
+# 2. ワンタイムパスワード入力画面の表示
+@auth.route('/enter-code', methods=['POST'])
+def enter_code():
+    email = request.form.get('email', '').strip()
+    return render_template('verify_code.html', email=email)
+
+
+# 3. ワンタイムパスワードの検証処理
+@auth.route('/verify-code', methods=['POST'])
+def verify_code():
+    email = request.form.get('email', '').strip()
+    code = request.form.get('code', '').strip()
+
+    db = get_db()
+    user = db.execute(
+        'SELECT user_id, token_expiration FROM users WHERE email = ? AND reset_token = ?',
+        (email, code)
+    ).fetchone()
+
+    if not user:
+        return render_template(
+            'verify_code.html',
+            email=email,
+            error_message='認証コードが正しくないか、メールアドレスが一致しません。'
+        )
+
+    # 有効期限の検証
+    expiration = user['token_expiration']
+    if isinstance(expiration, str):
+        expiration = datetime.strptime(expiration.split('.')[0], '%Y-%m-%d %H:%M:%S')
+
+    if datetime.now() > expiration:
+        return render_template(
+            'verify_code.html',
+            email=email,
+            error_message='認証コードの有効期限（10分）が切れています。最初からやり直してください。'
+        )
+
+    # ⭕ 認証成功：パスワード再設定画面 (reset_password.html) へ移動
+    return render_template('reset_password.html', user_id=user['user_id'])
+
+
+# 4. 新しいパスワードの更新処理
+@auth.route('/reset-password', methods=['POST'])
+def reset_password():
+    user_id = request.form.get('user_id', '')
+    new_password = request.form.get('password', '')
+    password_confirm = request.form.get('password_confirm', '')
+
+    if not new_password.strip():
+        return render_template('reset_password.html', user_id=user_id, error_message='新しいパスワードを入力してください。')
+
+    if new_password != password_confirm:
+        return render_template('reset_password.html', user_id=user_id, error_message='パスワードが一致しません。')
+
+    db = get_db()
+    new_pass_hash = ph.hash(new_password)
+
+    # パスワード更新 ＆ トークン初期化
+    db.execute(
+        'UPDATE users SET password = ?, reset_token = NULL, token_expiration = NULL WHERE user_id = ?',
+        (new_pass_hash, user_id)
+    )
+    db.commit()
+
+    return redirect('/login')

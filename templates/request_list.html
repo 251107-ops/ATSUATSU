@@ -45,6 +45,8 @@
                             {% elif req.status == 'accepted' %}
                                 <span class="badge badge-accepted">対応中</span>
                             {% elif req.status == 'completed' %}
+                                <span class="badge badge-completed">評価待ち</span> 
+                            {% elif req.status == 'completed' %}
                                 <span class="badge badge-completed">セッション完了</span>
                             {% elif req.status == 'reviewed' %}
                                 <span class="badge badge-reviewed">評価済み</span>
