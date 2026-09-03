@@ -17,22 +17,24 @@
         <input type="hidden" id="currentUserId" value="{{ session.get('user_id', '') }}">
 
         <!-- top.html 内のメッセージ表示部 -->
-{% with messages = get_flashed_messages() %}
-  {% if messages %}
-    <div id="flashData" data-message="{{ messages[0] }}"></div>
-    <script>
-      document.addEventListener('DOMContentLoaded', () => {
-        const flashEl = document.getElementById('flashData');
-        if (flashEl) {
-          const msg = flashEl.dataset.message;
-          if (msg) {
-            alert(msg); // フォーム送信後のレスポンスとして来たメッセージのみ1度だけ表示
-          }
-        }
-      });
-    </script>
-  {% endif %}
-{% endwith %}
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+          <div id="flashData" data-message="{{ messages[0] }}"></div>
+          <script>
+            document.addEventListener('DOMContentLoaded', () => {
+              const flashEl = document.getElementById('flashData');
+              if (flashEl) {
+                const msg = flashEl.dataset.message;
+                if (msg) {
+                  alert(msg);
+                }
+              }
+            });
+          </script>
+        {% endif %}
+      {% endwith %}
+
+      <div id="topBanner" class="top-banner"></div>
 
         <section class="hero">
             <h1 id="heroTitle" class="hero-title">教えあい、学びあい、成長しよう</h1>

@@ -469,3 +469,37 @@ a {
     font-weight: bold;
     margin-right: 4px;
 }
+
+/* ==========================================
+   トップページ バナー通知
+   ========================================== */
+   .top-banner {
+    display: none;
+    max-width: 1200px;
+    box-sizing: border-box;
+    margin: 24px auto 0;
+    padding: 14px 24px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: bold;
+    text-align: center;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+}
+
+.top-banner.show {
+    display: block;
+    opacity: 1;
+}
+
+.top-banner.success {
+    background-color: #e8f5e9;
+    color: #2e7d32;
+    border: 1px solid #c8e6c9;
+}
+
+.top-banner.error {
+    background-color: #fdeaea;
+    color: #c0392b;
+    border: 1px solid #f5c6cb;
+}
