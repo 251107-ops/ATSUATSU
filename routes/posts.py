@@ -1,11 +1,17 @@
 import os
 import json  
+import uuid
 from datetime import datetime
-from flask import Blueprint, render_template, redirect, session, request, jsonify
+from flask import Blueprint, render_template, redirect, session, request, jsonify, flash
 from werkzeug.utils import secure_filename
 from routes.auth import get_db
 
 posts = Blueprint('posts', __name__)
+
+# 添付ファイル（画像・PDF）の保存フォルダと許可する拡張子設定
+UPLOAD_FOLDER = os.path.join('static', 'uploads')
+ALLOWED_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.gif', '.webp', '.pdf'}
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 
 def fetch_posts(db, category_id="", post_type="", search_query="", sort_type="new", grade="", department="", user_id=None):
@@ -51,7 +57,9 @@ def fetch_posts(db, category_id="", post_type="", search_query="", sort_type="ne
             skills.skill_name,
             posts.post_type, posts.post_text, posts.post_id,
             (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.post_id) AS like_count,
-            (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.post_id AND likes.user_id = ?) AS liked_by_me
+            (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.post_id AND likes.user_id = ?) AS liked_by_me,
+            posts.image_path,
+            users.user_id
         FROM posts
         LEFT JOIN users ON posts.user_id = users.user_id
         LEFT JOIN skills ON posts.skill_id = skills.skill_id
@@ -75,7 +83,9 @@ def fetch_posts(db, category_id="", post_type="", search_query="", sort_type="ne
             'post_text': row[7],
             'post_id': row[8],
             'like_count': row[9] if row[9] else 0,
-            'liked_by_me': bool(row[10])
+            'liked_by_me': bool(row[10]),
+            'image_path': row[11],
+            'user_id': row[12]
         })
 
     return posts_list
@@ -251,10 +261,18 @@ def profile():
                     if skill_row:
                         skill_id = skill_row[0]
                         skill_category_id = skill_row[1]
-                        db.execute(
-                            "INSERT INTO posts (user_id, skill_id, post_type, post_text, post_date, category_id) VALUES (?, ?, ?, ?, ?, ?)",
-                            (user_id, skill_id, post_type, '', datetime.now().strftime('%Y-%m-%d %H:%M:%S'), skill_category_id)
-                        )
+                        
+                        # 同一スキル・タイプの既存投稿がないかダブルチェック
+                        check_exist = db.execute(
+                            "SELECT 1 FROM posts WHERE user_id = ? AND skill_id = ? AND post_type = ?",
+                            (user_id, skill_id, post_type)
+                        ).fetchone()
+                        
+                        if not check_exist:
+                            db.execute(
+                                "INSERT INTO posts (user_id, skill_id, post_type, post_text, post_date, category_id) VALUES (?, ?, ?, ?, ?, ?)",
+                                (user_id, skill_id, post_type, '', datetime.now().strftime('%Y-%m-%d %H:%M:%S'), skill_category_id)
+                            )
 
             for name_, skill_id in current_names.items():
                 if name_ not in skill_names:
@@ -269,15 +287,13 @@ def profile():
         icon_path = None
         avatar_file = request.files.get('avatar') or request.files.get('icon')
         if avatar_file and avatar_file.filename:
-            allowed_ext = {'.png', '.jpg', '.jpeg', '.gif'}
             ext = os.path.splitext(avatar_file.filename)[1].lower()
-            if ext not in allowed_ext:
+            # プロフィールアイコンは画像のみ許容（PDF除外）
+            if ext not in {'.png', '.jpg', '.jpeg', '.gif', '.webp'}:
                 return jsonify({'message': '対応していない画像形式です'}), 400
 
             filename = secure_filename(f"user_{user_id}{ext}")
-            upload_dir = os.path.join('static', 'uploads')
-            os.makedirs(upload_dir, exist_ok=True)
-            save_path = os.path.join(upload_dir, filename)
+            save_path = os.path.join(UPLOAD_FOLDER, filename)
             avatar_file.save(save_path)
 
             icon_path = f"uploads/{filename}"
@@ -343,7 +359,8 @@ def profile():
             skills.skill_name,
             posts.post_type, posts.post_text, posts.post_id,
             (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.post_id) AS like_count,
-            (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.post_id AND likes.user_id = ?) AS liked_by_me
+            (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.post_id AND likes.user_id = ?) AS liked_by_me,
+            posts.image_path
         FROM posts
         LEFT JOIN skills ON posts.skill_id = skills.skill_id
         LEFT JOIN categories ON posts.category_id = categories.category_id
@@ -360,7 +377,8 @@ def profile():
             'post_text': row[3],
             'post_id': row[4],
             'like_count': row[5] if row[5] else 0,
-            'liked_by_me': bool(row[6])
+            'liked_by_me': bool(row[6]),
+            'image_path': row[7]
         })
 
     return render_template('profile.html', user=user, skills_teach=skills_teach, skills_learn=skills_learn, my_posts=my_posts, review_stats=review_stats)
@@ -415,6 +433,8 @@ def create_post():
     if 'user_email' not in session:
         return redirect('/login')
 
+    user_id = session.get('user_id')
+
     if request.method == 'POST':
         post_type = request.form.get('post_type') or request.form.get('type', '')
         category_id = request.form.get('category_id') or request.form.get('category', '')
@@ -424,20 +444,41 @@ def create_post():
         if not skill_id or not post_type or not post_text or not category_id:
             return f"すべてのフィールドを入力してください。(type:{post_type}, cat:{category_id}, skill:{skill_id}, text:{post_text})", 400
 
-        user_id = session.get('user_id')
+        # 同じユーザーが同じスキル・タイプで既に投稿していないかチェック
+        existing_post = db.execute("""
+            SELECT post_id FROM posts 
+            WHERE user_id = ? AND skill_id = ? AND post_type = ?
+        """, (int(user_id), int(skill_id), post_type)).fetchone()
+
+        if existing_post:
+            flash("このスキルに関する投稿はすでに作成されています。（1つのスキルにつき1つまで）")
+            return redirect('/posts')
+
+        # 💡 画像・PDFファイルのアップロード処理
+        image_path = None
+        post_file = request.files.get('post_image')
+        if post_file and post_file.filename != '':
+            ext = os.path.splitext(post_file.filename)[1].lower()
+            if ext in ALLOWED_EXTENSIONS:
+                filename = secure_filename(f"post_{uuid.uuid4().hex}{ext}")
+                save_path = os.path.join(UPLOAD_FOLDER, filename)
+                post_file.save(save_path)
+                image_path = f"uploads/{filename}"
+            else:
+                flash("許可されていないファイル形式です（PNG, JPEG, PDFのみ対応）。")
+                return redirect('/posts')
 
         if user_id:
             post_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             db.execute(
-                "INSERT INTO posts (user_id, skill_id, post_type, post_text, post_date, category_id) VALUES (?, ?, ?, ?, ?, ?)",
-                (int(user_id), int(skill_id), post_type, post_text, post_date, int(category_id))
+                "INSERT INTO posts (user_id, skill_id, post_type, post_text, image_path, post_date, category_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (int(user_id), int(skill_id), post_type, post_text, image_path, post_date, int(category_id))
             )
             db.commit()
             return redirect('/')
 
     preset_type = request.args.get('type', '')
 
-    # カテゴリ一覧の取得と整形
     raw_categories = db.execute("SELECT category_id, category_name FROM categories ORDER BY category_id").fetchall()
     categories = []
     seen_cat_names = set()
@@ -456,7 +497,6 @@ def create_post():
                 'category_name': c_name
             })
 
-    # スキル一覧の取得と整形
     raw_skills = db.execute("SELECT skill_id, skill_name, category_id FROM skills ORDER BY skill_id").fetchall()
     skills = []
     seen_skills = set()
@@ -499,7 +539,9 @@ def search_posts():
                 skills.skill_name,
                 posts.post_type, posts.post_text, posts.post_id,
                 (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.post_id) AS like_count,
-                (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.post_id AND likes.user_id = ?) AS liked_by_me
+                (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.post_id AND likes.user_id = ?) AS liked_by_me,
+                posts.image_path,
+                users.user_id
             FROM posts
             LEFT JOIN users ON posts.user_id = users.user_id
             LEFT JOIN skills ON posts.skill_id = skills.skill_id
@@ -523,7 +565,9 @@ def search_posts():
                 'post_text': row[7],
                 'post_id': row[8],
                 'like_count': row[9] if row[9] else 0,
-                'liked_by_me': bool(row[10])
+                'liked_by_me': bool(row[10]),
+                'image_path': row[11],
+                'user_id': row[12]
             })
         return render_template('top.html', posts=posts_list, active_tab='all', search_query=search_query)
 
@@ -535,7 +579,12 @@ def like_post():
     if 'user_email' not in session:
         return jsonify({'error': 'unauthorized'}), 401
 
-    post_id = request.form.get('post_id')
+    if request.is_json:
+        data = request.get_json()
+        post_id = data.get('post_id') if data else None
+    else:
+        post_id = request.form.get('post_id')
+
     user_id = session.get('user_id')
     if not post_id or not user_id:
         return jsonify({'error': 'invalid request'}), 400
@@ -553,7 +602,7 @@ def like_post():
         liked = True
 
     db.commit()
-    return jsonify({'liked': liked})
+    return jsonify({'liked': liked, 'post_id': post_id})
 
 
 @posts.route("/likes/page", methods=["GET"])
@@ -573,7 +622,9 @@ def get_like():
             skills.skill_name,
             posts.post_type, posts.post_text, posts.post_id,
             (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.post_id) AS like_count,
-            (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.post_id AND likes.user_id = ?) AS liked_by_me
+            (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.post_id AND likes.user_id = ?) AS liked_by_me,
+            posts.image_path,
+            users.user_id
         FROM posts
         LEFT JOIN users ON posts.user_id = users.user_id
         LEFT JOIN skills ON posts.skill_id = skills.skill_id
@@ -583,6 +634,7 @@ def get_like():
         )
         ORDER BY posts.post_date DESC
     """, (user_id, user_id)).fetchall()
+
     posts_list = []
     for row in rows:
         posts_list.append({
@@ -596,6 +648,97 @@ def get_like():
             'post_text': row[7],
             'post_id': row[8],
             'like_count': row[9] if row[9] else 0,
-            'liked_by_me': bool(row[10])
+            'liked_by_me': bool(row[10]),
+            'image_path': row[11],
+            'user_id': row[12]
         })
     return render_template('like_page.html', posts=posts_list)
+
+
+@posts.route("/users/<int:user_id>")
+def other_profile(user_id):
+    if 'user_email' not in session:
+        return redirect('/login')
+
+    my_user_id = session.get('user_id')
+
+    if user_id == my_user_id:
+        return redirect('/profile')
+
+    db = get_db()
+
+    row = db.execute(
+        "SELECT user_id, name, email, department, grade, introduction, icon_path FROM users WHERE user_id = ?",
+        (user_id,)
+    ).fetchone()
+
+    if not row:
+        return "指定されたユーザーは見つかりません", 404
+
+    user = {
+        'user_id': row[0],
+        'name': row[1],
+        'email': row[2],
+        'department': row[3],
+        'grade': row[4],
+        'introduction': row[5],
+        'icon_path': row[6] if row[6] else 'test.png'
+    }
+
+    teach_rows = db.execute("""
+        SELECT DISTINCT skills.skill_id, skills.skill_name 
+        FROM posts
+        JOIN skills ON posts.skill_id = skills.skill_id
+        WHERE posts.user_id = ? AND posts.post_type = '教えたい'
+    """, (user_id,)).fetchall()
+    skills_teach = [{'skill_id': r[0], 'skill_name': r[1]} for r in teach_rows]
+
+    learn_rows = db.execute("""
+        SELECT DISTINCT skills.skill_id, skills.skill_name 
+        FROM posts
+        JOIN skills ON posts.skill_id = skills.skill_id
+        WHERE posts.user_id = ? AND posts.post_type = '学びたい'
+    """, (user_id,)).fetchall()
+    skills_learn = [{'skill_id': r[0], 'skill_name': r[1]} for r in learn_rows]
+
+    review_stats = db.execute("""
+        SELECT AVG(rating) AS avg_rating, COUNT(*) AS review_count
+        FROM reviews WHERE reviewee_id = ?
+    """, (user_id,)).fetchone()
+
+    user_posts_rows = db.execute("""
+        SELECT
+            categories.category_name,
+            skills.skill_name,
+            posts.post_type, posts.post_text, posts.post_id,
+            (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.post_id) AS like_count,
+            (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.post_id AND likes.user_id = ?) AS liked_by_me,
+            posts.image_path
+        FROM posts
+        LEFT JOIN skills ON posts.skill_id = skills.skill_id
+        LEFT JOIN categories ON posts.category_id = categories.category_id
+        WHERE posts.user_id = ?
+        ORDER BY posts.post_date DESC
+    """, (my_user_id, user_id)).fetchall()
+
+    user_posts = []
+    for r in user_posts_rows:
+        user_posts.append({
+            'category_name': r[0] if r[0] else '未設定',
+            'skill_name': r[1] if r[1] else '未設定',
+            'post_type': r[2],
+            'post_text': r[3],
+            'post_id': r[4],
+            'like_count': r[5] if r[5] else 0,
+            'liked_by_me': bool(r[6]),
+            'image_path': r[7]
+        })
+
+    return render_template(
+        'other_profile.html',
+        user=user,
+        skills_teach=skills_teach,
+        skills_learn=skills_learn,
+        user_posts=user_posts,
+        review_stats=review_stats
+    )

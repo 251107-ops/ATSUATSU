@@ -176,3 +176,74 @@ a {
     border-radius: 16px;
     border: 1px dashed var(--border-color);
 }
+/* ホーム画面の「添付画像あり」バッジと見た目を統一 */
+.badge.has-image-badge {
+  background-color: #e2e8f0; /* グレー系の背景色 */
+  color: #4a5568;            /* 少し濃いめの文字色 */
+  border-radius: 12px;       /* 角丸デザイン */
+  padding: 3px 8px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+/* ---- ホーム画面(top.css)と完全に見た目を一致させる修正 ---- */
+
+/* カード内のタグコンテナ */
+.cards .card .tags {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  gap: 6px !important;
+  margin-bottom: 12px !important;
+}
+
+/* タグ共通 */
+.cards .card .tag {
+  display: inline-flex !important;
+  align-items: center !important;
+  padding: 4px 10px !important;
+  border-radius: 6px !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  background-color: #eef2ff !important;
+  color: #4f46e5 !important;
+  white-space: nowrap !important;
+}
+
+/* 教えたい / 学びたい バッジ */
+.cards .card .badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  padding: 4px 10px !important;
+  border-radius: 6px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  white-space: nowrap !important;
+}
+
+.cards .card .badge.teach {
+  background-color: #dcfce7 !important;
+  color: #15803d !important;
+}
+
+.cards .card .badge.learn {
+  background-color: #fef3c7 !important;
+  color: #b45309 !important;
+}
+
+/* 添付画像ありバッジ（ホーム画面と完全同色・同サイズ） */
+.cards .card .badge.badge--image,
+.cards .card .badge-image {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 3px !important;
+  padding: 4px 8px !important;
+  border-radius: 6px !important;
+  font-size: 11px !important;
+  background-color: #f1f5f9 !important;
+  color: #64748b !important;
+  border: 1px solid #e2e8f0 !important;
+  white-space: nowrap !important;
+}

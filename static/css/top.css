@@ -196,7 +196,7 @@ a {
     flex-direction: column;
     position: relative;
     cursor: pointer;
-    transition: transform 0.3s cubic-bezier(0.25,1,0.5,1), box-shadow 0.2s;
+    transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.2s;
 }
 
 .card:hover {
@@ -209,14 +209,6 @@ a {
     align-items: center;
     gap: 12px;
     margin-bottom: 15px;
-}
-
-.card-top img {
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    object-fit: cover;
-    background-color: #e2e8f0;
 }
 
 .card-top div {
@@ -238,8 +230,9 @@ a {
 
 .tags {
     display: flex;
-    gap: 8px;
+    gap: 6px;
     flex-wrap: wrap;
+    align-items: center;
     margin-bottom: 15px;
 }
 
@@ -269,6 +262,22 @@ a {
     color: var(--tag-learn-text, var(--tag-blue-text));
 }
 
+/* 「ファイルあり」バッジのデザイン */
+.badge-attachment {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background-color: #f1f5f9;
+    color: #64748b;
+    font-size: 0.75rem;
+    font-weight: 500;
+    padding: 3px 8px;
+    border-radius: 4px;
+    cursor: default !important;
+    pointer-events: none;
+    user-select: none;
+}
+
 .card .body {
     font-size: 14px;
     color: var(--text-main);
@@ -296,6 +305,62 @@ a {
 }
 
 /* ==========================================
+   アイコン・ユーザー名のホバー演出
+   ========================================== */
+.user-icon-link, .modal-user-link {
+    display: inline-block;
+    position: relative;
+    border-radius: 50%;
+    transition: all 0.25s ease;
+    cursor: pointer;
+}
+
+.user-icon-img, .modal-user-icon {
+    border-radius: 50%;
+    object-fit: cover;
+    display: block;
+    transition: all 0.25s ease;
+    border: 2px solid transparent;
+    background-color: #e2e8f0;
+}
+
+.user-icon-img {
+    width: 44px;
+    height: 44px;
+}
+
+.modal-user-icon {
+    width: 52px;
+    height: 52px;
+}
+
+/* ホバー時の拡大・発光演出 */
+.user-icon-link:hover .user-icon-img,
+.modal-user-link:hover .modal-user-icon {
+    transform: scale(1.1);
+    border-color: #4f46e5;
+    box-shadow: 0 0 10px rgba(79, 70, 229, 0.3);
+    opacity: 0.9;
+}
+
+/* クリック時の押し込み感 */
+.user-icon-link:active .user-icon-img,
+.modal-user-link:active .modal-user-icon {
+    transform: scale(0.95);
+}
+
+.name-link {
+    text-decoration: none;
+    color: inherit;
+    transition: color 0.2s ease;
+}
+
+.name-link:hover {
+    color: #4f46e5;
+    text-decoration: underline;
+}
+
+/* ==========================================
    スキルカード詳細モーダル
    ========================================== */
 .modal-overlay {
@@ -319,9 +384,11 @@ a {
 .modal-content {
     background: #ffffff;
     width: 90%;
-    max-width: 440px;
+    max-width: 500px;
+    max-height: 85vh;
+    overflow-y: auto;
     border-radius: 24px;
-    padding: 28px 24px 20px;
+    padding: 24px;
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
     border: 1px solid rgba(226, 232, 240, 0.8);
     position: relative;
@@ -360,14 +427,6 @@ a {
     align-items: center;
     gap: 14px;
     margin-bottom: 20px;
-}
-
-.modal-header img {
-    width: 52px;
-    height: 52px;
-    border-radius: 50%;
-    object-fit: cover;
-    background-color: #e2e8f0;
 }
 
 .modal-header-info {
@@ -425,6 +484,23 @@ a {
     line-height: 1.6;
     white-space: pre-wrap;
     word-break: break-word;
+}
+
+#modalAttachmentArea {
+    margin-top: 12px;
+    text-align: center;
+}
+
+#modalPreviewImg {
+    max-width: 100% !important;
+    max-height: 250px !important;
+    width: auto !important;
+    height: auto !important;
+    object-fit: contain;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    display: block;
+    margin: 0 auto;
 }
 
 .modal-action {

@@ -40,6 +40,12 @@ def list_notifications():
             item['message'] = f"{row['receiver_name']}さんが「{row['skill_name']}」への申し込みをお断りしました"
         elif row['type'] == 'session_completed':
             item['message'] = f"{row['requester_name']}さんとの「{row['skill_name']}」のセッションが完了しました"
+        elif row['type'] == 'completion_pending':
+            item['message'] = f"{row['requester_name'] if row['status'] else ''}チャット終了の申請が届いています。あなたも「チャット終了」を押すと完了します"
+        elif row['type'] == 'new_review':
+            item['message'] = f"「{row['skill_name']}」のセッションについて評価が届きました"
+        elif row['type'] == 'awaiting_review':
+            item['message'] = f"「{row['skill_name']}」のセッションが完了しました。評価をお願いします"
         else:
             item['message'] = "通知があります"
         notifications.append(item)

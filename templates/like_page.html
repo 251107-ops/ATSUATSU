@@ -7,27 +7,42 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/variables.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/like_page.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/top.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/footer.css') }}">
 </head>
 <body>
     {% include 'header.html' %}
 
-    <!-- 全体を囲むラップ要素を追加（画面中央寄せ & 幅の制限に必要） -->
     <main class="like-page-wrap">
         
-        <!-- ページタイトルを追加 -->
         <h1 class="like-page-title">
-            お気に入り一覧<span>({{ posts|length }}件)</span>
+            お気に入り一覧<span id="favCount">({{ posts|length }}件)</span>
         </h1>
 
-        <div class="cards">
+        <div class="cards" id="cardsContainer">
             {% for post in posts %}
-            <article class="card">
+            <div class="card" id="card-{{ post.post_id }}" style="cursor: pointer;" onclick="openPostModal(this)"
+                 data-post-id="{{ post.post_id }}"
+                 data-user-id="{{ post.user_id }}"
+                 data-name="{{ post.name }}"
+                 data-meta="{{ post.department }} {{ post.grade }}年"
+                 data-icon="{{ url_for('static', filename=post.icon_path) if post.icon_path else url_for('static', filename='img/default-avatar.png') }}"
+                 data-category="{{ post.category_name }}"
+                 data-skill="{{ post.skill_name }}"
+                 data-type="{{ post.post_type }}"
+                 data-body="{{ post.post_text }}"
+                 data-likes="{{ post.like_count }}"
+                 data-image="{{ url_for('static', filename=post.image_path) if post.image_path else '' }}">
+
                 <div class="card-top">
-                    <img src="{{ url_for('static', filename=post.icon_path) }}" alt="{{ post.name }}のアバター">
+                    <a href="/profile/{{ post.user_id }}" class="user-icon-link" title="{{ post.name }}さんのプロフィールを見る" onclick="event.stopPropagation();">
+                        <img src="{{ url_for('static', filename=post.icon_path) }}" alt="{{ post.name }}のアイコン" class="user-icon-img">
+                    </a>
                     <div>
-                        <span class="name">{{ post.name }}</span>
-                        <span class="meta">{{ post.department }} {{ post.grade }}</span>
+                        <a href="/profile/{{ post.user_id }}" class="name-link" title="{{ post.name }}さんのプロフィールを見る" onclick="event.stopPropagation();">
+                            <span class="name">{{ post.name }}</span>
+                        </a>
+                        <span class="meta">{{ post.department }} {{ post.grade }}年</span>
                     </div>
                 </div>
 
@@ -35,19 +50,45 @@
                     {% if post.category_name %}<span class="tag">{{ post.category_name }}</span>{% endif %}
                     {% if post.skill_name %}<span class="tag">{{ post.skill_name }}</span>{% endif %}
                     <span class="badge {{ 'teach' if post.post_type == '教えたい' else 'learn' }}">{{ post.post_type }}</span>
+
+                    {% if post.image_path %}
+                    <span class="badge-attachment">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
+                        </svg>
+                        添付画像あり
+                    </span>
+                    {% endif %}
                 </div>
 
                 <p class="body">{{ post.post_text }}</p>
 
-                <form action="/posts/likes" method="POST">
-                    <input type="hidden" name="post_id" value="{{ post.post_id }}">
-                    <button type="submit" class="like-btn">
-                        {{ post.like_count }} ♥
-                    </button>
-                </form>
-            </article>
+                <button type="button" class="like-btn" onclick="
+                    event.stopPropagation();
+                    const card = document.getElementById('card-{{ post.post_id }}');
+                    
+                    fetch('/posts/likes', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ post_id: '{{ post.post_id }}' })
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (!data.liked && card) {
+                            card.remove();
+                            const remaining = document.querySelectorAll('#cardsContainer .card').length;
+                            document.getElementById('favCount').textContent = `(${remaining}件)`;
+                            if (remaining === 0) {
+                                document.getElementById('cardsContainer').innerHTML = '<div class=&quot;no-posts&quot;><p>お気に入り登録した投稿はまだありません。</p></div>';
+                            }
+                        }
+                    })
+                    .catch(err => console.error('Error:', err));
+                ">
+                    <span class="like-count">{{ post.like_count }}</span>♥
+                </button>
+            </div>
             {% else %}
-            <!-- 0件のときの表示 -->
             <div class="no-posts">
                 <p>お気に入り登録した投稿はまだありません。</p>
             </div>
@@ -55,6 +96,93 @@
         </div>
 
     </main>
+
+    <!-- モーダル（Homeと完全共通仕様） -->
+    <div id="cardModal" class="modal-overlay">
+        <div class="modal-content">
+            <button type="button" class="modal-close" id="modalClose" onclick="closeModal()">&times;</button>
+            
+            <div class="modal-header">
+                <a id="modalUserLink" href="#" class="modal-user-link" title="プロフィールを見る" style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 12px;">
+                    <img id="modalIcon" src="" alt="ユーザーアイコン" class="modal-user-icon" style="width: 48px; height: 48px;">
+                    <div>
+                        <div id="modalName" style="font-weight: bold;"></div>
+                        <div id="modalMeta" style="font-size: 12px; color: #666;"></div>
+                    </div>
+                </a>
+            </div>
+
+            <div class="modal-tags">
+                <div class="modal-tag-row">
+                    <div id="modalCategory" class="modal-tag-item"></div>
+                    <span id="modalType" class="badge"></span>
+                </div>
+                <div class="modal-tag-row">
+                    <div id="modalSkill" class="modal-tag-item"></div>
+                </div>
+            </div>
+
+            <div class="modal-body-box">
+                <p id="modalBody"></p>
+            </div>
+
+            <div id="modalAttachmentArea" class="modal-attachment-container" style="display: none; margin-top: 12px;">
+                <img id="modalPreviewImg" src="" alt="添付画像" style="max-width: 100%; height: auto; border-radius: 8px; border: 1px solid #e2e8f0; display: block;">
+            </div>
+
+            <form id="requestForm" action="/requests" method="POST" class="modal-action">
+                <input type="hidden" name="post_id" id="modalPostId">
+                <input type="hidden" name="receiver_id" id="modalReceiverId">
+                <button type="submit" id="requestBtn" class="request-btn">この投稿にリクエストを送る</button>
+            </form>
+
+            <div class="modal-footer">
+                <span id="modalLikes" class="modal-like-count">0</span> ♥
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function openPostModal(cardEl) {
+            const ds = cardEl.dataset;
+            document.getElementById('modalIcon').src = ds.icon;
+            document.getElementById('modalName').textContent = ds.name;
+            document.getElementById('modalMeta').textContent = ds.meta;
+            document.getElementById('modalCategory').textContent = ds.category;
+            document.getElementById('modalSkill').textContent = ds.skill;
+            
+            const typeBadge = document.getElementById('modalType');
+            typeBadge.textContent = ds.type;
+            typeBadge.className = 'badge ' + (ds.type === '教えたい' ? 'teach' : 'learn');
+
+            document.getElementById('modalBody').textContent = ds.body;
+            document.getElementById('modalLikes').textContent = ds.likes;
+            document.getElementById('modalUserLink').href = '/profile/' + ds.userId;
+            document.getElementById('modalPostId').value = ds.postId;
+            document.getElementById('modalReceiverId').value = ds.userId;
+
+            const imgArea = document.getElementById('modalAttachmentArea');
+            const previewImg = document.getElementById('modalPreviewImg');
+            if (ds.image) {
+                previewImg.src = ds.image;
+                imgArea.style.display = 'block';
+            } else {
+                imgArea.style.display = 'none';
+            }
+
+            document.getElementById('cardModal').classList.add('active');
+            document.getElementById('cardModal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('cardModal').classList.remove('active');
+            document.getElementById('cardModal').style.display = 'none';
+        }
+
+        document.getElementById('cardModal').addEventListener('click', (e) => {
+            if (e.target.id === 'cardModal') closeModal();
+        });
+    </script>
     {% include 'footer.html' %}
 </body>
 </html>

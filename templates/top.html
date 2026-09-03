@@ -8,15 +8,66 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/variables.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/footer.css') }}">
+
+<!-- 💡 アイコンのホバー演出用CSS -->
+<style>
+  /* アイコン・名前のインタラクティブ演出 */
+  .user-icon-link, .modal-user-link {
+    display: inline-block;
+    border-radius: 50%;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+    cursor: pointer;
+  }
+
+  .user-icon-img, .modal-user-icon {
+    border-radius: 50%;
+    object-fit: cover;
+    display: block;
+    transition: border 0.2s ease;
+    border: 2px solid transparent;
+  }
+
+  /* カード内のアイコンサイズ */
+  .user-icon-img {
+    width: 40px;
+    height: 40px;
+  }
+
+  /* ホバー（マウスを乗せた時）の装飾 */
+  .user-icon-link:hover .user-icon-img,
+  .modal-user-link:hover .modal-user-icon {
+    transform: scale(1.08);
+    border-color: #4f46e5;
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
+    opacity: 0.9;
+  }
+
+  /* クリック時の押し込み感 */
+  .user-icon-link:active, .modal-user-link:active {
+    transform: scale(0.95);
+  }
+
+  /* ユーザー名のリンク演出 */
+  .name-link {
+    text-decoration: none;
+    color: inherit;
+    transition: color 0.2s ease;
+  }
+
+  .name-link:hover {
+    color: #4f46e5;
+    text-decoration: underline;
+  }
+</style>
 </head>
 <body>
     {% include 'header.html' %}
     
     <main>
-        <!-- ★ 追加: ログイン中のユーザーIDを保持（JS判定用） -->
+        <!-- ログイン中のユーザーIDを保持（JS判定用） -->
         <input type="hidden" id="currentUserId" value="{{ session.get('user_id', '') }}">
 
-        <!-- top.html 内のメッセージ表示部 -->
+        <!-- メッセージ表示部 -->
 {% with messages = get_flashed_messages() %}
   {% if messages %}
     <div id="flashData" data-message="{{ messages[0] }}"></div>
@@ -26,7 +77,7 @@
         if (flashEl) {
           const msg = flashEl.dataset.message;
           if (msg) {
-            alert(msg); // フォーム送信後のレスポンスとして来たメッセージのみ1度だけ表示
+            alert(msg);
           }
         }
       });
@@ -39,43 +90,55 @@
             <p class="hero-sub">学内のスキルをシェアして、お互いに高め合えるコミュニティ</p>
         </section>
 
+        <!-- 💡 検索・詳細フィルターエリア（全体を1つのformで包んで送信できるように修正） -->
         <section class="search-area">
-            <form action="/posts/search" method="GET" class="search-form">
-                <input type="text" name="query" placeholder="スキル名・学科・学年で検索">
-                <button type="submit" class="btn-primary">検索</button>
-            </form>
-            <div class="filters">
-                <select name="category" onchange="this.form.submit()">
-                    <option value="">詳細検索</option>
-                    {% for category in categories %}
-                        <option value="{{ category.category_id if category.category_id is defined else category[0] }}"
-                            {{ 'selected' if selected_category|string == (category.category_id if category.category_id is defined else category[0])|string }}>
-                            {{ category.category_name if category.category_name is defined else category[1] }}
-                        </option>
-                    {% endfor %}
-                </select>
-                <a href="/" class="filter-btn {% if active_tab == 'all' %}active{% endif %}">すべて</a>
-                <a href="/top/teach" class="filter-btn {% if active_tab == 'teach' %}active{% endif %}">教えたい</a>
-                <a href="/top/learn" class="filter-btn {% if active_tab == 'learn' %}active{% endif %}">学びたい</a>
-                <select name="department" onchange="updateFilter('department', this.value)">
-                    <option value="" {% if not selected_department %}selected{% endif %}>学科：すべて</option>
-                    {% for department in departments %}
-                    <option value="{{ department[0] }}" {% if selected_department|string == department[0]|string %}selected{% endif %}>
-                        {{ department[0] }}
-                    </option>
-                    {% endfor %}
-                </select>
-                <select name="grade" onchange="updateFilter('grade', this.value)">
-                        <option value="" {% if not selected_grade %}selected{% endif %}>
-                            学年：すべて
-                        </option>
+            <form action="" method="GET" class="search-form-container">
+                <!-- フリーワード検索 -->
+                <div class="search-form">
+                    <input type="text" name="query" value="{{ request.args.get('query', '') }}" placeholder="スキル名・学科・学年で検索">
+                    <button type="submit" class="btn-primary">検索</button>
+                </div>
+
+                <!-- 詳細フィルター -->
+                <div class="filters">
+                    <!-- カテゴリー絞り込み -->
+                    <select name="category" onchange="this.form.submit()">
+                        <option value="">カテゴリー：すべて</option>
+                        {% for category in categories %}
+                            {% set cat_id = category.category_id if category.category_id is defined else category[0] %}
+                            {% set cat_name = category.category_name if category.category_name is defined else category[1] %}
+                            <option value="{{ cat_id }}" {{ 'selected' if request.args.get('category')|string == cat_id|string or selected_category|string == cat_id|string }}>
+                                {{ cat_name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+
+                    <!-- タブ切替 -->
+                    <a href="/" class="filter-btn {% if active_tab == 'all' or not active_tab %}active{% endif %}">すべて</a>
+                    <a href="/top/teach" class="filter-btn {% if active_tab == 'teach' %}active{% endif %}">教えたい</a>
+                    <a href="/top/learn" class="filter-btn {% if active_tab == 'learn' %}active{% endif %}">学びたい</a>
+
+                    <!-- 学科絞り込み -->
+                    <select name="department" onchange="this.form.submit()">
+                        <option value="">学科：すべて</option>
+                        {% for department in departments %}
+                            <option value="{{ department[0] }}" {{ 'selected' if request.args.get('department')|string == department[0]|string or selected_department|string == department[0]|string }}>
+                                {{ department[0] }}
+                            </option>
+                        {% endfor %}
+                    </select>
+
+                    <!-- 学年絞り込み -->
+                    <select name="grade" onchange="this.form.submit()">
+                        <option value="">学年：すべて</option>
                         {% for grade in grades %}
-                            <option value="{{ grade[0] }}" {% if selected_grade|string == grade[0]|string %}selected{% endif %}>
+                            <option value="{{ grade[0] }}" {{ 'selected' if request.args.get('grade')|string == grade[0]|string or selected_grade|string == grade[0]|string }}>
                                 {{ grade[0] }}
                             </option>
                         {% endfor %}
-                </select>
-            </div>
+                    </select>
+                </div>
+            </form>
         </section>
 
         <section class="skills-section">
@@ -99,20 +162,37 @@
                      data-skill="{{ post.skill_name }}"
                      data-type="{{ post.post_type }}"
                      data-body="{{ post.post_text }}"
-                     data-likes="{{ post.like_count }}">
+                     data-likes="{{ post.like_count }}"
+                     data-image="{{ url_for('static', filename=post.image_path) if post.image_path else '' }}">
+                    
                     <div class="card-top">
-                        <img src="{{ url_for('static', filename=post.icon_path) }}" alt="ユーザーアバター">
+                        <a href="/profile/{{ post.user_id }}" class="user-icon-link" title="{{ post.name }}さんのプロフィールを見る" onclick="event.stopPropagation();">
+                            <img src="{{ url_for('static', filename=post.icon_path) }}" alt="{{ post.name }}のアイコン" class="user-icon-img">
+                        </a>
                         <div>
-                            <span class="name">{{ post.name }}</span>
+                            <a href="/profile/{{ post.user_id }}" class="name-link" title="{{ post.name }}さんのプロフィールを見る" onclick="event.stopPropagation();">
+                                <span class="name">{{ post.name }}</span>
+                            </a>
                             <span class="meta">{{ post.department }} {{ post.grade }}年</span>
                         </div>
                     </div>
+
                     <div class="tags">
                         <span class="tag">{{ post.category_name }}</span>
                         <span class="tag">{{ post.skill_name }}</span>
                         <span class="badge {{ 'teach' if post.post_type == '教えたい' else 'learn' }}">{{ post.post_type }}</span>
+
+                        {% if post.image_path %}
+                        <span class="badge-attachment">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
+                            </svg>
+                            添付画像あり
+                        </span>
+                        {% endif %}
                     </div>
                     <p class="body">{{ post.post_text }}</p>
+
                     <button type="button" class="like-btn" data-post-id="{{ post.post_id }}" data-liked="{{ 'true' if post.liked_by_me else 'false' }}">
                         <span class="like-count">{{ post.like_count }}</span>♥
                     </button>
@@ -126,17 +206,19 @@
         </section>
     </main>
 
-    <!-- スキルカード拡大表示用モーダル（UI・リクエスト送信） -->
+    <!-- スキルカード拡大表示用モーダル -->
     <div id="cardModal" class="modal-overlay">
         <div class="modal-content">
             <button type="button" class="modal-close" id="modalClose">&times;</button>
             
             <div class="modal-header">
-                <img id="modalIcon" src="" alt="ユーザーアバター">
-                <div class="modal-header-info">
-                    <span id="modalName" class="name"></span>
-                    <span id="modalMeta" class="meta"></span>
-                </div>
+                <a id="modalUserLink" href="#" class="modal-user-link" title="プロフィールを見る" style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 12px;">
+                    <img id="modalIcon" src="" alt="ユーザーアイコン" class="modal-user-icon" style="width: 48px; height: 48px;">
+                    <div>
+                        <div id="modalName" style="font-weight: bold;"></div>
+                        <div id="modalMeta" style="font-size: 12px; color: #666;"></div>
+                    </div>
+                </a>
             </div>
 
             <div class="modal-tags">
@@ -149,8 +231,12 @@
                 </div>
             </div>
 
-           <div class="modal-body-box">
+            <div class="modal-body-box">
                 <p id="modalBody"></p>
+            </div>
+
+            <div id="modalAttachmentArea" class="modal-attachment-container" style="display: none; margin-top: 12px;">
+                <img id="modalPreviewImg" src="" alt="添付画像" style="max-width: 100%; height: auto; border-radius: 8px; border: 1px solid #e2e8f0; display: block;">
             </div>
 
             <form id="requestForm" action="/requests" method="POST" class="modal-action">
@@ -168,17 +254,5 @@
 
     <script src="{{ url_for('static', filename='js/top.js') }}"></script>
     {% include 'footer.html' %}
-
-    <script>
-      function updateFilter(key, value) {
-        const urlParams = new URLSearchParams(window.location.search);
-        if (value) {
-          urlParams.set(key, value);
-        } else {
-          urlParams.delete(key);
-        }
-        window.location.search = urlParams.toString();
-      }
-    </script>
 </body>
 </html>

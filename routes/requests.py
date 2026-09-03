@@ -171,6 +171,7 @@ def list_requests():
     # ↓ GET: 自分が送った/受けたリクエストを両方取得
     sent = db.execute("""
         SELECT r.request_id, r.status, r.room_id, r.created_at,
+               r.requester_completed, r.receiver_completed,
                u.name AS partner_name, s.skill_name, p.post_type
         FROM requests r
         JOIN posts p ON r.post_id = p.post_id
@@ -183,6 +184,7 @@ def list_requests():
     # 自分が受け取ったリクエストを取得
     received = db.execute("""
         SELECT r.request_id, r.status, r.room_id, r.created_at,
+               r.requester_completed, r.receiver_completed,
                u.name AS partner_name, s.skill_name, p.post_type
         FROM requests r
         JOIN posts p ON r.post_id = p.post_id
@@ -282,20 +284,51 @@ def complete_request(request_id):
 
     if not req:
         return "リクエストが見つかりません", 404
-    if req['requester_id'] != user_id:
-        return "セッション完了にできるのは申し込んだ本人のみです", 403
+
+    if user_id == req['requester_id']:
+        my_col = 'requester_completed'
+        partner_id = req['receiver_id']
+    elif user_id == req['receiver_id']:
+        my_col = 'receiver_completed'
+        partner_id = req['requester_id']
+    else:
+        return "このセッションの当事者ではありません", 403
+
     if req['status'] != 'accepted':
-        return redirect(url_for('.list_requests'))
+        return redirect(url_for('chat.chat_room', room_id=req['room_id']))
 
-    db.execute("""
-        UPDATE requests SET status = 'completed', updated_at = datetime('now','localtime')
-        WHERE request_id = ?
-    """, (request_id,))
-
-    db.execute("""
-        INSERT INTO notifications (user_id, type, related_id) VALUES (?, 'session_completed', ?)
-    """, (req['receiver_id'], request_id))
+    db.execute(f"UPDATE requests SET {my_col} = 1, updated_at = datetime('now','localtime') WHERE request_id = ?",
+               (request_id,))
     db.commit()
 
-    # レビュー機能がまだ無いので、いったん一覧に戻す
-    return redirect(url_for('.list_requests'))
+    updated = db.execute("SELECT * FROM requests WHERE request_id = ?", (request_id,)).fetchone()
+
+    if updated['requester_completed'] == 1 and updated['receiver_completed'] == 1:
+        # 両者合意 → completed に確定
+        db.execute(
+            "UPDATE requests SET status = 'completed', updated_at = datetime('now','localtime') WHERE request_id = ?",
+            (request_id,)
+        )
+        db.execute(
+            "INSERT INTO notifications (user_id, type, related_id) VALUES (?, 'session_completed', ?)",
+            (req['receiver_id'], request_id)
+        )
+        db.execute(
+            "INSERT INTO notifications (user_id, type, related_id) VALUES (?, 'awaiting_review', ?)",
+            (req['requester_id'], request_id))
+
+        db.commit()
+
+        # requesterが最後に押した場合だけ評価画面へ、receiverならリクエスト一覧へ
+        if user_id == req['requester_id']:
+            return redirect(url_for('reviews_bp.new_review', request_id=request_id))
+        else:
+            return redirect(url_for('.list_requests'))
+    else:
+        # まだ片方だけ → 相手に「あなたも押してください」通知
+        db.execute(
+            "INSERT INTO notifications (user_id, type, related_id) VALUES (?, 'completion_pending', ?)",
+            (partner_id, request_id)
+        )
+        db.commit()
+        return redirect(url_for('.list_requests'))
