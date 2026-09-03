@@ -67,7 +67,16 @@
                 <!-- ファイル添付フィールド（画像・PDF） -->
                 <div class="form-group">
                     <p>ファイルを添付（任意 / PNG, JPG, JPEG, PDF）：</p>
-                    <input type="file" name="post_image" accept=".png, .jpg, .jpeg, .pdf">
+                    <div class="file-upload-wrapper">
+
+                        <input type="file" id="post_image" name="post_image" accept=".png, .jpg, .jpeg, .pdf">
+                        
+                        <label for="post_image" class="btn-outline-small" >
+                            ファイルを選択
+                        </label>
+
+                        <span id="file-name_display">選択されていません</span>
+                    </div>
                 </div>
 
                 <button type="submit" class="btn-submit">投稿する</button>
@@ -152,6 +161,15 @@
                 e.preventDefault(); // フォーム送信をストップ
                 alert(`「${inputSkillName}」は指定したカテゴリ内にすでに登録されています。`);
             }
+        });
+        // ファイル選択時にファイル名を表示する処理
+        document.getElementById('post_image').addEventListener('change', function() {
+           const fileNameDisplay = document.getElementById('file_name_display');
+           if (this.files && this.files.length > 0) {
+               fileNameDisplay.textContent = this.files[0].name;
+           } else {
+               fileNameDisplay.textContent = '選択されていません';
+           }
         });
     </script>
 </body>
