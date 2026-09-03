@@ -17,7 +17,7 @@
         <div class="post-card">
             <h2>新規投稿作成</h2>
 
-            <!-- 💡 フラッシュメッセージ表示エリア（エラーや警告を即座に表示） -->
+            <!-- フラッシュメッセージ表示エリア -->
             {% with messages = get_flashed_messages() %}
               {% if messages %}
                 <div class="alert-container" style="margin-bottom: 20px;">
@@ -30,7 +30,6 @@
               {% endif %}
             {% endwith %}
 
-            <!-- 💡 enctype="multipart/form-data" を追加 -->
             <form method="POST" action="/posts" enctype="multipart/form-data">
 
                 <div class="form-group">
@@ -75,12 +74,21 @@
             </form>
         </div>
 
+        <!-- 課題2修正：カテゴリ選択を追加してスキルを確実に追加できるように修正 -->
         <div class="skill-add-card">
             <h2>新しいスキルをシステムに追加</h2>
-            <form method="POST" action="/skill_edit">
-                <p>選択肢にないスキルを追加したい場合はここに入力してください：</p>
-                <div class="skill-add-row">
-                    <input type="text" name="skill_name" placeholder="例: Vue.js, Figma" required>
+            <form id="skillAddForm" method="POST" action="/skill_edit">
+                <p>選択肢にないスキルを追加したい場合はカテゴリを選択して入力してください：</p>
+                <div class="skill-add-row" style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <select id="add_skill_category" name="category_id" required style="padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
+                        <option value="">-- カテゴリ選択 --</option>
+                        {% for category in categories %}
+                            <option value="{{ category.category_id if category.category_id is defined else category[0] }}">
+                                {{ category.category_name if category.category_name is defined else category[1] }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    <input type="text" id="add_skill_name" name="skill_name" placeholder="例: Vue.js, Figma" required style="flex: 1;">
                     <button type="submit" class="btn-outline-small">スキルを登録</button>
                 </div>
             </form>
@@ -100,6 +108,7 @@
             {% endfor %}
         ];
 
+        // 投稿フォームのカテゴリ・スキル連動処理
         document.getElementById('category_select').addEventListener('change', function() {
             const categoryId = String(this.value);
             const skillSelect = document.getElementById('skill_select');
@@ -124,6 +133,25 @@
                 opt.textContent = s.name;
                 skillSelect.appendChild(opt);
             });
+        });
+
+        // 重複スキル追加のチェック処理
+        document.getElementById('skillAddForm').addEventListener('submit', function(e) {
+            const selectedCategoryId = String(document.getElementById('add_skill_category').value);
+            const inputSkillName = document.getElementById('add_skill_name').value.trim();
+
+            // 大文字・小文字、前後の空白などを無視して比較
+            const normalize = str => str.toLowerCase().replace(/\s+/g, '');
+
+            const isDuplicate = allSkills.some(s => 
+                String(s.categoryId) === selectedCategoryId && 
+                normalize(s.name) === normalize(inputSkillName)
+            );
+
+            if (isDuplicate) {
+                e.preventDefault(); // フォーム送信をストップ
+                alert(`「${inputSkillName}」は指定したカテゴリ内にすでに登録されています。`);
+            }
         });
     </script>
 </body>
