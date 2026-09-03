@@ -125,7 +125,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('modalLikes').textContent = data.likes || '0';
 
                 //ユーザーアイコン・名前のリンク先を動的にセット
-                const userProfileUrl = '/profile/${data.userId}';
                 const modalUserLink = document.getElementById('modalUserLink');
                 if (modalUserLink) {
                     modalUserLink.href = '/profile/' + data.userId;
@@ -136,24 +135,43 @@ document.addEventListener('DOMContentLoaded', () => {
                 modalType.textContent = data.type || '';
                 modalType.className = `badge ${data.type === '教えたい' ? 'teach' : 'learn'}`;
 
-                // 💡 【修正点】カードを開いた時にそのまま画像も表示する処理
+                // 💡 【修正点】添付ファイル（画像 or PDF）の描画判定処理
                 const attachmentArea = document.getElementById('modalAttachmentArea');
                 const previewImg = document.getElementById('modalPreviewImg');
+                const previewPdf = document.getElementById('modalPreviewPdf');
 
                 if (attachmentArea) {
-                    if (data.image) {
-                        // 画像要素（#modalPreviewImg）が存在する場合はsrcを設定
-                        if (previewImg) {
-                            previewImg.src = data.image;
-                            previewImg.style.display = 'block';
-                        }
+                    const filePath = data.image ? data.image.trim() : '';
+
+                    if (filePath !== '') {
                         attachmentArea.style.display = 'block';
+
+                        // PDF判定 (.pdf で終わるかチェック)
+                        if (filePath.toLowerCase().endsWith('.pdf')) {
+                            if (previewImg) previewImg.style.display = 'none';
+                            if (previewPdf) {
+                                previewPdf.href = filePath;
+                                previewPdf.style.display = 'block';
+                            }
+                        } else {
+                            // 画像判定 (PNG / JPG等)
+                            if (previewPdf) previewPdf.style.display = 'none';
+                            if (previewImg) {
+                                previewImg.src = filePath;
+                                previewImg.style.display = 'block';
+                            }
+                        }
                     } else {
+                        // 添付無しの場合
+                        attachmentArea.style.display = 'none';
                         if (previewImg) {
                             previewImg.src = '';
                             previewImg.style.display = 'none';
                         }
-                        attachmentArea.style.display = 'none';
+                        if (previewPdf) {
+                            previewPdf.href = '#';
+                            previewPdf.style.display = 'none';
+                        }
                     }
                 }
 

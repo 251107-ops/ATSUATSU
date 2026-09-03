@@ -236,7 +236,12 @@
             </div>
 
             <div id="modalAttachmentArea" class="modal-attachment-container" style="display: none; margin-top: 12px;">
-                <img id="modalPreviewImg" src="" alt="添付画像" style="max-width: 100%; height: auto; border-radius: 8px; border: 1px solid #e2e8f0; display: block;">
+
+                <img id="modalPreviewImg" src="" alt="添付画像" style="max-width: 100%; height: auto; border-radius: 8px; border: 1px solid #e2e8f0; display: none;">
+
+                <a id="modalPreviewPdf" href="#" target="_blank" rel="noopener noreferrer" style="display: none; padding: 12px; background: f1f5f9; color: #334155; text-decoration: none; border-radius: 8px; text-align: center; font-weight: bold; border: 1px solid #cbd5e1;">
+                    📄 添付PDFを表示する（別タブで開く）
+                </a>
             </div>
 
             <form id="requestForm" action="/requests" method="POST" class="modal-action">
