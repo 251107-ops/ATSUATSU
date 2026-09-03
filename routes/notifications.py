@@ -46,6 +46,10 @@ def list_notifications():
             item['message'] = f"「{row['skill_name']}」のセッションについて評価が届きました"
         elif row['type'] == 'awaiting_review':
             item['message'] = f"「{row['skill_name']}」のセッションが完了しました。評価をお願いします"
+        elif row['type'] == 'awaiting_review_teacher':
+            item['message'] = f"「{row['skill_name']}」のセッションが完了しました。{row['requester_name']}さんからの評価をお待ちください"
+        elif row['type'] == 'awaiting_review':
+            item['message'] = f"「{row['skill_name']}」のセッションが完了しました。評価をお願いします"
         else:
             item['message'] = "通知があります"
         notifications.append(item)

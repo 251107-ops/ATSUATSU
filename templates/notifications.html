@@ -53,6 +53,7 @@
                             <div class="request-actions">
                                 <a href="{{ url_for('reviews_bp.list_reviews') }}" class="btn">評価を見る</a>
                             </div>
+                        {% elif n.type == 'awaiting_review_teacher' %}
                         {% endif %}
                     </div>
                 {% endfor %}
