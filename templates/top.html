@@ -9,56 +9,6 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/footer.css') }}">
 
-<!-- 💡 アイコンのホバー演出用CSS -->
-<style>
-  /* アイコン・名前のインタラクティブ演出 */
-  .user-icon-link, .modal-user-link {
-    display: inline-block;
-    border-radius: 50%;
-    transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
-    cursor: pointer;
-  }
-
-  .user-icon-img, .modal-user-icon {
-    border-radius: 50%;
-    object-fit: cover;
-    display: block;
-    transition: border 0.2s ease;
-    border: 2px solid transparent;
-  }
-
-  /* カード内のアイコンサイズ */
-  .user-icon-img {
-    width: 40px;
-    height: 40px;
-  }
-
-  /* ホバー（マウスを乗せた時）の装飾 */
-  .user-icon-link:hover .user-icon-img,
-  .modal-user-link:hover .modal-user-icon {
-    transform: scale(1.08);
-    border-color: #4f46e5;
-    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
-    opacity: 0.9;
-  }
-
-  /* クリック時の押し込み感 */
-  .user-icon-link:active, .modal-user-link:active {
-    transform: scale(0.95);
-  }
-
-  /* ユーザー名のリンク演出 */
-  .name-link {
-    text-decoration: none;
-    color: inherit;
-    transition: color 0.2s ease;
-  }
-
-  .name-link:hover {
-    color: #4f46e5;
-    text-decoration: underline;
-  }
-</style>
 </head>
 <body>
     {% include 'header.html' %}
@@ -67,23 +17,25 @@
         <!-- ログイン中のユーザーIDを保持（JS判定用） -->
         <input type="hidden" id="currentUserId" value="{{ session.get('user_id', '') }}">
 
-        <!-- メッセージ表示部 -->
-{% with messages = get_flashed_messages() %}
-  {% if messages %}
-    <div id="flashData" data-message="{{ messages[0] }}"></div>
-    <script>
-      document.addEventListener('DOMContentLoaded', () => {
-        const flashEl = document.getElementById('flashData');
-        if (flashEl) {
-          const msg = flashEl.dataset.message;
-          if (msg) {
-            alert(msg);
-          }
-        }
-      });
-    </script>
-  {% endif %}
-{% endwith %}
+        <!-- top.html 内のメッセージ表示部 -->
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+          <div id="flashData" data-message="{{ messages[0] }}"></div>
+          <script>
+            document.addEventListener('DOMContentLoaded', () => {
+              const flashEl = document.getElementById('flashData');
+              if (flashEl) {
+                const msg = flashEl.dataset.message;
+                if (msg) {
+                  alert(msg);
+                }
+              }
+            });
+          </script>
+        {% endif %}
+      {% endwith %}
+
+      <div id="topBanner" class="top-banner"></div>
 
         <section class="hero">
             <h1 id="heroTitle" class="hero-title">教えあい、学びあい、成長しよう</h1>

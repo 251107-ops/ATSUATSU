@@ -545,3 +545,85 @@ a {
     font-weight: bold;
     margin-right: 4px;
 }
+
+/* ==========================================
+   トップページ バナー通知
+   ========================================== */
+   .top-banner {
+    display: none;
+    max-width: 1200px;
+    box-sizing: border-box;
+    margin: 24px auto 0;
+    padding: 14px 24px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: bold;
+    text-align: center;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+}
+
+.top-banner.show {
+    display: block;
+    opacity: 1;
+}
+
+.top-banner.success {
+    background-color: #e8f5e9;
+    color: #2e7d32;
+    border: 1px solid #c8e6c9;
+}
+
+.top-banner.error {
+    background-color: #fdeaea;
+    color: #c0392b;
+    border: 1px solid #f5c6cb;
+}
+
+  /* アイコン・名前のインタラクティブ演出 */
+  .user-icon-link, .modal-user-link {
+    display: inline-block;
+    border-radius: 50%;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+    cursor: pointer;
+  }
+
+  .user-icon-img, .modal-user-icon {
+    border-radius: 50%;
+    object-fit: cover;
+    display: block;
+    transition: border 0.2s ease;
+    border: 2px solid transparent;
+  }
+
+  /* カード内のアイコンサイズ */
+  .user-icon-img {
+    width: 40px;
+    height: 40px;
+  }
+
+  /* ホバー（マウスを乗せた時）の装飾 */
+  .user-icon-link:hover .user-icon-img,
+  .modal-user-link:hover .modal-user-icon {
+    transform: scale(1.08);
+    border-color: #4f46e5;
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
+    opacity: 0.9;
+  }
+
+  /* クリック時の押し込み感 */
+  .user-icon-link:active, .modal-user-link:active {
+    transform: scale(0.95);
+  }
+
+  /* ユーザー名のリンク演出 */
+  .name-link {
+    text-decoration: none;
+    color: inherit;
+    transition: color 0.2s ease;
+  }
+
+  .name-link:hover {
+    color: #4f46e5;
+    text-decoration: underline;
+  }

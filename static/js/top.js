@@ -99,10 +99,27 @@ document.addEventListener('DOMContentLoaded', () => {
     /* ==========================================
        3. スキルカード拡大表示（モーダル） & リクエスト
        ========================================== */
-    const modal = document.getElementById('cardModal');
-    const modalClose = document.getElementById('modalClose');
-    const requestForm = document.getElementById('requestForm');
-
+       const modal = document.getElementById('cardModal');
+       const modalClose = document.getElementById('modalClose');
+       const requestForm = document.getElementById('requestForm');
+   
+       // ★追加: バナー表示用の要素と関数
+       const topBanner = document.getElementById('topBanner');
+       let bannerTimer = null;
+   
+       function showBanner(message, type = 'success') {
+           if (!topBanner) return;
+           topBanner.textContent = message;
+           topBanner.className = `top-banner show ${type}`;
+   
+           window.scrollTo({ top: 0, behavior: 'smooth' });
+   
+           clearTimeout(bannerTimer);
+           bannerTimer = setTimeout(() => {
+               topBanner.className = 'top-banner';
+           }, 3500);
+       }
+   
     if (modal) {
         // カードクリック時のモーダル表示処理
         document.querySelectorAll('.card').forEach(card => {
@@ -204,14 +221,70 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        // フォーム送信時に連打を防止（二重送信防止ガード）
+        // ★修正点2: フォーム送信時に連打を防止（二重送信防止ガード）
+        // if (requestForm) {
+        //     requestForm.addEventListener('submit', function() {
+        //         const requestBtn = document.getElementById('requestBtn');
+        //         if (requestBtn) {
+        //             requestBtn.disabled = true;
+        //             requestBtn.textContent = '送信中...';
+        //             requestBtn.style.opacity = '0.6';
+        //         }
+        //     });
+        // }
+
+        // ★修正点2: フォーム送信をfetch化（ページ遷移なしでリクエスト送信）
         if (requestForm) {
-            requestForm.addEventListener('submit', function() {
+            requestForm.addEventListener('submit', async function(e) {
+                e.preventDefault(); // ← これが最重要。ブラウザ標準のページ遷移を止める
+
                 const requestBtn = document.getElementById('requestBtn');
                 if (requestBtn) {
                     requestBtn.disabled = true;
                     requestBtn.textContent = '送信中...';
                     requestBtn.style.opacity = '0.6';
+                }
+
+                const formData = new FormData(requestForm); // post_id, receiver_id を自動収集
+
+                try {
+                    const response = await fetch(requestForm.action, {
+                        method: 'POST',
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }, // ← これでバックエンドのis_asyncがTrueになる
+                        body: formData
+                    });
+                    const result = await response.json();
+
+                    if (response.ok && result.success) {
+                        showBanner(result.message || 'リクエストを送信しました！', 'success');
+                        if (modal) modal.classList.remove('active');
+                        requestForm.reset();
+                    } else {
+                        showBanner(result.message || '送信に失敗しました。', 'error');
+                    
+                        // ★「自分の投稿」「重複送信」の場合は、押しても解決しないのでモーダルごと閉じる
+                        const shouldCloseAnyway = result.reason === 'own_post' || result.reason === 'duplicate';
+                    
+                        if (shouldCloseAnyway) {
+                            if (modal) modal.classList.remove('active');
+                            requestForm.reset();
+                        } else if (requestBtn) {
+                            // それ以外(通信エラーなど)は再送信できるようにボタンを戻す
+                            requestBtn.disabled = false;
+                            requestBtn.style.opacity = '1';
+                            requestBtn.style.cursor = 'pointer';
+                            requestBtn.textContent = '再送信する';
+                        }
+                    }
+                } catch (err) {
+                    console.error('リクエスト送信エラー:', err);
+                    showBanner('通信エラーが発生しました。', 'error');
+                    if (requestBtn) {
+                        requestBtn.disabled = false;
+                        requestBtn.style.opacity = '1';
+                        requestBtn.style.cursor = 'pointer';
+                        requestBtn.textContent = '再送信する';
+                    }
                 }
             });
         }

@@ -65,7 +65,11 @@ def send_request():
 
         if str(user_id) == str(receiver_id):
             if is_async:
-                return jsonify({'success': False, 'message': '自分の投稿にはリクエストを送れません。'}), 400
+                return jsonify({
+                    'success': False, 
+                    'message': '自分の投稿にはリクエストを送れません。',
+                    'reason': 'own_post'
+                    }), 400
             flash('自分の投稿にはリクエストを送れません。')
             return redirect(url_for('.list_requests'))
 
@@ -82,7 +86,7 @@ def send_request():
         if existing:
             msg = 'すでにこの投稿にリクエストを送信しています。'
             if is_async:
-                return jsonify({'success': False, 'message': msg}), 400
+                return jsonify({'success': False, 'message': msg,'reason': 'duplicate'}), 400
             flash(msg)
             return redirect(url_for('.list_requests'))
 
@@ -309,8 +313,9 @@ def complete_request(request_id):
             "UPDATE requests SET status = 'completed', updated_at = datetime('now','localtime') WHERE request_id = ?",
             (request_id,)
         )
+        # 教えてる側（receiver）にも「評価待ち」を通知
         db.execute(
-            "INSERT INTO notifications (user_id, type, related_id) VALUES (?, 'session_completed', ?)",
+            "INSERT INTO notifications (user_id, type, related_id) VALUES (?, 'awaiting_review_teacher', ?)",
             (req['receiver_id'], request_id)
         )
         db.execute(
