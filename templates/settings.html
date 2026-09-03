@@ -1,21 +1,59 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>設定</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>パスワード変更 | SkillLink</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/variables.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/settings.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/footer.css') }}">
 </head>
 <body>
-    <h3>パスワードを更新する</h3>
-    {% if error_message %}
-        <p class="error">{{ error_message }}</p>
-    {% endif %}
+    {% include 'header.html' %}
 
-    <form method="POST">
-    現在のパスワード：<input type="password" id="current_password" name="current_password" required><br>
-    パスワード：<input type="password" id="new_password" name="new_password" required><br>
-    パスワード確認：<input type="password" id="password_confirm" name="password_confirm" required>
-    <button type="submit">更新する</button>
-    </form>
+    <main class="main-container">
+        <div class="setting-card">
+            <div class="card-header">
+                <h2>パスワードの変更</h2>
+                <p class="subtitle">安全なパスワードを設定してアカウントを保護します。</p>
+            </div>
+
+            {% if error_message %}
+                <div class="alert-error">{{ error_message }}</div>
+            {% endif %}
+
+            {% with messages = get_flashed_messages() %}
+              {% if messages %}
+                <div class="alert-container">
+                  {% for message in messages %}
+                    <div class="alert-error">{{ message }}</div>
+                  {% endfor %}
+                </div>
+              {% endif %}
+            {% endwith %}
+
+            <form method="POST" class="setting-form">
+                <div class="form-group">
+                    <label for="current_password">現在のパスワード</label>
+                    <input type="password" id="current_password" name="current_password" placeholder="現在のパスワード" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="new_password">新しいパスワード</label>
+                    <input type="password" id="new_password" name="new_password" placeholder="8文字以上の新しいパスワード" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="password_confirm">新しいパスワード（確認）</label>
+                    <input type="password" id="password_confirm" name="password_confirm" placeholder="もう一度入力してください" required>
+                </div>
+
+                <button type="submit" class="btn-submit">パスワードを更新</button>
+            </form>
+        </div>
+    </main>
+
+    {% include 'footer.html' %}
 </body>
 </html>

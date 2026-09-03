@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>プロフィール | スキルシェア</title>
+<title>{{ user.name }}さんのプロフィール | スキルシェア</title>
 <link rel="stylesheet" href="{{ url_for('static', filename='css/profile.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/variables.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
@@ -14,28 +14,12 @@
 
   {% include 'header.html' %}
 
-  <div class="layout">
-
-    <aside class="sidebar">
-      <button class="side-link side-link--active" data-target="profile">
-       <a href="/profile"><span class="side-link__icon">◎</span>プロフィール</a>
-      </button>
-      <button class="side-link" data-target="favorites"> 
-        <a href="/likes/page"><span class="side-link__icon">♡</span>お気に入り</a>
-      </button>
-      <button class="side-link" data-target="notifications">
-        <a href="/notifications"><span class="side-link__icon">♪</span>通知</a>
-      </button>
-      <button class="side-link" data-target="settings">
-        <span class="side-link__icon">⚙</span><a href="/change-password">設定</a>
-      </button>
-    </aside>
+  <div class="layout layout--no-sidebar">
 
     <div class="page-content">
 
       <div class="main__head">
-        <h1 class="main__title" id="profileTitle">プロフィール</h1>
-        <a href="/profile_edit" class="btn btn--primary">プロフィール編集</a>
+        <h1 class="main__title" id="profileTitle">{{ user.name }}さんのプロフィール</h1>
       </div>
 
       <div class="main profile-block">
@@ -43,12 +27,12 @@
           <div class="avatar-block">
             <div class="avatar-wrap">
               {% if user and user.icon_path %}
-                <img id="avatarImg" class="avatar-img" src="{{ url_for('static', filename=user.icon_path) }}" onerror="this.onerror=null; this.src='/static/img/default-avatar.svg';" alt="プロフィール画像">
+                <img id="avatarImg" class="avatar-img" src="{{ url_for('static', filename=user.icon_path) }}" alt="プロフィール画像">
               {% else %}
-                <span id="avatarPlaceholder" class="avatar-placeholder">{{ user.name[:2] if user else '田中' }}</span>
+                <span id="avatarPlaceholder" class="avatar-placeholder">{{ user.name[:2] if user else 'ユーザー' }}</span>
               {% endif %}
             </div>
-            <a href="{{ url_for('reviews_bp.list_reviews') }}" class="rating-summary">
+            <div class="rating-summary">
               <span class="rating-stars">
                   {% set avg = review_stats.avg_rating or 0 %}
                   {% for i in range(1, 6) %}
@@ -61,7 +45,7 @@
               {% else %}
                   <span class="rating-value">評価なし</span>
               {% endif %}
-          </a>
+            </div>
           </div>
 
           <div class="field-grid">
@@ -72,12 +56,7 @@
 
             <div class="field">
               <label>学年</label>
-              <!-- ★ 「年」が付くように修正 -->
-              <p class="profile-text-value">
-                {% if user and user.grade %}
-                  {{ user.grade }}{% if '年' not in user.grade|string %}年{% endif %}
-                {% endif %}
-              </p>
+              <p class="profile-text-value">{{ user.grade if user else '' }}</p>
             </div>
 
             <div class="field">
@@ -91,7 +70,7 @@
                      {% if user and user.introduction %}
                           {{ user.introduction }}
                      {% else %}
-                          <span class="bio-empty">まだ自己紹介が登録されていません。プロフィール編集から追加してみましょう。</span>
+                          <span class="bio-empty">まだ自己紹介が登録されていません。</span>
                      {% endif %}
                 </div>
            </div>
@@ -119,18 +98,15 @@
       </div>
 
       <div class="main my-posts-section">
-        <h2>自分の投稿</h2>
+        <h2>{{ user.name }}さんの投稿</h2>
         <div class="cards">
-            {% for post in my_posts %}
-            {% set default_icon = url_for('static', filename='img/default-avatar.svg') %}
-            {% set user_icon = url_for('static', filename=user.icon_path) if user and user.icon_path else default_icon %}
-            
+            {% for post in user_posts %}
             <div class="card" style="cursor: pointer;" onclick="openPostModal(this)"
                  data-post-id="{{ post.post_id }}"
-                 data-user-id="{{ user.user_id if user else '' }}"
+                 data-user-id="{{ user.user_id }}"
                  data-name="{{ user.name if user else '' }}"
-                 data-meta="{{ user.department if user else '' }} {{ user.grade if user else '' }}{% if user and user.grade and '年' not in user.grade|string %}年{% endif %}"
-                 data-icon="{{ user_icon }}"
+                 data-meta="{{ user.department if user else '' }} {{ user.grade if user else '' }}年"
+                 data-icon="{{ url_for('static', filename=user.icon_path) if user and user.icon_path else url_for('static', filename='img/default-avatar.png') }}"
                  data-category="{{ post.category_name }}"
                  data-skill="{{ post.skill_name }}"
                  data-type="{{ post.post_type }}"
@@ -139,14 +115,14 @@
                  data-image="{{ url_for('static', filename=post.image_path) if post.image_path else '' }}">
                 
                 <div class="card-top">
-                    <a href="/profile" class="user-icon-link" title="{{ user.name }}さんのプロフィールを見る" onclick="event.stopPropagation();">
-                        <img src="{{ user_icon }}" onerror="this.onerror=null; this.src='{{ default_icon }}';" alt="アバター" class="user-icon-img">
+                    <a href="/profile/{{ user.user_id }}" class="user-icon-link" title="{{ user.name }}さんのプロフィールを見る" onclick="event.stopPropagation();">
+                        <img src="{{ url_for('static', filename=user.icon_path) if user and user.icon_path else url_for('static', filename='img/default-avatar.png') }}" alt="{{ user.name }}のアイコン" class="user-icon-img">
                     </a>
                     <div>
-                        <a href="/profile" class="name-link" title="{{ user.name }}さんのプロフィールを見る" onclick="event.stopPropagation();">
+                        <a href="/profile/{{ user.user_id }}" class="name-link" title="{{ user.name }}さんのプロフィールを見る" onclick="event.stopPropagation();">
                             <span class="name">{{ user.name if user else '' }}</span>
                         </a>
-                        <span class="meta">{{ user.department if user else '' }} {{ user.grade if user else '' }}{% if user and user.grade and '年' not in user.grade|string %}年{% endif %}</span>
+                        <span class="meta">{{ user.department if user else '' }} {{ user.grade if user else '' }}年</span>
                     </div>
                 </div>
 
@@ -181,18 +157,19 @@
 
   </div>
 
+  <!-- スキルカード拡大表示用モーダル（top.htmlと完全同一仕様） -->
   <div id="cardModal" class="modal-overlay">
       <div class="modal-content">
           <button type="button" class="modal-close" id="modalClose" onclick="closeModal()">&times;</button>
           
-          <div class="modal-header" style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
-              <a id="modalUserLink" href="#" class="modal-user-link" title="プロフィールを見る" style="text-decoration: none; color: inherit;">
-                  <img id="modalIcon" src="" onerror="this.onerror=null; this.src='/static/img/default-avatar.svg';" alt="ユーザーアイコン" class="modal-user-icon" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover;">
+          <div class="modal-header">
+              <a id="modalUserLink" href="#" class="modal-user-link" title="プロフィールを見る" style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 12px;">
+                  <img id="modalIcon" src="" alt="ユーザーアイコン" class="modal-user-icon" style="width: 48px; height: 48px;">
+                  <div>
+                      <div id="modalName" style="font-weight: bold;"></div>
+                      <div id="modalMeta" style="font-size: 12px; color: #666;"></div>
+                  </div>
               </a>
-              <div>
-                  <div id="modalName" style="font-weight: bold; font-size: 16px;"></div>
-                  <div id="modalMeta" style="font-size: 12px; color: #666;"></div>
-              </div>
           </div>
 
           <div class="modal-tags">
@@ -213,9 +190,11 @@
               <img id="modalPreviewImg" src="" alt="添付画像" style="max-width: 100%; height: auto; border-radius: 8px; border: 1px solid #e2e8f0; display: block;">
           </div>
 
-          <div class="modal-action" style="margin-top: 20px;">
-              <button class="btn btn--disabled" disabled style="width: 100%; padding: 12px; background-color: #a0aec0; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: not-allowed;">自分の投稿です</button>
-          </div>
+          <form id="requestForm" action="/requests" method="POST" class="modal-action">
+              <input type="hidden" name="post_id" id="modalPostId">
+              <input type="hidden" name="receiver_id" id="modalReceiverId">
+              <button type="submit" id="requestBtn" class="request-btn">この投稿にリクエストを送る</button>
+          </form>
 
           <div class="modal-footer">
               <span id="modalLikes" class="modal-like-count">0</span> ♥
@@ -226,31 +205,25 @@
   <script>
       function openPostModal(cardEl) {
           const ds = cardEl.dataset;
-          const defaultIcon = '/static/img/default-avatar.svg';
-
-          const modalIcon = document.getElementById('modalIcon');
-          modalIcon.onerror = function() {
-              this.onerror = null;
-              this.src = defaultIcon;
-          };
-          modalIcon.src = (ds.icon && ds.icon.trim() !== '') ? ds.icon : defaultIcon;
-
-          document.getElementById('modalName').textContent = ds.name || '';
-          document.getElementById('modalMeta').textContent = ds.meta || '';
-          document.getElementById('modalCategory').textContent = ds.category || '';
-          document.getElementById('modalSkill').textContent = ds.skill || '';
+          document.getElementById('modalIcon').src = ds.icon;
+          document.getElementById('modalName').textContent = ds.name;
+          document.getElementById('modalMeta').textContent = ds.meta;
+          document.getElementById('modalCategory').textContent = ds.category;
+          document.getElementById('modalSkill').textContent = ds.skill;
           
           const typeBadge = document.getElementById('modalType');
-          typeBadge.textContent = ds.type || '';
+          typeBadge.textContent = ds.type;
           typeBadge.className = 'badge ' + (ds.type === '教えたい' ? 'teach' : 'learn');
 
-          document.getElementById('modalBody').textContent = ds.body || '';
-          document.getElementById('modalLikes').textContent = ds.likes || '0';
-          document.getElementById('modalUserLink').href = '/profile';
+          document.getElementById('modalBody').textContent = ds.body;
+          document.getElementById('modalLikes').textContent = ds.likes;
+          document.getElementById('modalUserLink').href = '/profile/' + ds.userId;
+          document.getElementById('modalPostId').value = ds.postId;
+          document.getElementById('modalReceiverId').value = ds.userId;
 
           const imgArea = document.getElementById('modalAttachmentArea');
           const previewImg = document.getElementById('modalPreviewImg');
-          if (ds.image && ds.image.trim() !== '') {
+          if (ds.image) {
               previewImg.src = ds.image;
               imgArea.style.display = 'block';
           } else {

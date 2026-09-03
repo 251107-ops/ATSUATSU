@@ -35,11 +35,6 @@
                                 </div>
                             </div>
                         </a>
-
-                        <!-- 🗑️ 削除（退出）フォーム -->
-                        <form action="{{ url_for('chat.leave_room_action', room_id=room_item.room_token) }}" method="POST" onsubmit="return confirm('このチャットを削除（退出）してもよろしいですか？');">
-                            <button type="submit" class="btn-delete-room" title="チャットを削除">×</button>
-                        </form>
                     </div>
                 {% endfor %}
             </div>
@@ -47,7 +42,7 @@
 
         <!-- 右側：メインエリア -->
         <div class="chat-main">
-            {% if room %}
+            {% if room %} 
                 <!-- ルーム選択時：ヘッダーからルームコードを削除 -->
                 <div class="chat-header">
                     <div>
@@ -136,161 +131,171 @@
     </div>
 
     <script>
-        // メッセージ削除関数
-        function deleteMessage(msgId) {
-            if (confirm("このメッセージを削除しますか？")) {
-                if (window.chatSocket) {
-                    window.chatSocket.emit('delete_message', { msg_id: msgId });
-                }
+// メッセージ削除関数
+function deleteMessage(msgId) {
+    if (confirm("このメッセージを削除しますか？")) {
+        if (window.chatSocket) {
+            window.chatSocket.emit('delete_message', { msg_id: msgId });
+        }
+    }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    const currentUserId = {{ user_id | default(0) | tojson }};
+    const chatBox = document.getElementById('chat-box');
+    
+    // スクロール位置を一番下に設定
+    if (chatBox) {
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    {% set my_completed = req_row and ((req_row.requester_id == user_id and req_row.requester_completed) or (req_row.receiver_id == user_id and req_row.receiver_completed)) %}
+
+    /* ★ チャットが終了しておらず、かつ自分が終了申請もしていない場合のみ Socket 接続とイベント登録を実行 */
+    {% if not (req_row and req_row.status == 'completed') and not my_completed %}
+    if (chatBox) {
+        window.chatSocket = io('/chat');
+        
+        const msgInput = document.getElementById('message-input');
+        const sendBtn = document.getElementById('send-btn');
+        const imageInput = document.getElementById('image-input');
+
+        // 接続完了時にルームへ参加要請
+        window.chatSocket.on('connect', () => {
+            window.chatSocket.emit('joined', {});
+        });
+
+        // メッセージ内容の描画判定関数
+        const renderMessageContent = (content) => {
+            if (!content) return '';
+            const strContent = String(content).trim();
+
+            if (strContent.startsWith('[IMG]') && strContent.endsWith('[/IMG]')) {
+                const imgUrl = strContent.slice(5, -6);
+                return `<img src="${imgUrl}" class="chat-img" onclick="window.open('${imgUrl}', '_blank')" alt="添付画像">`;
             }
+
+            const safeText = document.createElement('div');
+            safeText.textContent = strContent;
+            return safeText.innerHTML;
+        };
+
+        // リアルタイムメッセージ受信時の処理
+        window.chatSocket.on('message', (data) => {
+            try {
+                const msgDiv = document.createElement('div');
+                const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+
+                let senderName = "システム";
+                let messageContent = data.msg || "";
+
+                if (typeof data.msg === 'string' && data.msg.includes(': ')) {
+                    const parts = data.msg.split(': ');
+                    senderName = parts[0];
+                    messageContent = parts.slice(1).join(': ');
+                }
+
+                const isMine = (data.user_id === currentUserId);
+                msgDiv.className = `msg-line ${isMine ? 'msg-mine' : 'msg-theirs'}`;
+                if (data.id) {
+                    msgDiv.id = `msg-${data.id}`;
+                }
+
+                const formattedContent = renderMessageContent(messageContent);
+                
+                const deleteBtnHtml = (isMine && data.id) 
+                    ? `<button class="btn-delete" onclick="deleteMessage(${data.id})" title="削除">✕</button>` 
+                    : '';
+
+                msgDiv.innerHTML = `
+                    <span class="msg-user">${senderName}</span>
+                    <div class="msg-bubble">${formattedContent}</div>
+                    <span class="msg-time">${now}${deleteBtnHtml}</span>
+                `;
+                
+                chatBox.appendChild(msgDiv);
+                chatBox.scrollTop = chatBox.scrollHeight;
+            } catch (err) {
+                console.error("メッセージ描画エラー:", err);
+            }
+        });
+
+        // メッセージ削除通知
+        window.chatSocket.on('message_deleted', (data) => {
+            const targetMsg = document.getElementById(`msg-${data.msg_id}`);
+            if (targetMsg) {
+                targetMsg.remove();
+            }
+        });
+
+        // 入退室通知
+        window.chatSocket.on('status', (data) => {
+            const statusDiv = document.createElement('div');
+            statusDiv.className = 'msg-line msg-status';
+            statusDiv.textContent = data.msg;
+            chatBox.appendChild(statusDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        });
+
+        // メッセージ送信処理
+        const sendMessage = () => {
+            const text = msgInput ? msgInput.value.trim() : '';
+            if (text !== "") {
+                window.chatSocket.emit('text', { msg: text });
+                if (msgInput) msgInput.value = "";
+            }
+        };
+
+        // 画像選択＆アップロード処理
+        if (imageInput) {
+            imageInput.addEventListener('change', async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const formData = new FormData();
+                formData.append('image', file);
+
+                try {
+                    const response = await fetch('/upload-image', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok && result.image_url) {
+                        window.chatSocket.emit('text', { msg: `[IMG]${result.image_url}[/IMG]` });
+                    } else {
+                        alert(result.error || '画像のアップロードに失敗しました。');
+                    }
+                } catch (err) {
+                    console.error('画像送信エラー:', err);
+                    alert('画像の送信中にエラーが発生しました。');
+                } finally {
+                    imageInput.value = '';
+                }
+            });
         }
 
-        document.addEventListener("DOMContentLoaded", () => {
-            const currentUserId = {{ user_id | default(0) | tojson }};
-            const chatBox = document.getElementById('chat-box');
-            
-            // チャットルームが選択されている場合のみSocket接続・イベント設定を実行
-            if (chatBox) {
-                window.chatSocket = io('/chat');
-                
-                const msgInput = document.getElementById('message-input');
-                const sendBtn = document.getElementById('send-btn');
-                const imageInput = document.getElementById('image-input');
+        // イベント登録
+        if (sendBtn) sendBtn.addEventListener('click', sendMessage);
+        if (msgInput) {
+            msgInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') sendMessage();
+            });
+        }
+    }
+    {% endif %}
+});
 
-                // スクロール位置を一番下に設定
-                chatBox.scrollTop = chatBox.scrollHeight;
-
-                // 接続完了時にルームへ参加要請
-                window.chatSocket.on('connect', () => {
-                    window.chatSocket.emit('joined', {});
-                });
-
-                // メッセージ内容の描画判定関数
-                const renderMessageContent = (content) => {
-                    if (!content) return '';
-                    const strContent = String(content).trim();
-        
-                    if (strContent.startsWith('[IMG]') && strContent.endsWith('[/IMG]')) {
-                        const imgUrl = strContent.slice(5, -6);
-                        return `<img src="${imgUrl}" class="chat-img" onclick="window.open('${imgUrl}', '_blank')" alt="添付画像">`;
-                    }
-        
-                    const safeText = document.createElement('div');
-                    safeText.textContent = strContent;
-                    return safeText.innerHTML;
-                };
-
-                // リアルタイムメッセージ受信時の処理
-                window.chatSocket.on('message', (data) => {
-                    try {
-                        const msgDiv = document.createElement('div');
-                        const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-            
-                        let senderName = "システム";
-                        let messageContent = data.msg || "";
-
-                        if (typeof data.msg === 'string' && data.msg.includes(': ')) {
-                            const parts = data.msg.split(': ');
-                            senderName = parts[0];
-                            messageContent = parts.slice(1).join(': ');
-                        }
-
-                        const isMine = (data.user_id === currentUserId);
-                        msgDiv.className = `msg-line ${isMine ? 'msg-mine' : 'msg-theirs'}`;
-                        if (data.id) {
-                            msgDiv.id = `msg-${data.id}`;
-                        }
-
-                        const formattedContent = renderMessageContent(messageContent);
-                        
-                        const deleteBtnHtml = (isMine && data.id) 
-                            ? `<button class="btn-delete" onclick="deleteMessage(${data.id})" title="削除">✕</button>` 
-                            : '';
-
-                        msgDiv.innerHTML = `
-                            <span class="msg-user">${senderName}</span>
-                            <div class="msg-bubble">${formattedContent}</div>
-                            <span class="msg-time">${now}${deleteBtnHtml}</span>
-                        `;
-                        
-                        chatBox.appendChild(msgDiv);
-                        chatBox.scrollTop = chatBox.scrollHeight;
-                    } catch (err) {
-                        console.error("メッセージ描画エラー:", err);
-                    }
-                });
-
-                // メッセージ削除通知
-                window.chatSocket.on('message_deleted', (data) => {
-                    const targetMsg = document.getElementById(`msg-${data.msg_id}`);
-                    if (targetMsg) {
-                        targetMsg.remove();
-                    }
-                });
-
-                // 入退室通知
-                window.chatSocket.on('status', (data) => {
-                    const statusDiv = document.createElement('div');
-                    statusDiv.className = 'msg-line msg-status';
-                    statusDiv.textContent = data.msg;
-                    chatBox.appendChild(statusDiv);
-                    chatBox.scrollTop = chatBox.scrollHeight;
-                });
-
-                // メッセージ送信処理
-                const sendMessage = () => {
-                    const text = msgInput.value.trim();
-                    if (text !== "") {
-                        window.chatSocket.emit('text', { msg: text });
-                        msgInput.value = "";
-                    }
-                };
-
-                // 画像選択＆アップロード処理
-                imageInput.addEventListener('change', async (e) => {
-                    const file = e.target.files[0];
-                    if (!file) return;
-
-                    const formData = new FormData();
-                    formData.append('image', file);
-
-                    try {
-                        const response = await fetch('/upload-image', {
-                            method: 'POST',
-                            body: formData
-                        });
-
-                        const result = await response.json();
-
-                        if (response.ok && result.image_url) {
-                            window.chatSocket.emit('text', { msg: `[IMG]${result.image_url}[/IMG]` });
-                        } else {
-                            alert(result.error || '画像のアップロードに失敗しました。');
-                        }
-                    } catch (err) {
-                        console.error('画像送信エラー:', err);
-                        alert('画像の送信中にエラーが発生しました。');
-                    } finally {
-                        imageInput.value = '';
-                    }
-                });
-
-                // イベント登録
-                sendBtn.addEventListener('click', sendMessage);
-                msgInput.addEventListener('keypress', (e) => {
-                    if (e.key === 'Enter') sendMessage();
-                });
-            }
-        });
-
-        // 離脱処理
-        window.addEventListener('beforeunload', function() {
-            if (window.chatSocket) {
-                window.chatSocket.emit('left', {});
-                window.chatSocket.disconnect();
-            }
-        });
-    </script>
+// 離脱処理
+window.addEventListener('beforeunload', function() {
+    if (window.chatSocket) {
+        window.chatSocket.emit('left', {});
+        window.chatSocket.disconnect();
+    }
+});
+</script>
     
     {% include 'footer.html' %}
 </body>

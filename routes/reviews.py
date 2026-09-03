@@ -11,16 +11,37 @@ def new_review(request_id):
         return redirect('/login')
 
     db = get_db()
-    req = db.execute("SELECT * FROM requests WHERE request_id = ?", (request_id,)).fetchone()
+    
+    # 1. request_id または room_id のどちらが渡されても取得できるように検索
+    req = db.execute("""
+        SELECT * FROM requests 
+        WHERE request_id = ? OR room_id = ?
+    """, (request_id, str(request_id))).fetchone()
 
     if not req:
         return "リクエストが見つかりません", 404
-    if req['requester_id'] != user_id:
+
+    # 2. 型を int に揃え、申請者(requester_id)・受領者(receiver_id)の双方を許可
+    current_user_id = int(user_id)
+    requester_id = int(req['requester_id'])
+    receiver_id = int(req['receiver_id'])
+
+    if current_user_id not in (requester_id, receiver_id):
         return "この評価を投稿する権限がありません", 403
+
     if req['status'] != 'completed':
         return "このリクエストはまだ評価できません", 400
 
-    existing = db.execute("SELECT 1 FROM reviews WHERE request_id = ?", (request_id,)).fetchone()
+    # 3. 評価する側（自分）と評価される側（相手）のIDを自動判定
+    reviewer_id = current_user_id
+    reviewee_id = receiver_id if current_user_id == requester_id else requester_id
+
+    # 重複評価の防止チェック
+    existing = db.execute("""
+        SELECT 1 FROM reviews 
+        WHERE request_id = ? AND reviewer_id = ?
+    """, (req['request_id'], reviewer_id)).fetchone()
+    
     if existing:
         return redirect(url_for('requests_bp.list_requests'))
 
@@ -31,35 +52,37 @@ def new_review(request_id):
         if not rating or not rating.isdigit() or not (1 <= int(rating) <= 5):
             return "評価（星1〜5）を選択してください", 400
 
+        # 動的に特定した reviewer_id, reviewee_id を登録
         db.execute("""
             INSERT INTO reviews (request_id, reviewer_id, reviewee_id, rating, comment)
             VALUES (?, ?, ?, ?, ?)
-        """, (request_id, req['requester_id'], req['receiver_id'], int(rating), comment))
+        """, (req['request_id'], reviewer_id, reviewee_id, int(rating), comment))
 
         db.execute("""
             UPDATE requests SET status = 'reviewed', updated_at = datetime('now','localtime')
             WHERE request_id = ?
-        """, (request_id,))
-        db.commit()
-
+        """, (req['request_id'],))
+        
         db.execute("""
             INSERT INTO notifications (user_id, type, related_id) VALUES (?, 'new_review', ?)
-        """, (req['receiver_id'], request_id))
+        """, (reviewee_id, req['request_id']))
+        
         db.commit()
 
         return redirect(url_for('requests_bp.list_requests'))
 
-    # GET: フォームに出す相手の名前・スキル名を取得
+    # GET: 評価対象（相手）の情報とスキルを取得
     info = db.execute("""
         SELECT u.name AS partner_name, s.skill_name, p.post_type
         FROM requests r
-        JOIN posts p ON r.post_id = p.post_id
-        JOIN skills s ON p.skill_id = s.skill_id
-        JOIN users u ON r.receiver_id = u.user_id
+        LEFT JOIN posts p ON r.post_id = p.post_id
+        LEFT JOIN skills s ON p.skill_id = s.skill_id
+        JOIN users u ON u.user_id = ?
         WHERE r.request_id = ?
-    """, (request_id,)).fetchone()
+    """, (reviewee_id, req['request_id'])).fetchone()
 
     return render_template('review_new.html', req=req, info=info)
+
 
 @reviews_bp.route('/profile/reviews')
 def list_reviews():

@@ -12,7 +12,6 @@ from flask import (
 )
 from flask_socketio import emit, join_room, leave_room
 from routes.auth import get_db
-from werkzeug.utils import secure_filename
 
 chat = Blueprint('chat', __name__)
 
@@ -222,7 +221,7 @@ def chat_room(room_id):
             'time': row['send_time'],
         })
 
-    # 👥 サイドバー用：自分が参加しているチャットルームと相手の情報一覧を取得（追加）
+    # 👥 サイドバー用：自分が参加しているチャットルームと相手の情報一覧を取得
     chat_rooms_rows = db.execute(
         """
         SELECT 
@@ -241,22 +240,31 @@ def chat_room(room_id):
     ).fetchall()
 
     chat_rooms = []
+    target_user_name = None  # ヘッダー用の相手の名前
+
     for row in chat_rooms_rows:
+        token_str = str(row['room_token'])
         chat_rooms.append({
-            'room_token': str(row['room_token']),
+            'room_token': token_str,
             'user_name': row['user_name'],
             'icon_path': row['icon_path'],
             'skill_name': row['skill_name'] if row['skill_name'] else '',
         })
+        # 現在開いているルームの相手の名前を保持
+        if token_str == str(room_id):
+            target_user_name = row['user_name']
 
+    # ★ 修正ポイント: room_id の型キャスト対応 ＆ SQLの条件調整
+    # room_id が文字列か数値かどちらでも対応できるように CAST して比較します
     req_row = db.execute(
         """
         SELECT request_id, status, requester_id, receiver_id,
             requester_completed, receiver_completed
         FROM requests
-        WHERE room_id = ? AND (requester_id = ? OR receiver_id = ?)
+        WHERE CAST(room_id AS TEXT) = CAST(? AS TEXT)
+          AND (requester_id = ? OR receiver_id = ?)
         """,
-        (room_id, user_id, user_id)
+        (room_id, user_id, user_id),
     ).fetchone()
 
     is_reviewed = bool(req_row and req_row['status'] != 'accepted')
@@ -264,6 +272,7 @@ def chat_room(room_id):
     return render_template(
         'chat.html',
         name=name,
+        target_user_name=target_user_name, # 追加：相手の名前
         room=room_id,
         chats=history,
         user_id=user_id,
@@ -271,6 +280,7 @@ def chat_room(room_id):
         chat_rooms=chat_rooms,
         is_reviewed=is_reviewed,
     )
+
 
 # =====================================================================
 # 3. 公開ルームの作成
@@ -552,9 +562,9 @@ def init_chat_events(socketio):
                     ' への発言権限がありません。'
                 )
                 return False
-            
+
             req_status = db.execute(
-                "SELECT status FROM requests WHERE room_id = ?", (room,)
+                'SELECT status FROM requests WHERE room_id = ?', (room,)
             ).fetchone()
 
             if req_status and req_status['status'] != 'accepted':
@@ -599,13 +609,17 @@ def init_chat_events(socketio):
             db = get_db()
             # 送信者本人のメッセージかつ現在属しているルームのメッセージか検証して削除
             cursor = db.execute(
-                'DELETE FROM messages WHERE id = ? AND user_id = ? AND room = ?',
+                'DELETE FROM messages WHERE id = ? AND user_id = ? AND room ='
+                ' ?',
                 (msg_id, user_id, room),
             )
             db.commit()
 
             if cursor.rowcount > 0:
-                print(f'[WS DELETE Success] Msg ID: {msg_id} deleted by User: {user_id}')
+                print(
+                    '[WS DELETE Success] Msg ID:'
+                    f' {msg_id} deleted by User: {user_id}'
+                )
                 # ルーム全員の端末の画面から削除する通知を送信
                 emit('message_deleted', {'msg_id': msg_id}, to=room)
 
@@ -621,6 +635,8 @@ def init_chat_events(socketio):
             real_name = user_row['name'] if user_row else 'Someone'
             leave_room(room)
             emit('status', {'msg': f'{real_name} が退室しました。'}, to=room)
+
+
 # =====================================================================
 # ヘッダーの「チャット」ボタン用のリダイレクト処理
 # =====================================================================
@@ -633,20 +649,27 @@ def chat_index():
     db = get_db()
 
     # ユーザーが参加している直近のルームを1件取得
-    latest_room = db.execute('''
+    latest_room = db.execute(
+        '''
         SELECT room_id 
         FROM room_members 
         WHERE user_id = ? 
         ORDER BY room_id DESC 
         LIMIT 1
-    ''', (user_id,)).fetchone()
+    ''',
+        (user_id,),
+    ).fetchone()
 
     # 参加しているルームがあればその画面へ、なければチャットハブ（未選択画面など）へ
     if latest_room:
-        return redirect(url_for('chat.chat_room', room_id=latest_room['room_id']))
+        return redirect(
+            url_for('chat.chat_room', room_id=latest_room['room_id'])
+        )
     else:
         return redirect(url_for('chat.chat_hub'))
-        # =====================================================================
+
+
+# =====================================================================
 # サイドバーからのチャット削除（ルーム退出）処理
 # =====================================================================
 @chat.route('/chat/room/<string:room_id>/leave', methods=['POST'])
@@ -660,14 +683,14 @@ def leave_room_action(room_id):
     # 1. room_members から自分を削除
     db.execute(
         'DELETE FROM room_members WHERE room_id = ? AND user_id = ?',
-        (room_id, user_id)
+        (room_id, user_id),
     )
     db.commit()
 
     # 2. もしルーム内にメンバーが誰もいなくなったらルーム自体も削除
     member_count = db.execute(
         'SELECT COUNT(*) AS count FROM room_members WHERE room_id = ?',
-        (room_id,)
+        (room_id,),
     ).fetchone()
 
     if member_count and member_count['count'] == 0:
@@ -677,3 +700,22 @@ def leave_room_action(room_id):
 
     # 削除後は他のチャット画面（または一覧インデックス）へリダイレクト
     return redirect(url_for('chat.chat_index'))
+
+
+# =====================================================================
+# HTTP送信時のフォールバック処理（必要に応じて使用）
+# =====================================================================
+@chat.route('/chat/send', methods=['POST'])
+def send_message():
+    db = get_db()
+    room_id = request.form.get('room_id')
+    message_text = request.form.get('message')
+
+    # ルームの状態を確認
+    room = db.execute("SELECT status FROM requests WHERE room_id = ?", (room_id,)).fetchone()
+
+    # チャットが終了している場合は送信を拒否
+    if room and room['status'] == 'completed':
+        return jsonify({'error': 'このチャットは既に終了しています'}), 400
+
+    return jsonify({'status': 'ok'})

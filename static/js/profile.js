@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const headerAvatarInitial = document.getElementById('headerAvatarInitial');
 
   function openFilePicker() {
-    avatarInput.click();
+    if (avatarInput) avatarInput.click();
   }
 
   if (avatarCamBtn) avatarCamBtn.addEventListener('click', openFilePicker);
@@ -211,13 +211,11 @@ document.addEventListener('DOMContentLoaded', () => {
       formData.append('grade', document.getElementById('grade')?.value || '');
       formData.append('department', document.getElementById('department')?.value || '');
 
-      // ★Flask側（routes/posts.py）の受け取り名 'bio' に合わせる
       formData.append('bio', bioInput ? bioInput.value : '');
 
       formData.append('teachSkills', JSON.stringify(teachSkillsDisplay));
       formData.append('learnSkills', JSON.stringify(learnSkillsDisplay));
 
-      // ★Flask側（routes/posts.py）の受け取り名 'avatar' に合わせる
       if (avatarInput && avatarInput.files[0]) {
         formData.append('avatar', avatarInput.files[0]);
       }
@@ -282,9 +280,10 @@ document.addEventListener('DOMContentLoaded', () => {
   /* ---------------------------------------
      6. アニメーション & いいねボタン
   --------------------------------------- */
+  // タイトルの転がる回転アニメーション
   const title = document.getElementById('profileTitle');
   if (title) {
-    const text = title.textContent;
+    const text = title.textContent.trim();
     title.textContent = '';
     [...text].forEach((char, i) => {
       const span = document.createElement('span');
@@ -295,30 +294,137 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // 「いいね」ボタンの非同期処理
   document.querySelectorAll('.like-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
       const postId = btn.dataset.postId;
-      const response = await fetch('/posts/likes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: `post_id=${postId}`
-      });
-      if (response.ok) {
-        const result = await response.json();
-        const countSpan = btn.querySelector('.like-count');
-        if (countSpan) {
-          let count = parseInt(countSpan.textContent) || 0;
-          if (result.liked) {
-            count += 1;
-            btn.dataset.liked = 'true';
-          } else {
-            count -= 1;
-            btn.dataset.liked = 'false';
+      try {
+        const response = await fetch('/posts/likes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: `post_id=${postId}`
+        });
+        if (response.ok) {
+          const result = await response.json();
+          const countSpan = btn.querySelector('.like-count');
+          if (countSpan) {
+            let count = parseInt(countSpan.textContent) || 0;
+            if (result.liked) {
+              count += 1;
+              btn.dataset.liked = 'true';
+            } else {
+              count -= 1;
+              btn.dataset.liked = 'false';
+            }
+            countSpan.textContent = count;
           }
-          countSpan.textContent = count;
         }
+      } catch (err) {
+        console.error('いいね処理に失敗しました:', err);
       }
     });
   });
 
 });
+/* ---------------------------------------
+     7. 投稿詳細モーダルの開閉処理
+  --------------------------------------- */
+  window.openPostModal = function(cardElem) {
+    const data = cardElem.dataset;
+
+    // モーダル内の要素を取得してデータをセット
+    const userIcon = document.getElementById('modalUserIcon');
+    const userName = document.getElementById('modalUserName');
+    const userMeta = document.getElementById('modalUserMeta');
+    const category = document.getElementById('modalCategory');
+    const skill = document.getElementById('modalSkill');
+    const postType = document.getElementById('modalPostType');
+    const postText = document.getElementById('modalPostText');
+    const imgWrap = document.getElementById('modalImageWrap');
+    const img = document.getElementById('modalImage');
+    const modal = document.getElementById('postModal');
+
+    if (!modal) return;
+
+    if (userIcon) userIcon.src = data.userIcon;
+    if (userName) userName.textContent = data.userName;
+    if (userMeta) userMeta.textContent = data.userMeta;
+    if (category) category.textContent = data.category;
+    if (skill) skill.textContent = data.skill;
+    
+    if (postType) {
+      postType.textContent = data.postType;
+      postType.className = 'badge ' + (data.postType === '教えたい' ? 'teach' : 'learn');
+    }
+
+    if (postText) postText.textContent = data.postText;
+
+    // 画像の表示制御
+    if (imgWrap && img) {
+      if (data.imagePath) {
+        img.src = data.imagePath;
+        imgWrap.style.display = 'block';
+      } else {
+        imgWrap.style.display = 'none';
+      }
+    }
+
+    // モーダルを表示
+    modal.style.display = 'flex';
+  };
+
+  window.closePostModal = function(e) {
+    const modal = document.getElementById('postModal');
+    if (modal) {
+      modal.style.display = 'none';
+    }
+  };
+  /* モーダルを開く関数 */
+window.openPostModal = function(cardElem) {
+  const data = cardElem.dataset;
+
+  const modal = document.getElementById('postModal');
+  const userIcon = document.getElementById('modalUserIcon');
+  const userName = document.getElementById('modalUserName');
+  const userMeta = document.getElementById('modalUserMeta');
+  const category = document.getElementById('modalCategory');
+  const skill = document.getElementById('modalSkill');
+  const postType = document.getElementById('modalPostType');
+  const postText = document.getElementById('modalPostText');
+  const imgWrap = document.getElementById('modalImageWrap');
+  const img = document.getElementById('modalImage');
+
+  if (!modal) return;
+
+  if (userIcon) userIcon.src = data.userIcon || '';
+  if (userName) userName.textContent = data.userName || '';
+  if (userMeta) userMeta.textContent = data.userMeta || '';
+  if (category) category.textContent = data.category || '';
+  if (skill) skill.textContent = data.skill || '';
+  if (postText) postText.textContent = data.postText || '';
+
+  if (postType) {
+    postType.textContent = data.postType;
+    postType.className = 'badge ' + (data.postType === '教えたい' ? 'teach' : 'learn');
+  }
+
+  // 添付画像が存在する場合のみモーダル内に拡大表示
+  if (imgWrap && img) {
+    if (data.imagePath && data.imagePath !== 'None' && data.imagePath !== '') {
+      img.src = data.imagePath;
+      imgWrap.style.display = 'block';
+    } else {
+      imgWrap.style.display = 'none';
+    }
+  }
+
+  modal.style.display = 'flex';
+};
+
+/* モーダルを閉じる関数 */
+window.closePostModal = function() {
+  const modal = document.getElementById('postModal');
+  if (modal) {
+    modal.style.display = 'none';
+  }
+};

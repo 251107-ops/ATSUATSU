@@ -1,3 +1,13 @@
+/* 全体（またはヘッダー）のフォントを指定したWebフォントに統一 */
+body, .header {
+    font-family: 'Noto Sans JP', sans-serif !important;
+}
+
+/* ヘッダーの文字太さを明示 */
+.header .nav a {
+    font-size: 14px !important;
+    font-weight: 500 !important; /* 全画面で同じNoto Sans JPの500が適用されます */
+}
 .header {
     display: flex;
     justify-content: space-between;
@@ -31,7 +41,7 @@
 
 .header .nav a {
     font-size: 14px !important;
-    font-weight: bold !important;
+    font-weight: 500 !important; /* 💡 bold から 500 (または 600) に変更 */
     color: var(--text-main) !important;
     line-height: 1;
     white-space: nowrap;
