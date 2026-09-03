@@ -1,4 +1,3 @@
-# --- app.py ---
 import os
 from flask import Flask, render_template, session
 from flask_socketio import SocketIO, send
@@ -59,6 +58,29 @@ with app.app_context():
     db.execute('''CREATE TABLE IF NOT EXISTS categories (category_id INTEGER PRIMARY KEY AUTOINCREMENT, category_name TEXT NOT NULL UNIQUE)''')
     db.execute('''CREATE TABLE IF NOT EXISTS likes (user_id INTEGER NOT NULL, post_id INTEGER NOT NULL, PRIMARY KEY (user_id, post_id), FOREIGN KEY (user_id) REFERENCES users(user_id), FOREIGN KEY (post_id) REFERENCES posts(post_id))''')
     
+    # ==========================================
+    # 💡 チャット機能用テーブル (rooms, room_members, messages)
+    # ==========================================
+    db.execute('''CREATE TABLE IF NOT EXISTS rooms (
+        room_id TEXT PRIMARY KEY,
+        created_at TEXT DEFAULT (datetime('now','localtime'))
+    )''')
+
+    db.execute('''CREATE TABLE IF NOT EXISTS room_members (
+        room_id TEXT NOT NULL REFERENCES rooms(room_id) ON DELETE CASCADE,
+        user_id INTEGER NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+        joined_at TEXT DEFAULT (datetime('now','localtime')),
+        PRIMARY KEY (room_id, user_id)
+    )''')
+
+    db.execute('''CREATE TABLE IF NOT EXISTS messages (
+        message_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        room_id TEXT NOT NULL REFERENCES rooms(room_id) ON DELETE CASCADE,
+        sender_id INTEGER NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+        content TEXT NOT NULL,
+        created_at TEXT DEFAULT (datetime('now','localtime'))
+    )''')
+
     db.execute('''INSERT OR IGNORE INTO categories (category_name) VALUES
         ('IT・PCスキル'),
         ('語学'),
