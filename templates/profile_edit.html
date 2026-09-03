@@ -20,9 +20,6 @@
       <button class="side-link side-link--active" data-target="profile">
        <a href="/profile"><span class="side-link__icon">◎</span>プロフィール</a>
       </button>
-      <button class="side-link" data-target="skills">
-        <span class="side-link__icon">▦</span>スキル管理
-      </button>
       <button class="side-link" data-target="favorites">
         <a href="/likes/page"><span class="side-link__icon">♡</span>お気に入り</a>
       </button>
@@ -72,11 +69,12 @@
 
           <div class="field">
             <label for="grade">学年<span class="required">*</span></label>
-            <select id="grade" name="grade" required>
-              <option value="1年" {% if user and user.grade == '1年' %}selected{% endif %}>1年</option>
-              <option value="2年" {% if user and user.grade == '2年' %}selected{% endif %}>2年</option>
-              <option value="3年" {% if user and user.grade == '3年' %}selected{% endif %}>3年</option>
-              <option value="4年" {% if user and user.grade == '4年' %}selected{% endif %}>4年</option>
+            <select name="grade" id="grade">
+                {% for g in [1, 2, 3, 4] %}
+                   <option value="{{ g }}" {{ 'selected' if user.grade|string == g|string or user.grade|string == (g|string ~ '年') }}>
+                      {{ g }}年
+                   </option>
+                {% endfor %}
             </select>
           </div>
 

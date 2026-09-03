@@ -75,10 +75,9 @@ body {
     color: var(--text-main, #2c3e50);
     flex-grow: 1;
     overflow: hidden; /* はみ出し防止 */
-    margin-right: 8px;
 }
 
-/* ⚠️ アイコン画像の巨大化を防止 */
+/* アイコン画像の設定 */
 .chat-avatar,
 .chat-item img {
     width: 44px !important;
@@ -112,25 +111,6 @@ body {
     font-size: 13px;
 }
 
-/* サイドバーの削除（×）ボタン */
-.btn-delete-room {
-    background: none;
-    border: none;
-    color: #999;
-    font-size: 18px;
-    font-weight: bold;
-    cursor: pointer;
-    padding: 4px 8px;
-    border-radius: 4px;
-    flex-shrink: 0;
-    transition: all 0.2s ease;
-}
-
-.btn-delete-room:hover {
-    color: #ff4d4f;
-    background-color: #ffe6e6;
-}
-
 .empty-list {
     padding: 20px;
     text-align: center;
@@ -149,44 +129,62 @@ body {
     overflow: hidden;
 }
 
-/* 未選択時：ワイヤーフレーム風の中央吹き出しアイコン */
+/* 未選択時：中央吹き出しアイコン */
 .no-chat-selected {
     display: flex;
-    align-items: center;
     justify-content: center;
+    align-items: center;
+    width: 100%;
     height: 100%;
-    background-color: var(--bg-color, #f2f5f9);
-}
-
-.placeholder-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 90px;
-    height: 60px;
-    border: 2px solid var(--border-color, #b0bec5);
-    border-radius: 12px;
-    position: relative;
     background-color: #ffffff;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
 }
 
-.placeholder-icon::after {
+/* フキダシアイコンのスタイル */
+.speech-bubble-icon {
+    position: relative;
+    width: 70px;
+    height: 45px;
+    background-color: #ffffff;
+    border: 2px solid #333333;
+    border-radius: 8px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* フキダシのしっぽ部分 */
+.speech-bubble-icon::after {
     content: '';
     position: absolute;
-    bottom: -10px;
-    left: 32px;
-    border-width: 10px 10px 0 0;
+    bottom: -12px;
+    left: 20px;
+    border-width: 12px 10px 0 0;
     border-style: solid;
-    border-color: var(--border-color, #b0bec5) transparent transparent transparent;
+    border-color: #ffffff transparent;
+    display: block;
+    width: 0;
+    z-index: 1;
 }
 
-.dots {
-    font-size: 24px;
+.speech-bubble-icon::before {
+    content: '';
+    position: absolute;
+    bottom: -15px;
+    left: 19px;
+    border-width: 14px 11px 0 0;
+    border-style: solid;
+    border-color: #333333 transparent;
+    display: block;
+    width: 0;
+}
+
+/* フキダシ内の「...」テキスト */
+.speech-bubble-icon span {
     font-weight: bold;
-    color: var(--border-color, #b0bec5);
-    letter-spacing: 3px;
-    line-height: 1;
+    font-size: 20px;
+    color: #333333;
+    letter-spacing: 2px;
+    margin-bottom: 4px;
 }
 
 /* ---------------------------------------------------------------------
@@ -492,8 +490,14 @@ body {
 /* =====================================================================
    チャット終了アクション（ヘッダー内）
    ===================================================================== */
-   .chat-session-action {
+.chat-session-action {
     margin-top: 10px;
+}
+
+.btn.is-disabled {
+    pointer-events: none;
+    opacity: 0.55;
+    cursor: not-allowed;
 }
 
 /* 「チャット終了を申請」ボタン */
@@ -558,7 +562,7 @@ body {
     content: '✓';
 }
 
-/* メッセージ送信ロック時の注意文（既存流用でも可） */
+/* メッセージ送信ロック時の注意文 */
 .msg-locked-notice {
     width: 100%;
     text-align: center;
@@ -568,4 +572,14 @@ body {
     margin: 0;
     background-color: var(--bg-color, #f2f5f9);
     border-radius: 12px;
+}
+.chat-closed-message {
+    width: 100%;
+    padding: 12px;
+    background-color: #f1f5f9;
+    color: #64748b;
+    text-align: center;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 500;
 }

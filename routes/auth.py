@@ -1,8 +1,11 @@
 import os
+import random
 import sqlite3
+import uuid
+from datetime import datetime, timedelta
 from argon2 import PasswordHasher
 from argon2.exceptions import InvalidHashError, VerifyMismatchError
-from flask import Blueprint, g, redirect, render_template, request, session
+from flask import Blueprint, g, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
 
@@ -88,6 +91,10 @@ def register2():
     department = request.form.get('department', '')
     introduction = request.form.get('introduction', '')
 
+    # ★ 学年のデータ整形（「2年」→「2」に変換して保存）
+    if grade:
+        grade = grade.replace('年', '').strip()
+
     db = get_db()
     user_check = db.execute(
         'SELECT email FROM users WHERE email = ?', (email,)
@@ -142,6 +149,139 @@ def logout():
     return redirect('/login')
 
 
+# ★ 自分のプロフィール画面表示
+@auth.route('/profile')
+def profile():
+    if 'user_id' not in session:
+        return redirect('/login')
+
+    user_id = session['user_id']
+    db = get_db()
+
+    # ユーザー情報の取得
+    user = db.execute(
+        'SELECT user_id, name, email, grade, department, introduction, icon_path FROM users WHERE user_id = ?',
+        (user_id,)
+    ).fetchone()
+
+    # 教えたいスキル
+    skills_teach = db.execute(
+        '''
+        SELECT DISTINCT s.skill_name
+        FROM posts p
+        JOIN skills s ON p.skill_id = s.skill_id
+        WHERE p.user_id = ? AND p.post_type = '教えたい'
+        ''',
+        (user_id,)
+    ).fetchall()
+
+    # 学びたいスキル
+    skills_learn = db.execute(
+        '''
+        SELECT DISTINCT s.skill_name
+        FROM posts p
+        JOIN skills s ON p.skill_id = s.skill_id
+        WHERE p.user_id = ? AND p.post_type = '学びたい'
+        ''',
+        (user_id,)
+    ).fetchall()
+
+    # 自分の投稿
+    my_posts = db.execute(
+        '''
+        SELECT p.*, s.skill_name, c.category_name,
+               (SELECT COUNT(*) FROM likes WHERE post_id = p.post_id) AS like_count,
+               EXISTS(SELECT 1 FROM likes WHERE post_id = p.post_id AND user_id = ?) AS liked_by_me
+        FROM posts p
+        JOIN skills s ON p.skill_id = s.skill_id
+        JOIN categories c ON p.category_id = c.category_id
+        WHERE p.user_id = ?
+        ORDER BY p.post_date DESC
+        ''',
+        (user_id, user_id)
+    ).fetchall()
+
+    # レビュー統計情報
+    avg_rating_val = db.execute(
+        'SELECT AVG(rating) FROM reviews WHERE reviewee_id = ?',
+        (user_id,)
+    ).fetchone()[0] or 0
+
+    review_count = db.execute(
+        'SELECT COUNT(*) FROM reviews WHERE reviewee_id = ?',
+        (user_id,)
+    ).fetchone()[0] or 0
+
+    review_stats = {
+        'avg_rating': round(avg_rating_val, 1),
+        'review_count': review_count
+    }
+
+    return render_template(
+        'profile.html',
+        user=user,
+        skills_teach=skills_teach,
+        skills_learn=skills_learn,
+        my_posts=my_posts,
+        review_stats=review_stats
+    )
+
+
+# ★ 自分のプロフィール編集画面・更新処理
+@auth.route('/profile_edit', methods=['GET', 'POST'])
+def profile_edit():
+    if 'user_id' not in session:
+        return redirect('/login')
+
+    user_id = session['user_id']
+    db = get_db()
+
+    if request.method == 'POST':
+        name = request.form.get('name', '')
+        grade = request.form.get('grade', '')
+        department = request.form.get('department', '')
+        introduction = request.form.get('introduction', '')
+
+        # ★ 学年のデータ整形（「2年」等の入力から「年」を取り除き「2」にしてDB保存）
+        if grade:
+            grade = str(grade).replace('年', '').strip()
+
+        # 画像ファイルのアップロード処理
+        icon_file = request.files.get('icon')
+        if icon_file and icon_file.filename:
+            allowed_ext = {'.png', '.jpg', '.jpeg', '.gif'}
+            ext = os.path.splitext(icon_file.filename)[1].lower()
+
+            if ext in allowed_ext:
+                filename = secure_filename(f'user_{user_id}{ext}')
+                upload_dir = os.path.join('static', 'uploads')
+                os.makedirs(upload_dir, exist_ok=True)
+                save_path = os.path.join(upload_dir, filename)
+                icon_file.save(save_path)
+
+                icon_path = f'uploads/{filename}'
+                db.execute('UPDATE users SET icon_path = ? WHERE user_id = ?', (icon_path, user_id))
+
+        # 基本情報の更新
+        db.execute(
+            '''
+            UPDATE users
+            SET name = ?, grade = ?, department = ?, introduction = ?
+            WHERE user_id = ?
+            ''',
+            (name, grade, department, introduction, user_id)
+        )
+        db.commit()
+
+        # セッション情報の更新
+        session['name'] = name
+
+        return redirect('/profile')
+
+    user = db.execute('SELECT * FROM users WHERE user_id = ?', (user_id,)).fetchone()
+    return render_template('profile_edit.html', user=user)
+
+
 @auth.route('/change-password', methods=['GET', 'POST'])
 def change_password():
     error_message = ''
@@ -191,7 +331,6 @@ def change_password():
 
 # データベース接続関数
 def connect_db():
-    # 💡 timeout=20.0 を追加して DB ロック解除待ち時間を確保
     rv = sqlite3.connect(DATABASE, timeout=20.0)
     rv.row_factory = sqlite3.Row  # カラム名でのデータ取得を可能にする設定
     return rv
@@ -202,6 +341,7 @@ def get_db():
     if not hasattr(g, 'sqlite_db'):
         g.sqlite_db = connect_db()
     return g.sqlite_db
+
 
 def init_db():
     db = connect_db()
@@ -252,14 +392,207 @@ def init_db():
             created_at  TEXT DEFAULT (datetime('now','localtime'))
         );
     """)
-    
 
     db.commit()
     db.close()
 
 
-# 💡 コメントアウトを解除：リクエスト終了時に自動でDB接続を閉じ、ロックを解放する
 @auth.teardown_app_request
 def close_db(error):
     if hasattr(g, 'sqlite_db'):
         g.sqlite_db.close()
+
+
+# 他人のプロフィール画面表示
+@auth.route('/profile/<int:user_id>')
+def view_other_profile(user_id):
+    if 'user_id' not in session:
+        return redirect('/login')
+
+    if session['user_id'] == user_id:
+        return redirect('/profile')
+
+    db = get_db()
+    
+    # 1. ユーザー基本情報の取得
+    user = db.execute(
+        'SELECT user_id, name, email, grade, department, introduction, icon_path FROM users WHERE user_id = ?',
+        (user_id,)
+    ).fetchone()
+
+    if not user:
+        return render_template('404.html'), 404
+
+    # 2. 教えたいスキルの取得
+    skills_teach = db.execute(
+        '''
+        SELECT DISTINCT s.skill_name
+        FROM posts p
+        JOIN skills s ON p.skill_id = s.skill_id
+        WHERE p.user_id = ? AND p.post_type = '教えたい'
+        ''',
+        (user_id,)
+    ).fetchall()
+
+    # 3. 学びたいスキルの取得
+    skills_learn = db.execute(
+        '''
+        SELECT DISTINCT s.skill_name
+        FROM posts p
+        JOIN skills s ON p.skill_id = s.skill_id
+        WHERE p.user_id = ? AND p.post_type = '学びたい'
+        ''',
+        (user_id,)
+    ).fetchall()
+
+    # 4. 投稿一覧の取得
+    user_posts = db.execute(
+        '''
+        SELECT p.*, s.skill_name, c.category_name,
+               (SELECT COUNT(*) FROM likes WHERE post_id = p.post_id) AS like_count,
+               EXISTS(SELECT 1 FROM likes WHERE post_id = p.post_id AND user_id = ?) AS liked_by_me
+        FROM posts p
+        JOIN skills s ON p.skill_id = s.skill_id
+        JOIN categories c ON p.category_id = c.category_id
+        WHERE p.user_id = ?
+        ORDER BY p.post_date DESC
+        ''',
+        (session['user_id'], user_id)
+    ).fetchall()
+
+    # 5. レビュー情報の取得
+    reviews = db.execute(
+        '''
+        SELECT r.*, u.name AS reviewer_name, u.icon_path AS reviewer_icon
+        FROM reviews r
+        JOIN users u ON r.reviewer_id = u.user_id
+        WHERE r.reviewee_id = ?
+        ORDER BY r.created_at DESC
+        ''',
+        (user_id,)
+    ).fetchall()
+
+    avg_rating_val = db.execute(
+        'SELECT AVG(rating) FROM reviews WHERE reviewee_id = ?',
+        (user_id,)
+    ).fetchone()[0] or 0
+
+    review_stats = {
+        'avg_rating': round(avg_rating_val, 1),
+        'review_count': len(reviews)
+    }
+
+    return render_template(
+        'other_profile.html',
+        user=user,
+        skills_teach=skills_teach,
+        skills_learn=skills_learn,
+        user_posts=user_posts,
+        reviews=reviews,
+        review_stats=review_stats
+    )
+
+
+# ==========================================
+# パスワード再設定フロー (4ステップ構造)
+# ==========================================
+
+# 1. メールアドレス入力 ＆ 6桁コード生成
+@auth.route('/forgot-password', methods=['GET', 'POST'])
+def forgot_password():
+    error_message = ''
+
+    if request.method == 'POST':
+        email = request.form.get('email', '').strip()
+        db = get_db()
+
+        user = db.execute(
+            'SELECT user_id FROM users WHERE email = ?', (email,)
+        ).fetchone()
+
+        if user:
+            # 6桁の数字コード（ワンタイムパス）を生成（例: 482910）
+            otp_code = f"{random.randint(0, 999999):06d}"
+            # 有効期限（10分間）
+            expiration = datetime.now() + timedelta(minutes=10)
+
+            db.execute(
+                'UPDATE users SET reset_token = ?, token_expiration = ? WHERE email = ?',
+                (otp_code, expiration, email)
+            )
+            db.commit()
+
+            # コード表示専用画面 (show_code.html) へ遷移
+            return render_template('show_code.html', email=email, otp_code=otp_code)
+        else:
+            error_message = '指定されたメールアドレスのアカウントは見つかりませんでした。'
+
+    return render_template('forgot_password.html', error_message=error_message)
+
+
+# 2. ワンタイムパスワード入力画面の表示
+@auth.route('/enter-code', methods=['POST'])
+def enter_code():
+    email = request.form.get('email', '').strip()
+    return render_template('verify_code.html', email=email)
+
+
+# 3. ワンタイムパスワードの検証処理
+@auth.route('/verify-code', methods=['POST'])
+def verify_code():
+    email = request.form.get('email', '').strip()
+    code = request.form.get('code', '').strip()
+
+    db = get_db()
+    user = db.execute(
+        'SELECT user_id, token_expiration FROM users WHERE email = ? AND reset_token = ?',
+        (email, code)
+    ).fetchone()
+
+    if not user:
+        return render_template(
+            'verify_code.html',
+            email=email,
+            error_message='認証コードが正しくないか、メールアドレスが一致しません。'
+        )
+
+    # 有効期限の検証
+    expiration = user['token_expiration']
+    if isinstance(expiration, str):
+        expiration = datetime.strptime(expiration.split('.')[0], '%Y-%m-%d %H:%M:%S')
+
+    if datetime.now() > expiration:
+        return render_template(
+            'verify_code.html',
+            email=email,
+            error_message='認証コードの有効期限（10分）が切れています。最初からやり直してください。'
+        )
+
+    # ⭕ 認証成功：パスワード再設定画面 (reset_password.html) へ移動
+    return render_template('reset_password.html', user_id=user['user_id'])
+
+
+# 4. 新しいパスワードの更新処理
+@auth.route('/reset-password', methods=['POST'])
+def reset_password():
+    user_id = request.form.get('user_id', '')
+    new_password = request.form.get('password', '')
+    password_confirm = request.form.get('password_confirm', '')
+
+    if not new_password.strip():
+        return render_template('reset_password.html', user_id=user_id, error_message='新しいパスワードを入力してください。')
+
+    if new_password != password_confirm:
+        return render_template('reset_password.html', user_id=user_id, error_message='パスワードが一致しません。')
+
+    db = get_db()
+    new_pass_hash = ph.hash(new_password)
+
+    # パスワード更新 ＆ トークン初期化
+    db.execute(
+        'UPDATE users SET password = ?, reset_token = NULL, token_expiration = NULL WHERE user_id = ?',
+        (new_pass_hash, user_id)
+    )
+    db.commit()
+
+    return redirect('/login')
