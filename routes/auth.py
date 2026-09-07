@@ -149,139 +149,6 @@ def logout():
     return redirect('/login')
 
 
-# ★ 自分のプロフィール画面表示
-@auth.route('/profile')
-def profile():
-    if 'user_id' not in session:
-        return redirect('/login')
-
-    user_id = session['user_id']
-    db = get_db()
-
-    # ユーザー情報の取得
-    user = db.execute(
-        'SELECT user_id, name, email, grade, department, introduction, icon_path FROM users WHERE user_id = ?',
-        (user_id,)
-    ).fetchone()
-
-    # 教えたいスキル
-    skills_teach = db.execute(
-        '''
-        SELECT DISTINCT s.skill_name
-        FROM posts p
-        JOIN skills s ON p.skill_id = s.skill_id
-        WHERE p.user_id = ? AND p.post_type = '教えたい'
-        ''',
-        (user_id,)
-    ).fetchall()
-
-    # 学びたいスキル
-    skills_learn = db.execute(
-        '''
-        SELECT DISTINCT s.skill_name
-        FROM posts p
-        JOIN skills s ON p.skill_id = s.skill_id
-        WHERE p.user_id = ? AND p.post_type = '学びたい'
-        ''',
-        (user_id,)
-    ).fetchall()
-
-    # 自分の投稿
-    my_posts = db.execute(
-        '''
-        SELECT p.*, s.skill_name, c.category_name,
-               (SELECT COUNT(*) FROM likes WHERE post_id = p.post_id) AS like_count,
-               EXISTS(SELECT 1 FROM likes WHERE post_id = p.post_id AND user_id = ?) AS liked_by_me
-        FROM posts p
-        JOIN skills s ON p.skill_id = s.skill_id
-        JOIN categories c ON p.category_id = c.category_id
-        WHERE p.user_id = ?
-        ORDER BY p.post_date DESC
-        ''',
-        (user_id, user_id)
-    ).fetchall()
-
-    # レビュー統計情報
-    avg_rating_val = db.execute(
-        'SELECT AVG(rating) FROM reviews WHERE reviewee_id = ?',
-        (user_id,)
-    ).fetchone()[0] or 0
-
-    review_count = db.execute(
-        'SELECT COUNT(*) FROM reviews WHERE reviewee_id = ?',
-        (user_id,)
-    ).fetchone()[0] or 0
-
-    review_stats = {
-        'avg_rating': round(avg_rating_val, 1),
-        'review_count': review_count
-    }
-
-    return render_template(
-        'profile.html',
-        user=user,
-        skills_teach=skills_teach,
-        skills_learn=skills_learn,
-        user_posts=my_posts,
-        review_stats=review_stats
-    )
-
-
-# ★ 自分のプロフィール編集画面・更新処理
-@auth.route('/profile_edit', methods=['GET', 'POST'])
-def profile_edit():
-    if 'user_id' not in session:
-        return redirect('/login')
-
-    user_id = session['user_id']
-    db = get_db()
-
-    if request.method == 'POST':
-        name = request.form.get('name', '')
-        grade = request.form.get('grade', '')
-        department = request.form.get('department', '')
-        introduction = request.form.get('introduction', '')
-
-        # ★ 学年のデータ整形（「2年」等の入力から「年」を取り除き「2」にしてDB保存）
-        if grade:
-            grade = str(grade).replace('年', '').strip()
-
-        # 画像ファイルのアップロード処理
-        icon_file = request.files.get('icon')
-        if icon_file and icon_file.filename:
-            allowed_ext = {'.png', '.jpg', '.jpeg', '.gif'}
-            ext = os.path.splitext(icon_file.filename)[1].lower()
-
-            if ext in allowed_ext:
-                filename = secure_filename(f'user_{user_id}{ext}')
-                upload_dir = os.path.join('static', 'uploads')
-                os.makedirs(upload_dir, exist_ok=True)
-                save_path = os.path.join(upload_dir, filename)
-                icon_file.save(save_path)
-
-                icon_path = f'uploads/{filename}'
-                db.execute('UPDATE users SET icon_path = ? WHERE user_id = ?', (icon_path, user_id))
-
-        # 基本情報の更新
-        db.execute(
-            '''
-            UPDATE users
-            SET name = ?, grade = ?, department = ?, introduction = ?
-            WHERE user_id = ?
-            ''',
-            (name, grade, department, introduction, user_id)
-        )
-        db.commit()
-
-        # セッション情報の更新
-        session['name'] = name
-
-        return redirect('/profile')
-
-    user = db.execute('SELECT * FROM users WHERE user_id = ?', (user_id,)).fetchone()
-    return render_template('profile_edit.html', user=user)
-
-
 @auth.route('/change-password', methods=['GET', 'POST'])
 def change_password():
     error_message = ''
@@ -389,9 +256,20 @@ def init_db():
             reviewee_id INTEGER NOT NULL REFERENCES users(user_id),
             rating      INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
             comment     TEXT,
+            skill_name  TEXT,
+            post_type   TEXT,
             created_at  TEXT DEFAULT (datetime('now','localtime'))
         );
     """)
+
+    try:
+        db.execute("ALTER TABLE reviews ADD COLUMN skill_name TEXT")
+    except sqlite3.OperationalError:
+        pass
+    try:
+        db.execute("ALTER TABLE reviews ADD COLUMN post_type TEXT")
+    except sqlite3.OperationalError:
+        pass
 
     db.commit()
     db.close()

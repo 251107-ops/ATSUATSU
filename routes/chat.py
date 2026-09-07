@@ -136,11 +136,11 @@ def chat_hub():
         JOIN users u ON rm2.user_id = u.user_id
         LEFT JOIN rooms r ON rm1.room_id = r.room_id
         LEFT JOIN skills s ON r.skill_id = s.skill_id
-        WHERE rm1.user_id = ?
+        WHERE rm1.user_id = ? AND rm1.hidden = 0
     """,
         (user_id,),
     ).fetchall()
-
+    
     chat_rooms = []
     for row in chat_rooms_rows:
         chat_rooms.append({
@@ -185,6 +185,12 @@ def chat_room(room_id):
         session['room'] = None
         session.modified = True
         return redirect(url_for('.chat_hub'))
+
+    db.execute(
+        'UPDATE room_members SET hidden = 0 WHERE room_id = ? AND user_id = ?',
+        (room_id, user_id),
+    )
+    db.commit()
 
     session['room'] = room_id
     session.modified = True
@@ -234,7 +240,7 @@ def chat_room(room_id):
         JOIN users u ON rm2.user_id = u.user_id
         LEFT JOIN rooms r ON rm1.room_id = r.room_id
         LEFT JOIN skills s ON r.skill_id = s.skill_id
-        WHERE rm1.user_id = ?
+        WHERE rm1.user_id = ? AND rm1.hidden = 0
     """,
         (user_id,),
     ).fetchall()
@@ -280,6 +286,7 @@ def chat_room(room_id):
         chat_rooms=chat_rooms,
         is_reviewed=is_reviewed,
     )
+
 
 
 # =====================================================================
@@ -667,6 +674,28 @@ def chat_index():
         )
     else:
         return redirect(url_for('chat.chat_hub'))
+
+@chat.route('/chat/room/<string:room_id>/close', methods=['POST'])
+def close_room(room_id):
+    user_id = session.get('user_id')
+    if not user_id:
+        return redirect('/login')
+
+    db = get_db()
+    db.execute(
+        'UPDATE room_members SET hidden = 1 WHERE room_id = ? AND user_id = ?',
+        (room_id, user_id),
+    )
+    db.commit()
+
+    # 今開いているルームを閉じたら未選択画面へ
+    if session.get('room') == room_id:
+        session['room'] = None
+        session.modified = True
+        return redirect(url_for('.chat_hub'))
+
+    return redirect(request.referrer or url_for('.chat_hub'))
+
 
 
 # =====================================================================

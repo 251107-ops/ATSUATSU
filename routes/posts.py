@@ -426,6 +426,120 @@ def profile_edit():
 
     return render_template('profile_edit.html', user=user, teach_skills=teach_skills, learn_skills=learn_skills)
 
+@posts.route("/posts/<int:post_id>/delete", methods=['POST'])
+def delete_post(post_id):
+    if 'user_email' not in session:
+        return redirect('/login')
+
+    user_id = session.get('user_id')
+    db = get_db()
+
+    post = db.execute("SELECT * FROM posts WHERE post_id = ?", (post_id,)).fetchone()
+    if not post:
+        flash("対象の投稿が見つかりません。", "error")
+        return redirect('/profile')
+
+    if post['user_id'] != user_id:
+        flash("この投稿を削除する権限がありません。", "error")
+        return redirect('/profile')
+
+    active_request = db.execute(
+        "SELECT 1 FROM requests WHERE post_id = ? AND status IN ('pending', 'accepted')",
+        (post_id,)
+    ).fetchone()
+
+    if active_request:
+        flash("進行中のリクエストがあるため、この投稿は削除できません。", "error")
+        return redirect('/profile')
+
+    db.execute("DELETE FROM likes WHERE post_id = ?", (post_id,))
+    db.execute("DELETE FROM posts WHERE post_id = ?", (post_id,))
+    db.commit()
+
+    flash("投稿を削除しました。", "success")
+    return redirect('/profile')
+
+
+@posts.route("/posts/<int:post_id>/edit", methods=['GET', 'POST'])
+def edit_post(post_id):
+    if 'user_email' not in session:
+        return redirect('/login')
+
+    user_id = session.get('user_id')
+    db = get_db()
+
+    post = db.execute("SELECT * FROM posts WHERE post_id = ?", (post_id,)).fetchone()
+    if not post:
+        flash("対象の投稿が見つかりません。", "error")
+        return redirect('/profile')
+
+    if post['user_id'] != user_id:
+        flash("この投稿を編集する権限がありません。", "error")
+        return redirect('/profile')
+
+    if request.method == 'POST':
+        post_type = request.form.get('post_type', '')
+        category_id = request.form.get('category_id', '')
+        skill_id = request.form.get('skill_id', '')
+        post_text = request.form.get('post_text', '')
+
+        if not skill_id or not post_type or not post_text or not category_id:
+            flash("すべてのフィールドを入力してください。", "error")
+            return redirect(f'/posts/{post_id}/edit')
+
+        # 自分の他の投稿と同じスキル・タイプで重複していないかチェック（自分自身は除外）
+        dup = db.execute("""
+            SELECT post_id FROM posts
+            WHERE user_id = ? AND skill_id = ? AND post_type = ? AND post_id != ?
+        """, (user_id, int(skill_id), post_type, post_id)).fetchone()
+        if dup:
+            flash("このスキルに関する投稿はすでに存在します。（1つのスキルにつき1つまで）", "error")
+            return redirect(f'/posts/{post_id}/edit')
+
+        image_path = post['image_path']
+        post_file = request.files.get('post_image')
+        if post_file and post_file.filename != '':
+            ext = os.path.splitext(post_file.filename)[1].lower()
+            if ext in ALLOWED_EXTENSIONS:
+                filename = secure_filename(f"post_{uuid.uuid4().hex}{ext}")
+                save_path = os.path.join(UPLOAD_FOLDER, filename)
+                post_file.save(save_path)
+                image_path = f"uploads/{filename}"
+            else:
+                flash("許可されていないファイル形式です（PNG, JPEG, PDFのみ対応）。", "error")
+                return redirect(f'/posts/{post_id}/edit')
+
+        db.execute(
+            "UPDATE posts SET post_type = ?, category_id = ?, skill_id = ?, post_text = ?, image_path = ? WHERE post_id = ?",
+            (post_type, int(category_id), int(skill_id), post_text, image_path, post_id)
+        )
+        db.commit()
+        flash("投稿を更新しました。", "success")
+        return redirect('/profile')
+
+    # GET: 編集フォームの初期値を準備
+    raw_categories = db.execute("SELECT category_id, category_name FROM categories ORDER BY category_id").fetchall()
+    categories = []
+    seen_cat_names = set()
+    for c in raw_categories:
+        if c['category_name'] and c['category_name'] not in seen_cat_names:
+            seen_cat_names.add(c['category_name'])
+            categories.append({'category_id': c['category_id'], 'category_name': c['category_name']})
+
+    raw_skills = db.execute("SELECT skill_id, skill_name, category_id FROM skills ORDER BY skill_id").fetchall()
+    skills = []
+    seen_skills = set()
+    for s in raw_skills:
+        key = (s['skill_name'], s['category_id'])
+        if s['skill_name'] and key not in seen_skills:
+            seen_skills.add(key)
+            skills.append({
+                'skill_id': s['skill_id'],
+                'skill_name': s['skill_name'],
+                'category_id': s['category_id'] if s['category_id'] is not None else ""
+            })
+
+    return render_template('posts.html', categories=categories, skills=skills, preset_type=post['post_type'], edit_post=post)
 
 @posts.route("/posts", methods=['GET', 'POST'])
 def create_post():

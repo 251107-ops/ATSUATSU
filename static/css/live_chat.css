@@ -54,12 +54,32 @@ body {
 
 /* リストアイテムの親要素 */
 .chat-item-wrapper {
-    display: flex;
-    align-items: center;
+    /* display: flex;
+    align-items: center; */
     justify-content: space-between;
-    padding: 8px 12px;
+    /* padding: 8px 12px;
     border-bottom: 1px solid var(--border-color, #f0f4f8);
-    transition: background-color 0.2s ease;
+    transition: background-color 0.2s ease; */
+}
+
+
+.chat-item-close {
+    background: none;
+    border: none;
+    color: var(--text-sub, #7f8c8d);
+    font-size: 14px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    cursor: pointer;
+    flex-shrink: 0;
+    margin-left: 4px;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.chat-item-close:hover {
+    background-color: #fdeaea;
+    color: #c0392b;
 }
 
 .chat-item-wrapper:hover, 
@@ -582,4 +602,82 @@ body {
     border-radius: 8px;
     font-size: 0.9rem;
     font-weight: 500;
+}
+
+/* =====================================================================
+   レスポンシブ対応 (スマホ表示最適化: 768px以下)
+   ===================================================================== */
+@media screen and (max-width: 768px) {
+    .chat-container {
+        height: calc(100vh - 70px); /* スマホ画面全体にフィット */
+        margin: 0;
+        border-radius: 0;
+        border: none;
+    }
+
+    .chat-sidebar {
+        width: 100%;
+        min-width: 100%;
+        border-right: none;
+    }
+
+    .chat-main {
+        width: 100%;
+    }
+
+    /* ルーム選択の有無でサイドバーとメインエリアを切り替え */
+    /* ルーム未選択時はリストを表示、メインを非表示 */
+    .chat-sidebar {
+        display: flex;
+    }
+    .chat-main {
+        display: none;
+    }
+
+    /* メッセージ画面（chat-box）が存在する場合＝ルーム選択中 */
+    /* サイドバーを隠してメイン画面を全画面表示 */
+    .chat-container:has(#chat-box) .chat-sidebar {
+        display: none;
+    }
+    .chat-container:has(#chat-box) .chat-main {
+        display: flex;
+    }
+
+    /* スマホ用の余白・サイズ調整 */
+    .chat-header {
+        padding: 12px 16px;
+    }
+
+    .chat-header h2 {
+        font-size: 16px;
+    }
+
+    .chat-messages {
+        padding: 12px;
+    }
+
+    .msg-line {
+        max-width: 85%; /* スマホでは吹き出しを広く */
+    }
+
+    .chat-footer {
+        padding: 10px;
+        gap: 8px;
+    }
+
+    .chat-footer input[type="text"] {
+        padding: 10px 14px;
+        font-size: 14px;
+    }
+
+    .btn-send {
+        padding: 10px 18px;
+        font-size: 13px;
+    }
+
+    .btn-image-upload {
+        width: 36px;
+        height: 36px;
+        font-size: 16px;
+    }
 }

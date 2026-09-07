@@ -12,7 +12,6 @@ def new_review(request_id):
 
     db = get_db()
     
-    # 1. request_id または room_id のどちらが渡されても取得できるように検索
     req = db.execute("""
         SELECT * FROM requests 
         WHERE request_id = ? OR room_id = ?
@@ -23,7 +22,6 @@ def new_review(request_id):
         flash('指定されたリクエストが見つかりませんでした。', 'error')
         return redirect(url_for('requests_bp.list_requests'))
 
-    # 2. 型を int に揃え、申請者(requester_id)・受領者(receiver_id)の双方を許可
     current_user_id = int(user_id)
     requester_id = int(req['requester_id'])
     receiver_id = int(req['receiver_id'])
@@ -36,11 +34,9 @@ def new_review(request_id):
         flash('このリクエストはまだ評価できません。', 'error')
         return redirect(url_for('requests_bp.list_requests'))
 
-    # 3. 評価する側（自分）と評価される側（相手）のIDを自動判定
     reviewer_id = current_user_id
     reviewee_id = receiver_id if current_user_id == requester_id else requester_id
 
-    # 重複評価の防止チェック
     existing = db.execute("""
         SELECT 1 FROM reviews 
         WHERE request_id = ? AND reviewer_id = ?
@@ -50,7 +46,8 @@ def new_review(request_id):
         flash('このセッションは既に評価済みです。', 'info')
         return redirect(url_for('requests_bp.list_requests'))
 
-    # 画面描画用に相手とスキルの情報を事前に取得
+    # 評価対象（相手）とスキル情報を取得
+    # ★ ここで取れる skill_name / post_type を「評価時点のスナップショット」として使う
     info = db.execute("""
         SELECT u.name AS partner_name, s.skill_name, p.post_type
         FROM requests r
@@ -70,11 +67,14 @@ def new_review(request_id):
             flash('評価（星1〜5）を選択してください。', 'error')
             return render_template('review_new.html', req=req, info=info, comment=comment)
 
-        # 動的に特定した reviewer_id, reviewee_id を登録
         db.execute("""
-            INSERT INTO reviews (request_id, reviewer_id, reviewee_id, rating, comment)
-            VALUES (?, ?, ?, ?, ?)
-        """, (req['request_id'], reviewer_id, reviewee_id, int(rating), comment))
+            INSERT INTO reviews (request_id, reviewer_id, reviewee_id, rating, comment, skill_name, post_type)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (
+            req['request_id'], reviewer_id, reviewee_id, int(rating), comment,
+            info['skill_name'] if info else None,
+            info['post_type'] if info else None
+        ))
 
         db.execute("""
             UPDATE requests SET status = 'reviewed', updated_at = datetime('now','localtime')
@@ -90,7 +90,6 @@ def new_review(request_id):
         flash('評価を送信しました！', 'success')
         return redirect(url_for('requests_bp.list_requests'))
 
-    # GET時
     return render_template('review_new.html', req=req, info=info)
 
 
@@ -102,14 +101,12 @@ def list_reviews():
 
     db = get_db()
 
+    # ★ posts / skills を経由しなくなったので、投稿が消えても影響を受けない
     reviews = db.execute("""
-        SELECT rv.comment, rv.created_at, s.skill_name, p.post_type
-        FROM reviews rv
-        JOIN requests req ON rv.request_id = req.request_id
-        JOIN posts p ON req.post_id = p.post_id
-        JOIN skills s ON p.skill_id = s.skill_id
-        WHERE rv.reviewee_id = ?
-        ORDER BY rv.created_at DESC
+        SELECT comment, created_at, skill_name, post_type
+        FROM reviews
+        WHERE reviewee_id = ?
+        ORDER BY created_at DESC
     """, (user_id,)).fetchall()
 
     stats = db.execute("""
