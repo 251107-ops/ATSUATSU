@@ -66,16 +66,17 @@
 
                 <!-- ファイル添付フィールド（画像・PDF） -->
                 <div class="form-group">
-                    <p>ファイルを添付（任意 / PNG, JPG, JPEG, PDF）：</p>
+                    <p>ファイルを添付（任意 / 画像・PNG, PDF, JPG, JPEG, GIF, WEBP）：</p>
                     <div class="file-upload-wrapper">
 
-                        <input type="file" id="post_image" name="post_image" accept=".png, .jpg, .jpeg, .pdf">
+                        <!-- 💡 許可拡張子を統一 -->
+                        <input type="file" id="post_image" name="post_image" accept=".png, .jpg, .jpeg, .gif, .webp, .pdf">
                         
-                        <label for="post_image" class="btn-outline-small" >
+                        <label for="post_image" class="btn-outline-small">
                             ファイルを選択
                         </label>
 
-                        <span id="file-name_display">選択されていません</span>
+                        <span id="file_name_display">選択されていません</span>
                     </div>
                 </div>
 
@@ -149,7 +150,6 @@
             const selectedCategoryId = String(document.getElementById('add_skill_category').value);
             const inputSkillName = document.getElementById('add_skill_name').value.trim();
 
-            // 大文字・小文字、前後の空白などを無視して比較
             const normalize = str => str.toLowerCase().replace(/\s+/g, '');
 
             const isDuplicate = allSkills.some(s => 
@@ -158,18 +158,43 @@
             );
 
             if (isDuplicate) {
-                e.preventDefault(); // フォーム送信をストップ
+                e.preventDefault();
                 alert(`「${inputSkillName}」は指定したカテゴリ内にすでに登録されています。`);
             }
         });
-        // ファイル選択時にファイル名を表示する処理
+
+        // 💡 ファイル選択時にファイル名表示＆フォーマット（PDF含む）エラー吹き出しの制御
         document.getElementById('post_image').addEventListener('change', function() {
-           const fileNameDisplay = document.getElementById('file_name_display');
-           if (this.files && this.files.length > 0) {
-               fileNameDisplay.textContent = this.files[0].name;
-           } else {
-               fileNameDisplay.textContent = '選択されていません';
-           }
+            const fileNameDisplay = document.getElementById('file_name_display');
+            const allowedExtensions = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'pdf'];
+
+            // エラー状態を初期化
+            this.setCustomValidity('');
+
+            if (this.files && this.files.length > 0) {
+                const fileName = this.files[0].name;
+                const ext = fileName.split('.').pop().toLowerCase();
+
+                // 拡張子チェック
+                if (!allowedExtensions.includes(ext)) {
+                    // ★ ここでブラウザのエラー吹き出しメッセージを設定
+                    this.setCustomValidity('許可されていないファイル形式です。添付できるのは画像（PNG, JPG, GIF, WEBP）または PDF のみです。');
+                    
+                    fileNameDisplay.textContent = '※非対応の形式です';
+                    fileNameDisplay.style.color = 'red';
+                    
+                    // エラー吹き出しを表示する
+                    this.reportValidity();
+                    return;
+                }
+
+                // 正常な場合
+                fileNameDisplay.textContent = fileName;
+                fileNameDisplay.style.color = '';
+            } else {
+                fileNameDisplay.textContent = '選択されていません';
+                fileNameDisplay.style.color = '';
+            }
         });
     </script>
 </body>

@@ -222,7 +222,7 @@ def profile():
         user=user,
         skills_teach=skills_teach,
         skills_learn=skills_learn,
-        my_posts=my_posts,
+        user_posts=my_posts,
         review_stats=review_stats
     )
 

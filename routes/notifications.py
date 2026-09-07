@@ -12,22 +12,25 @@ def list_notifications():
 
     db = get_db()
 
+    # ⭕ rev.review_id が存在するかどうかで has_reviewed フラグ（1 or 0）を作成
     rows = db.execute("""
         SELECT
             n.notification_id, n.type, n.related_id, n.is_read, n.created_at,
             r.request_id, r.status, r.room_id,
             requester.name AS requester_name,
             receiver.name AS receiver_name,
-            s.skill_name, p.post_type
+            s.skill_name, p.post_type,
+            CASE WHEN rev.review_id IS NOT NULL THEN 1 ELSE 0 END AS has_reviewed
         FROM notifications n
         LEFT JOIN requests r ON n.related_id = r.request_id
         LEFT JOIN posts p ON r.post_id = p.post_id
         LEFT JOIN skills s ON p.skill_id = s.skill_id
         LEFT JOIN users requester ON r.requester_id = requester.user_id
         LEFT JOIN users receiver ON r.receiver_id = receiver.user_id
+        LEFT JOIN reviews rev ON rev.request_id = r.request_id AND rev.reviewer_id = ?
         WHERE n.user_id = ?
         ORDER BY n.created_at DESC
-    """, (user_id,)).fetchall()
+    """, (user_id, user_id)).fetchall()
 
     notifications = []
     for row in rows:
@@ -48,10 +51,9 @@ def list_notifications():
             item['message'] = f"「{row['skill_name']}」のセッションが完了しました。評価をお願いします"
         elif row['type'] == 'awaiting_review_teacher':
             item['message'] = f"「{row['skill_name']}」のセッションが完了しました。{row['requester_name']}さんからの評価をお待ちください"
-        elif row['type'] == 'awaiting_review':
-            item['message'] = f"「{row['skill_name']}」のセッションが完了しました。評価をお願いします"
         else:
             item['message'] = "通知があります"
+        
         notifications.append(item)
 
     # 一覧を開いたタイミングで既読にする

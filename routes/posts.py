@@ -454,7 +454,7 @@ def create_post():
             flash("このスキルに関する投稿はすでに作成されています。（1つのスキルにつき1つまで）")
             return redirect('/posts')
 
-        # 💡 画像・PDFファイルのアップロード処理
+        # 添付ファイル（画像・PDF）のアップロード処理
         image_path = None
         post_file = request.files.get('post_image')
         if post_file and post_file.filename != '':
@@ -465,7 +465,7 @@ def create_post():
                 post_file.save(save_path)
                 image_path = f"uploads/{filename}"
             else:
-                flash("許可されていないファイル形式です（PNG, JPEG, PDFのみ対応）。")
+                flash("許可されていないファイル形式です。添付できるのは画像（PNG, JPG, GIF, WEBP）または PDF のみです。")
                 return redirect('/posts')
 
         if user_id:

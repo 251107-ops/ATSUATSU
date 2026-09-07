@@ -72,7 +72,6 @@
 
             <div class="field">
               <label>学年</label>
-              <!-- ★ 「年」が付くように修正 -->
               <p class="profile-text-value">
                 {% if user and user.grade %}
                   {{ user.grade }}{% if '年' not in user.grade|string %}年{% endif %}
@@ -121,9 +120,14 @@
       <div class="main my-posts-section">
         <h2>自分の投稿</h2>
         <div class="cards">
-            {% for post in my_posts %}
+            {% for post in user_posts %}
             {% set default_icon = url_for('static', filename='img/default-avatar.svg') %}
             {% set user_icon = url_for('static', filename=user.icon_path) if user and user.icon_path else default_icon %}
+            
+            {# --- 添付ファイルのパス取得と判定 --- #}
+            {% set raw_file = post.file_path if post.file_path else (post.image_path if post.image_path else (post.pdf_path if post.pdf_path else '')) %}
+            {% set is_valid_file = raw_file and '添付' not in raw_file %}
+            {% set file_url = url_for('static', filename=raw_file) if is_valid_file else '' %}
             
             <div class="card" style="cursor: pointer;" onclick="openPostModal(this)"
                  data-post-id="{{ post.post_id }}"
@@ -136,8 +140,9 @@
                  data-type="{{ post.post_type }}"
                  data-body="{{ post.post_text }}"
                  data-likes="{{ post.like_count }}"
-                 data-image="{{ url_for('static', filename=post.image_path) if post.image_path else '' }}">
-                
+                 data-image="{{ file_url if file_url and not file_url.lower().endswith('.pdf') else '' }}"
+                 data-pdf="{{ file_url if file_url and file_url.lower().endswith('.pdf') else '' }}">
+                 
                 <div class="card-top">
                     <a href="/profile" class="user-icon-link" title="{{ user.name }}さんのプロフィールを見る" onclick="event.stopPropagation();">
                         <img src="{{ user_icon }}" onerror="this.onerror=null; this.src='{{ default_icon }}';" alt="アバター" class="user-icon-img">
@@ -151,17 +156,14 @@
                 </div>
 
                 <div class="tags">
-                    <span class="tag">{{ post.category_name }}</span>
-                    <span class="tag">{{ post.skill_name }}</span>
+                    {% if post.category_name %}<span class="tag">{{ post.category_name }}</span>{% endif %}
+                    {% if post.skill_name %}<span class="tag">{{ post.skill_name }}</span>{% endif %}
                     <span class="badge {{ 'teach' if post.post_type == '教えたい' else 'learn' }}">{{ post.post_type }}</span>
                     
-                    {% if post.image_path %}
-                    <span class="badge-attachment">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
-                        </svg>
-                        添付画像あり
-                    </span>
+                    {% if is_valid_file and not raw_file.lower().endswith('.pdf') %}
+                    <span class="badge-attachment">添付画像あり</span>
+                    {% elif is_valid_file and raw_file.lower().endswith('.pdf') %}
+                    <span class="badge-attachment">添付PDFあり</span>
                     {% endif %}
                 </div>
 
@@ -181,18 +183,19 @@
 
   </div>
 
+  <!-- モーダル（共通仕様） -->
   <div id="cardModal" class="modal-overlay">
       <div class="modal-content">
           <button type="button" class="modal-close" id="modalClose" onclick="closeModal()">&times;</button>
           
-          <div class="modal-header" style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
-              <a id="modalUserLink" href="#" class="modal-user-link" title="プロフィールを見る" style="text-decoration: none; color: inherit;">
-                  <img id="modalIcon" src="" onerror="this.onerror=null; this.src='/static/img/default-avatar.svg';" alt="ユーザーアイコン" class="modal-user-icon" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover;">
+          <div class="modal-header">
+              <a id="modalUserLink" href="#" class="modal-user-link" title="プロフィールを見る" style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 12px;">
+                  <img id="modalIcon" src="" onerror="this.onerror=null; this.src='/static/img/default-avatar.svg';" alt="ユーザーアイコン" class="modal-user-icon" style="width: 48px; height: 48px;">
+                  <div>
+                      <div id="modalName" style="font-weight: bold;"></div>
+                      <div id="modalMeta" style="font-size: 12px; color: #666;"></div>
+                  </div>
               </a>
-              <div>
-                  <div id="modalName" style="font-weight: bold; font-size: 16px;"></div>
-                  <div id="modalMeta" style="font-size: 12px; color: #666;"></div>
-              </div>
           </div>
 
           <div class="modal-tags">
@@ -209,10 +212,16 @@
               <p id="modalBody"></p>
           </div>
 
+          <!-- 添付ファイル表示エリア -->
           <div id="modalAttachmentArea" class="modal-attachment-container" style="display: none; margin-top: 12px;">
-              <img id="modalPreviewImg" src="" alt="添付画像" style="max-width: 100%; height: auto; border-radius: 8px; border: 1px solid #e2e8f0; display: block;">
-          </div>
+               <!-- 画像の場合 -->
+               <img id="modalPreviewImg" src="" alt="添付画像" style="max-width: 100%; height: auto; border-radius: 8px; border: 1px solid #e2e8f0; display: none;">
 
+               <!-- PDFの場合 -->
+               <a id="modalPreviewPdf" href="#" target="_blank" rel="noopener noreferrer" style="display: none; padding: 12px; background: #f1f5f9; color: #334155; text-decoration: none; border-radius: 8px; text-align: center; font-weight: bold; border: 1px solid #cbd5e1;">
+                   📄 添付PDFを表示する（別タブで開く）
+               </a>
+          </div>
           <div class="modal-action" style="margin-top: 20px;">
               <button class="btn btn--disabled" disabled style="width: 100%; padding: 12px; background-color: #a0aec0; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: not-allowed;">自分の投稿です</button>
           </div>
@@ -225,50 +234,78 @@
 
   <script>
       function openPostModal(cardEl) {
-          const ds = cardEl.dataset;
-          const defaultIcon = '/static/img/default-avatar.svg';
+    const ds = cardEl.dataset;
+    
+    // 基本情報のセット
+    document.getElementById('modalIcon').src = ds.icon || '/static/img/default-avatar.svg';
+    document.getElementById('modalName').textContent = ds.name || '';
+    document.getElementById('modalMeta').textContent = ds.meta || '';
+    document.getElementById('modalCategory').textContent = ds.category || '';
+    document.getElementById('modalSkill').textContent = ds.skill || '';
+    
+    const typeBadge = document.getElementById('modalType');
+    typeBadge.textContent = ds.type || '';
+    typeBadge.className = 'badge ' + (ds.type === '教えたい' ? 'teach' : 'learn');
 
-          const modalIcon = document.getElementById('modalIcon');
-          modalIcon.onerror = function() {
-              this.onerror = null;
-              this.src = defaultIcon;
-          };
-          modalIcon.src = (ds.icon && ds.icon.trim() !== '') ? ds.icon : defaultIcon;
+    document.getElementById('modalBody').textContent = ds.body || '';
+    document.getElementById('modalLikes').textContent = ds.likes || '0';
 
-          document.getElementById('modalName').textContent = ds.name || '';
-          document.getElementById('modalMeta').textContent = ds.meta || '';
-          document.getElementById('modalCategory').textContent = ds.category || '';
-          document.getElementById('modalSkill').textContent = ds.skill || '';
-          
-          const typeBadge = document.getElementById('modalType');
-          typeBadge.textContent = ds.type || '';
-          typeBadge.className = 'badge ' + (ds.type === '教えたい' ? 'teach' : 'learn');
+    // ID関係のセット（ページに応じて存在する要素のみ設定）
+    if (document.getElementById('modalUserLink')) document.getElementById('modalUserLink').href = '/profile/' + (ds.userId || '');
+    if (document.getElementById('modalPostId')) document.getElementById('modalPostId').value = ds.postId || '';
+    if (document.getElementById('modalReceiverId')) document.getElementById('modalReceiverId').value = ds.userId || '';
 
-          document.getElementById('modalBody').textContent = ds.body || '';
-          document.getElementById('modalLikes').textContent = ds.likes || '0';
-          document.getElementById('modalUserLink').href = '/profile';
+    // ★ 添付ファイル（画像 / PDF）の分岐制御（補強版）
+    const imgArea = document.getElementById('modalAttachmentArea');
+    const previewImg = document.getElementById('modalPreviewImg');
+    const previewPdf = document.getElementById('modalPreviewPdf');
 
-          const imgArea = document.getElementById('modalAttachmentArea');
-          const previewImg = document.getElementById('modalPreviewImg');
-          if (ds.image && ds.image.trim() !== '') {
-              previewImg.src = ds.image;
-              imgArea.style.display = 'block';
-          } else {
-              imgArea.style.display = 'none';
-          }
+    let hasAttachment = false;
 
-          document.getElementById('cardModal').classList.add('active');
-          document.getElementById('cardModal').style.display = 'flex';
-      }
+    // 画像URLのバリデーション（URLとして拡張子を持っているか判定）
+    const imageVal = (ds.image && ds.image.trim() !== '' && !ds.image.includes('添付画像')) ? ds.image.trim() : '';
+    const pdfVal = (ds.pdf && ds.pdf.trim() !== '' && !ds.pdf.includes('添付')) ? ds.pdf.trim() : '';
 
-      function closeModal() {
-          document.getElementById('cardModal').classList.remove('active');
-          document.getElementById('cardModal').style.display = 'none';
-      }
+    // 画像の制御
+    if (imageVal && (imageVal.endsWith('.png') || imageVal.endsWith('.jpg') || imageVal.endsWith('.jpeg') || imageVal.endsWith('.gif') || imageVal.endsWith('.webp') || imageVal.includes('/static/'))) {
+        previewImg.src = imageVal;
+        previewImg.style.display = 'block';
+        hasAttachment = true;
+    } else {
+        previewImg.style.display = 'none';
+        previewImg.removeAttribute('src'); // src属性自体を取り除くことで破損アイコンを防ぐ
+    }
 
-      document.getElementById('cardModal').addEventListener('click', (e) => {
-          if (e.target.id === 'cardModal') closeModal();
-      });
+    // PDFの制御
+    if (pdfVal) {
+        previewPdf.href = pdfVal;
+        previewPdf.style.display = 'block';
+        hasAttachment = true;
+    } else {
+        previewPdf.style.display = 'none';
+        previewPdf.href = '#';
+    }
+
+    // どちらか一方でも添付があれば表示枠を開く
+    if (imgArea) {
+        imgArea.style.display = hasAttachment ? 'block' : 'none';
+    }
+
+    // モーダルを表示
+    const modal = document.getElementById('cardModal');
+    modal.classList.add('active');
+    modal.style.display = 'flex';
+}
+
+function closeModal() {
+    const modal = document.getElementById('cardModal');
+    modal.classList.remove('active');
+    modal.style.display = 'none';
+}
+
+document.getElementById('cardModal').addEventListener('click', (e) => {
+    if (e.target.id === 'cardModal') closeModal();
+});
   </script>
   {% include 'footer.html' %}
 </body>
