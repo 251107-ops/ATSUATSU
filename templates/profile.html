@@ -33,6 +33,24 @@
 
     <div class="page-content">
 
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="alert-container" style="margin-bottom: 20px;">
+            {% for category, message in messages %}
+              {% if category == 'error' %}
+                <div style="background-color: #fdeaea; color: #c0392b; border: 1px solid #f5c6cb; padding: 12px; border-radius: 6px; font-weight: bold;">
+                  {{ message }}
+                </div>
+              {% else %}
+                <div style="background-color: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; padding: 12px; border-radius: 6px; font-weight: bold;">
+                  {{ message }}
+                </div>
+              {% endif %}
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
       <div class="main__head">
         <h1 class="main__title" id="profileTitle">プロフィール</h1>
         <a href="/profile_edit" class="btn btn--primary">プロフィール編集</a>
@@ -170,6 +188,23 @@
                 <button type="button" class="like-btn" onclick="event.stopPropagation();" data-post-id="{{ post.post_id }}" data-liked="{{ 'true' if post.liked_by_me else 'false' }}">
                   <span class="like-count">{{ post.like_count }}</span>♥
                 </button>
+
+                <div class="post-owner-actions" onclick="event.stopPropagation();" style="display:flex; gap:8px; margin-top:10px;">
+                  <a href="/posts/{{ post.post_id }}/edit"
+                     style="background-color: var(--primary-color, #385cdb); color: #ffffff; border: none; padding: 6px 16px; border-radius: 16px; font-size: 13px; font-weight: bold; text-decoration: none; display: inline-block; transition: background-color 0.2s;"
+                     onmouseover="this.style.backgroundColor='var(--primary-hover, #2a46b0)'"
+                     onmouseout="this.style.backgroundColor='var(--primary-color, #385cdb)'">
+                      編集
+                  </a>
+                  <form action="/posts/{{ post.post_id }}/delete" method="POST" onsubmit="return confirm('この投稿を削除しますか？進行中のリクエストがある場合は削除できません。');" style="display:inline;">
+                      <button type="submit"
+                          style="background-color: #ffffff; color: var(--primary-color, #385cdb); border: 1px solid var(--primary-color, #385cdb); padding: 6px 16px; border-radius: 16px; font-size: 13px; font-weight: bold; cursor: pointer; transition: all 0.2s;"
+                          onmouseover="this.style.backgroundColor='var(--tag-blue-bg, #eef2ff)'"
+                          onmouseout="this.style.backgroundColor='#ffffff'">
+                          削除
+                      </button>
+                  </form>
+              </div>
             </div>
             {% else %}
             <p style="color: #666; padding: 20px 0;">まだ投稿がありません。</p>

@@ -54,12 +54,32 @@ body {
 
 /* リストアイテムの親要素 */
 .chat-item-wrapper {
-    display: flex;
-    align-items: center;
+    /* display: flex;
+    align-items: center; */
     justify-content: space-between;
-    padding: 8px 12px;
+    /* padding: 8px 12px;
     border-bottom: 1px solid var(--border-color, #f0f4f8);
-    transition: background-color 0.2s ease;
+    transition: background-color 0.2s ease; */
+}
+
+
+.chat-item-close {
+    background: none;
+    border: none;
+    color: var(--text-sub, #7f8c8d);
+    font-size: 14px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    cursor: pointer;
+    flex-shrink: 0;
+    margin-left: 4px;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.chat-item-close:hover {
+    background-color: #fdeaea;
+    color: #c0392b;
 }
 
 .chat-item-wrapper:hover, 

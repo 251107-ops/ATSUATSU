@@ -29,7 +29,7 @@
                     <div class="request-card">
                         <div class="request-info">
                             <p class="request-title">
-                                <span class="badge badge-accepted">{{ r.skill_name }}</span>
+                                <span class="badge badge-accepted">{{ r.skill_name if r.skill_name else 'スキル情報なし' }}</span>
                                 {{ r.comment if r.comment else '（コメントなし）' }}
                             </p>
                             <p class="request-meta">{{ r.created_at }}</p>
