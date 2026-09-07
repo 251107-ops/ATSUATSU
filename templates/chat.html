@@ -255,8 +255,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 const file = e.target.files[0];
                 if (!file) return;
 
-                const formData = new FormData();
-                formData.append('image', file);
+                    const formData = new FormData();
+                    formData.append('image', file);
 
                 try {
                     const response = await fetch('/upload-image', {
@@ -264,7 +264,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         body: formData
                     });
 
-                    const result = await response.json();
+                        const result = await response.json();
 
                     if (response.ok && result.image_url) {
                         window.chatSocket.emit('text', { msg: `[IMG]${result.image_url}[/IMG]` });
