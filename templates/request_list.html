@@ -72,7 +72,10 @@
                                     </form>
                                 {% endif %}
                             {% endif %}
-                            <!-- 受け取った側（教える側）は評価しない -->
+
+                            {% if req.room_id and req.status in ['accepted', 'completed', 'reviewed'] %}
+                                <a href="{{ url_for('chat.chat_room', room_id=req.room_id) }}" class="btn btn-outline">チャットへ</a>
+                            {% endif %}
                         </div>
                     </div>
                 {% endfor %}
@@ -123,6 +126,10 @@
                             {% endif %}
                         {% elif req.status == 'completed' %}
                             <a href="{{ url_for('reviews_bp.new_review', request_id=req.request_id) }}" class="btn">評価する</a>
+                        {% endif %}
+
+                        {% if req.room_id and req.status in ['accepted', 'completed', 'reviewed'] %}
+                            <a href="{{ url_for('chat.chat_room', room_id=req.room_id) }}" class="btn btn-outline">チャットへ</a>
                         {% endif %}
                         </div>
                     </div>

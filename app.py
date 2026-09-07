@@ -39,7 +39,7 @@ def add_header(response):
 with app.app_context():
     db = get_db()
     db.execute('''CREATE TABLE IF NOT EXISTS users (user_id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL UNIQUE, email TEXT NOT NULL UNIQUE, password TEXT NOT NULL, grade TEXT NOT NULL, department TEXT NOT NULL,
+        name TEXT NOT NULL, email TEXT NOT NULL UNIQUE, password TEXT NOT NULL, grade TEXT NOT NULL, department TEXT NOT NULL,
         introduction TEXT, icon_path TEXT)''')
     
     # 💡 posts テーブルの定義に image_path TEXT を追加
@@ -72,6 +72,11 @@ with app.app_context():
         joined_at TEXT DEFAULT (datetime('now','localtime')),
         PRIMARY KEY (room_id, user_id)
     )''')
+
+    try:
+        db.execute('ALTER TABLE room_members ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0')
+    except Exception:
+        pass
 
     db.execute('''CREATE TABLE IF NOT EXISTS messages (
         message_id INTEGER PRIMARY KEY AUTOINCREMENT,
