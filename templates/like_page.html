@@ -14,7 +14,34 @@
     {% include 'header.html' %}
 
     <main class="like-page-wrap">
-        
+        <!-- ログイン中のユーザーIDを保持（JS判定用） -->
+        <input type="hidden" id="currentUserId" value="{{ session.get('user_id', '') }}">
+
+        <!-- メッセージバナー表示エリア（top.htmlと完全に統一） -->
+        <div id="topBanner" class="top-banner"></div>
+
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+          <div id="flashData" data-message="{{ messages[0] }}"></div>
+          <script>
+            document.addEventListener('DOMContentLoaded', () => {
+              const flashEl = document.getElementById('flashData');
+              if (flashEl) {
+                const msg = flashEl.dataset.message;
+                if (msg) {
+                  const banner = document.getElementById('topBanner');
+                  if (banner) {
+                    banner.textContent = msg;
+                    banner.className = 'top-banner error';
+                    banner.style.display = 'block';
+                  }
+                }
+              }
+            });
+          </script>
+        {% endif %}
+      {% endwith %}
+
         <h1 class="like-page-title">
             お気に入り一覧<span id="favCount">({{ posts|length }}件)</span>
         </h1>
@@ -26,7 +53,7 @@
             {% set is_valid_file = raw_file and '添付' not in raw_file %}
             {% set file_url = url_for('static', filename=raw_file) if is_valid_file else '' %}
 
-            <div class="card" id="card-{{ post.post_id }}" style="cursor: pointer;" onclick="openPostModal(this)"
+            <div class="card" id="card-{{ post.post_id }}" style="cursor: pointer;"
                  data-post-id="{{ post.post_id }}"
                  data-user-id="{{ post.user_id }}"
                  data-name="{{ post.name }}"
@@ -100,10 +127,10 @@
 
     </main>
 
-    <!-- モーダル（Homeと完全共通仕様） -->
+    <!-- スキルカード拡大表示用モーダル（top.htmlと完全に同一の仕様） -->
     <div id="cardModal" class="modal-overlay">
         <div class="modal-content">
-            <button type="button" class="modal-close" id="modalClose" onclick="closeModal()">&times;</button>
+            <button type="button" class="modal-close" id="modalClose">&times;</button>
             
             <div class="modal-header">
                 <a id="modalUserLink" href="#" class="modal-user-link" title="プロフィールを見る" style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 12px;">
@@ -129,12 +156,9 @@
                 <p id="modalBody"></p>
             </div>
 
-            <!-- 添付ファイル表示エリア -->
             <div id="modalAttachmentArea" class="modal-attachment-container" style="display: none; margin-top: 12px;">
-                <!-- 画像の場合 -->
                 <img id="modalPreviewImg" src="" alt="添付画像" style="max-width: 100%; height: auto; border-radius: 8px; border: 1px solid #e2e8f0; display: none;">
 
-                <!-- PDFの場合 -->
                 <a id="modalPreviewPdf" href="#" target="_blank" rel="noopener noreferrer" style="display: none; padding: 12px; background: #f1f5f9; color: #334155; text-decoration: none; border-radius: 8px; text-align: center; font-weight: bold; border: 1px solid #cbd5e1;">
                     📄 添付PDFを表示する（別タブで開く）
                 </a>
@@ -143,7 +167,7 @@
             <form id="requestForm" action="/requests" method="POST" class="modal-action">
                 <input type="hidden" name="post_id" id="modalPostId">
                 <input type="hidden" name="receiver_id" id="modalReceiverId">
-                <button type="submit" id="requestBtn" class="request-btn">この投稿にリクエストを送る</button>
+                <button type="submit" id="requestBtn" class="request-btn"></button>
             </form>
 
             <div class="modal-footer">
@@ -152,82 +176,8 @@
         </div>
     </div>
 
-<script>
-    function openPostModal(cardEl) {
-    const ds = cardEl.dataset;
-    
-    // 基本情報のセット
-    document.getElementById('modalIcon').src = ds.icon || '/static/img/default-avatar.svg';
-    document.getElementById('modalName').textContent = ds.name || '';
-    document.getElementById('modalMeta').textContent = ds.meta || '';
-    document.getElementById('modalCategory').textContent = ds.category || '';
-    document.getElementById('modalSkill').textContent = ds.skill || '';
-    
-    const typeBadge = document.getElementById('modalType');
-    typeBadge.textContent = ds.type || '';
-    typeBadge.className = 'badge ' + (ds.type === '教えたい' ? 'teach' : 'learn');
-
-    document.getElementById('modalBody').textContent = ds.body || '';
-    document.getElementById('modalLikes').textContent = ds.likes || '0';
-
-    // ID関係のセット（ページに応じて存在する要素のみ設定）
-    if (document.getElementById('modalUserLink')) document.getElementById('modalUserLink').href = '/profile/' + (ds.userId || '');
-    if (document.getElementById('modalPostId')) document.getElementById('modalPostId').value = ds.postId || '';
-    if (document.getElementById('modalReceiverId')) document.getElementById('modalReceiverId').value = ds.userId || '';
-
-    // ★ 添付ファイル（画像 / PDF）の分岐制御（補強版）
-    const imgArea = document.getElementById('modalAttachmentArea');
-    const previewImg = document.getElementById('modalPreviewImg');
-    const previewPdf = document.getElementById('modalPreviewPdf');
-
-    let hasAttachment = false;
-
-    // 画像URLのバリデーション
-    const imageVal = (ds.image && ds.image.trim() !== '' && !ds.image.includes('添付画像')) ? ds.image.trim() : '';
-    const pdfVal = (ds.pdf && ds.pdf.trim() !== '' && !ds.pdf.includes('添付')) ? ds.pdf.trim() : '';
-
-    // 画像の制御
-    if (imageVal && (imageVal.endsWith('.png') || imageVal.endsWith('.jpg') || imageVal.endsWith('.jpeg') || imageVal.endsWith('.gif') || imageVal.endsWith('.webp') || imageVal.includes('/static/'))) {
-        previewImg.src = imageVal;
-        previewImg.style.display = 'block';
-        hasAttachment = true;
-    } else {
-        previewImg.style.display = 'none';
-        previewImg.removeAttribute('src'); // srcを空にして broken image アイコンを予防
-    }
-
-    // PDFの制御
-    if (pdfVal) {
-        previewPdf.href = pdfVal;
-        previewPdf.style.display = 'block';
-        hasAttachment = true;
-    } else {
-        previewPdf.style.display = 'none';
-        previewPdf.href = '#';
-    }
-
-    // どちらか一方でも添付があれば表示枠を開く
-    if (imgArea) {
-        imgArea.style.display = hasAttachment ? 'block' : 'none';
-    }
-
-    // モーダルを表示
-    const modal = document.getElementById('cardModal');
-    modal.classList.add('active');
-    modal.style.display = 'flex';
-}
-
-function closeModal() {
-    const modal = document.getElementById('cardModal');
-    modal.classList.remove('active');
-    modal.style.display = 'none';
-}
-
-document.getElementById('cardModal').addEventListener('click', (e) => {
-    if (e.target.id === 'cardModal') closeModal();
-});
-</script>
-
+    <!-- top.jsを読み込んでモーダル動作およびエラーバナー制御を完全共通化 -->
+    <script src="{{ url_for('static', filename='js/top.js') }}"></script>
     {% include 'footer.html' %}
 </body>
 </html>

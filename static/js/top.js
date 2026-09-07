@@ -144,7 +144,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 //ユーザーアイコン・名前のリンク先を動的にセット
                 const modalUserLink = document.getElementById('modalUserLink');
                 if (modalUserLink) {
-                    modalUserLink.href = '/profile/' + data.userId;
+                    modalUserLink.href = '/users/' + data.userId;
                 }
 
                 // バッジ状態の反映

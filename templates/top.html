@@ -118,11 +118,11 @@
                      data-pdf="{{ url_for('static', filename=post.pdf_path) if post.pdf_path else '' }}">
                     
                     <div class="card-top">
-                        <a href="/profile/{{ post.user_id }}" class="user-icon-link" title="{{ post.name }}さんのプロフィールを見る" onclick="event.stopPropagation();">
+                        <a href="/users/{{ post.user_id }}" class="user-icon-link" title="{{ post.name }}さんのプロフィールを見る" onclick="event.stopPropagation();">
                             <img src="{{ url_for('static', filename=post.icon_path) if post.icon_path else url_for('static', filename='img/default-avatar.png') }}" alt="{{ post.name }}のアイコン" class="user-icon-img">
                         </a>
                         <div>
-                            <a href="/profile/{{ post.user_id }}" class="name-link" title="{{ post.name }}さんのプロフィールを見る" onclick="event.stopPropagation();">
+                            <a href="/users/{{ post.user_id }}" class="name-link" title="{{ post.name }}さんのプロフィールを見る" onclick="event.stopPropagation();">
                                 <span class="name">{{ post.name }}</span>
                             </a>
                             <span class="meta">{{ post.department }} {{ post.grade }}年</span>
