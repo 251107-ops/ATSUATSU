@@ -16,11 +16,23 @@
     <div class="page-wrap">
         <div class="post-card">
             <h2>評価を投稿</h2>
+            <!-- ⭕ バナー表示領域 -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="flash-messages">
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }}" style="padding: 10px; background-color: #fee2e2; color: #dc2626; border-radius: 6px; margin-bottom: 15px;">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
             <p class="review-target">
                 {{ info.partner_name }}さん「{{ info.skill_name }}」（{{ info.post_type }}）
             </p>
 
-            <form method="POST">
+            <form method="POST" novalidate>
                 <div class="form-group">
                     <p>評価（★1〜5）を選んでください：</p>
                     <div class="star-rating">

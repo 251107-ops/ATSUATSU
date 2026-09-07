@@ -43,7 +43,11 @@
                         
                         {% elif n.type == 'awaiting_review' %}
                             <div class="request-actions">
-                                <a href="{{ url_for('reviews_bp.new_review', request_id=n.request_id) }}" class="btn">評価する</a>
+                                {% if n.has_reviewed %}
+                                    <span class="badge-completed" style="color: #666; font-size: 0.9em; padding: 6px 12px; background: #eee; border-radius: 4px;">✓ 評価済み</span>
+                                {% else %}
+                                    <a href="{{ url_for('reviews_bp.new_review', request_id=n.request_id) }}" class="btn">評価する</a>
+                                {% endif %}
                             </div>
                         
                         {% elif n.type == 'completion_pending' and n.room_id %}

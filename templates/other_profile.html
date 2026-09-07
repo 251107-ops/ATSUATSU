@@ -14,6 +14,20 @@
 
   {% include 'header.html' %}
 
+  <!-- ★ Flashメッセージ表示エリア（ここを追加） -->
+  <!-- ★ top.html と完全同一仕様の Flash メッセージ表示エリア -->
+  {% with messages = get_flashed_messages() %}
+    {% if messages %}
+      <div class="flash-messages" style="max-width: 1000px; margin: 20px auto 0; padding: 0 16px;">
+        {% for message in messages %}
+          <div class="flash-message success" style="background-color: #e6f4ea; color: #137333; padding: 14px 24px; border-radius: 8px; font-size: 14px; font-weight: bold; text-align: center; border: 1px solid #ceead6;">
+            {{ message }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
   <div class="layout layout--no-sidebar">
 
     <div class="page-content">
@@ -97,6 +111,41 @@
         </div>
       </div>
 
+      <!-- 評価（レビュー）一覧セクション -->
+      <div class="main review-section" style="margin-top: 24px;">
+        <h2>{{ user.name }}さんへの評価一覧</h2>
+        
+        <div class="review-list">
+          {% if reviews %}
+            {% for review in reviews %}
+              <div class="review-card" style="background: #fff; padding: 16px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #e2e8f0;">
+                <div class="review-header" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <span class="stars" style="color: #ffb400; font-weight: bold;">
+                      {% for i in range(1, 6) %}
+                        {% if i <= review.rating %}★{% else %}☆{% endif %}
+                      {% endfor %}
+                    </span>
+                    <span class="rating-num" style="font-weight: bold;">{{ review.rating }}.0</span>
+                  </div>
+                  <span class="review-date" style="font-size: 12px; color: #718096;">{{ review.created_at }}</span>
+                </div>
+                
+                <p class="review-comment" style="margin: 8px 0; color: #2d3748;">
+                  {{ review.comment if review.comment else '（コメントなし）' }}
+                </p>
+                
+                <div class="reviewer-info" style="font-size: 12px; color: #718096; text-align: right;">
+                  評価者: {{ review.reviewer_name }}
+                </div>
+              </div>
+            {% endfor %}
+          {% else %}
+            <p style="color: #666; padding: 16px 0;">まだ評価コメントはありません。</p>
+          {% endif %}
+        </div>
+      </div>
+
       <div class="main my-posts-section">
         <h2>{{ user.name }}さんの投稿</h2>
         <div class="cards">
@@ -115,14 +164,14 @@
                  data-image="{{ url_for('static', filename=post.image_path) if post.image_path else '' }}">
                 
                 <div class="card-top">
-                    <a href="/profile/{{ user.user_id }}" class="user-icon-link" title="{{ user.name }}さんのプロフィールを見る" onclick="event.stopPropagation();">
+                    <a href="/users/{{ user.user_id }}" class="user-icon-link" title="{{ user.name }}さんのプロフィールを見る" onclick="event.stopPropagation();">
                         <img src="{{ url_for('static', filename=user.icon_path) if user and user.icon_path else url_for('static', filename='img/default-avatar.png') }}" alt="{{ user.name }}のアイコン" class="user-icon-img">
                     </a>
                     <div>
-                        <a href="/profile/{{ user.user_id }}" class="name-link" title="{{ user.name }}さんのプロフィールを見る" onclick="event.stopPropagation();">
-                            <span class="name">{{ user.name if user else '' }}</span>
-                        </a>
-                        <span class="meta">{{ user.department if user else '' }} {{ user.grade if user else '' }}年</span>
+                      <a href="/users/{{ user.user_id }}" class="name-link" title="{{ user.name }}さんのプロフィールを見る" onclick="event.stopPropagation();">
+                          <span class="name">{{ user.name if user else '' }}</span>
+                      </a>
+                      <span class="meta">{{ user.department if user else '' }} {{ user.grade if user else '' }}年</span>
                     </div>
                 </div>
 
@@ -157,7 +206,7 @@
 
   </div>
 
-  <!-- スキルカード拡大表示用モーダル（top.htmlと完全同一仕様） -->
+  <!-- スキルカード拡大表示用モーダル -->
   <div id="cardModal" class="modal-overlay">
       <div class="modal-content">
           <button type="button" class="modal-close" id="modalClose" onclick="closeModal()">&times;</button>
@@ -217,7 +266,7 @@
 
           document.getElementById('modalBody').textContent = ds.body;
           document.getElementById('modalLikes').textContent = ds.likes;
-          document.getElementById('modalUserLink').href = '/profile/' + ds.userId;
+          document.getElementById('modalUserLink').href = '/users/' + ds.userId;
           document.getElementById('modalPostId').value = ds.postId;
           document.getElementById('modalReceiverId').value = ds.userId;
 

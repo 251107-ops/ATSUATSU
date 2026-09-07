@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, redirect, session, request, url_for
+from flask import Blueprint, render_template, redirect, session, request, url_for, flash
 from routes.auth import get_db
 
 reviews_bp = Blueprint('reviews_bp', __name__)
@@ -17,18 +17,22 @@ def new_review(request_id):
         WHERE request_id = ? OR room_id = ?
     """, (request_id, str(request_id))).fetchone()
 
+    # ⭕ 画面遷移（テキスト返却）せず flash メッセージを出して一覧へ戻す
     if not req:
-        return "リクエストが見つかりません", 404
+        flash('指定されたリクエストが見つかりませんでした。', 'error')
+        return redirect(url_for('requests_bp.list_requests'))
 
     current_user_id = int(user_id)
     requester_id = int(req['requester_id'])
     receiver_id = int(req['receiver_id'])
 
     if current_user_id not in (requester_id, receiver_id):
-        return "この評価を投稿する権限がありません", 403
+        flash('この評価を投稿する権限がありません。', 'error')
+        return redirect(url_for('requests_bp.list_requests'))
 
     if req['status'] != 'completed':
-        return "このリクエストはまだ評価できません", 400
+        flash('このリクエストはまだ評価できません。', 'error')
+        return redirect(url_for('requests_bp.list_requests'))
 
     reviewer_id = current_user_id
     reviewee_id = receiver_id if current_user_id == requester_id else requester_id
@@ -39,6 +43,7 @@ def new_review(request_id):
     """, (req['request_id'], reviewer_id)).fetchone()
     
     if existing:
+        flash('このセッションは既に評価済みです。', 'info')
         return redirect(url_for('requests_bp.list_requests'))
 
     # 評価対象（相手）とスキル情報を取得
@@ -56,8 +61,11 @@ def new_review(request_id):
         rating = request.form.get('rating', '')
         comment = request.form.get('comment', '').strip()
 
+        # ⭕ 評価（星）が未選択などのバリデーションエラー時
+        # ページ遷移せず flash メッセージを表示し、入力内容を維持して同じ画面を再描画
         if not rating or not rating.isdigit() or not (1 <= int(rating) <= 5):
-            return "評価（星1〜5）を選択してください", 400
+            flash('評価（星1〜5）を選択してください。', 'error')
+            return render_template('review_new.html', req=req, info=info, comment=comment)
 
         db.execute("""
             INSERT INTO reviews (request_id, reviewer_id, reviewee_id, rating, comment, skill_name, post_type)
@@ -79,6 +87,7 @@ def new_review(request_id):
         
         db.commit()
 
+        flash('評価を送信しました！', 'success')
         return redirect(url_for('requests_bp.list_requests'))
 
     return render_template('review_new.html', req=req, info=info)

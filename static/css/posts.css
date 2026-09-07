@@ -158,3 +158,29 @@ body {
 .btn-outline-small:hover {
     background-color: var(--tag-blue-bg, #eef2ff);
 }
+/* ファイルアップロード領域のスタイル */
+.file-upload-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* 本来の標準ファイル選択ボタンを非表示にする */
+.file-upload-wrapper input[type="file"] {
+    display: none !important;
+}
+
+/* labelタグ（ファイルを選択ボタン）の文字上下位置などの調整 */
+.file-upload-wrapper .btn-outline-small {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    line-height: 1;
+}
+
+/* 選択されたファイル名の表示 */
+.file-name-display {
+    color: #64748b;
+    font-size: 14px;
+}
