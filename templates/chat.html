@@ -25,7 +25,6 @@
             <div class="chat-list">
                 {% for room_item in chat_rooms %}
                     <div class="chat-item-wrapper {% if room_item.room_token == room %}active{% endif %}">
-                        <!-- チャット選択リンク -->
                         <a href="{{ url_for('chat.chat_room', room_id=room_item.room_token) }}" class="chat-item">
                             <img src="{{ url_for('static', filename='uploads/' + room_item.icon_path if room_item.icon_path else 'img/test.png') }}" class="chat-avatar" alt="ユーザーアイコン">
                             <div class="chat-info">
@@ -35,6 +34,10 @@
                                 </div>
                             </div>
                         </a>
+                        <form action="{{ url_for('chat.close_room', room_id=room_item.room_token) }}" method="POST"
+                              onsubmit="return confirm('このチャットを閉じますか？（履歴は消えず、リクエスト画面や通知からまた開けます）');">
+                            <button type="submit" class="chat-item-close" title="閉じる">×</button>
+                        </form>
                     </div>
                 {% endfor %}
             </div>
