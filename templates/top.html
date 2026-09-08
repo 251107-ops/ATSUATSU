@@ -41,6 +41,27 @@
             <p class="hero-sub">学内のスキルをシェアして、お互いに高め合えるコミュニティ</p>
         </section>
 
+        <!-- ★ おすすめユーザーエリア（元のカードの幅を崩さない横スクロール形式） -->
+        {% if recommended_users %}
+        <section class="recommended-section" style="max-width: 1100px; margin: 0 auto 32px auto; padding: 0 16px;">
+            <h3 style="font-size: 18px; margin-bottom: 12px; color: #1e293b; font-weight: bold; display: flex; align-items: center; gap: 8px;">
+                <span>💡</span> おすすめのユーザー
+            </h3>
+            <div class="recommended-list" style="display: flex; gap: 16px; overflow-x: auto; padding-bottom: 8px; scrollbar-width: thin;">
+                {% for rec_user in recommended_users %}
+                <a href="/users/{{ rec_user.user_id }}" class="rec-user-card" style="flex: 0 0 220px; background: #ffffff; padding: 16px; border-radius: 12px; border: 1px solid #e2e8f0; text-decoration: none; color: inherit; display: flex; flex-direction: column; align-items: center; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.02); transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.08)';" onmouseout="this.style.transform='none'; this.style.boxShadow='0 2px 4px rgba(0,0,0,0.02)';">
+                    <img src="{{ url_for('static', filename=rec_user.icon_path) if rec_user.icon_path else url_for('static', filename='img/default-avatar.png') }}" alt="{{ rec_user.name }}" style="width: 52px; height: 52px; border-radius: 50%; object-fit: cover; margin-bottom: 8px;">
+                    <div style="font-weight: bold; font-size: 14px; color: #0f172a; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ rec_user.name }}</div>
+                    <div style="font-size: 11px; color: #64748b; margin-top: 2px;">{{ rec_user.department }} {{ rec_user.grade }}</div>
+                    <div style="margin-top: 8px; padding: 4px 8px; background: #eff6ff; color: #2563eb; font-size: 11px; font-weight: bold; border-radius: 6px; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        {{ rec_user.matched_skill }}
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
+
         <!-- 検索・詳細フィルターエリア -->
         <section class="search-area">
             <form action="" method="GET" class="search-form-container">
@@ -92,6 +113,7 @@
             </form>
         </section>
 
+        <!-- スキルカード一覧エリア -->
         <section class="skills-section">
             <div class="section-header">
                 <h2>注目のスキル</h2>
