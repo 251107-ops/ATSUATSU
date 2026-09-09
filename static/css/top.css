@@ -627,3 +627,35 @@ a {
     color: #4f46e5;
     text-decoration: underline;
   }
+
+  /* ==========================================
+   プロジェクト募集カードの識別スタイル
+   ========================================== */
+.card[data-card-type="project"] {
+    background-color: #f5f8ff;
+    border: 1.5px solid #385cdb;
+    position: relative;
+}
+
+.card[data-card-type="project"]::before {
+    content: "PROJECT";
+    position: absolute;
+    top: -1px;
+    left: 16px;
+    background-color: #385cdb;
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: bold;
+    letter-spacing: 0.05em;
+    padding: 2px 10px;
+    border-radius: 0 0 6px 6px;
+}
+
+.card[data-card-type="project"]:hover {
+    border-color: #2a46b0;
+    box-shadow: 0 10px 25px rgba(56, 92, 219, 0.15);
+}
+
+.card[data-card-type="project"] .card-top .name {
+    color: #385cdb;
+}
