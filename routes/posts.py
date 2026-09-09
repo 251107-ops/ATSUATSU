@@ -5,6 +5,7 @@ from datetime import datetime
 from flask import Blueprint, render_template, redirect, session, request, jsonify, flash
 from werkzeug.utils import secure_filename
 from routes.auth import get_db
+from routes.projects import fetch_projects
 
 posts = Blueprint('posts', __name__)
 
@@ -117,10 +118,16 @@ def top():
         sort_type=sort_type,
         user_id=user_id
     )
+    for p in posts_list:
+        p['card_type'] = 'skill'
+
+    projects_list = fetch_projects(db, user_id=user_id)
+
+    combined = projects_list + posts_list if sort_type != 'popular' else posts_list + projects_list
 
     return render_template(
         'top.html',
-        posts=posts_list,
+        posts=combined,
         active_tab='all',
         active_sort=sort_type,
         categories=category_data,
@@ -568,7 +575,7 @@ def create_post():
             flash("このスキルに関する投稿はすでに作成されています。（1つのスキルにつき1つまで）")
             return redirect('/posts')
 
-        # 💡 画像・PDFファイルのアップロード処理
+        # 添付ファイル（画像・PDF）のアップロード処理
         image_path = None
         post_file = request.files.get('post_image')
         if post_file and post_file.filename != '':
@@ -579,7 +586,7 @@ def create_post():
                 post_file.save(save_path)
                 image_path = f"uploads/{filename}"
             else:
-                flash("許可されていないファイル形式です（PNG, JPEG, PDFのみ対応）。")
+                flash("許可されていないファイル形式です。添付できるのは画像（PNG, JPG, GIF, WEBP）または PDF のみです。")
                 return redirect('/posts')
 
         if user_id:
@@ -776,29 +783,23 @@ def other_profile(user_id):
 
     my_user_id = session.get('user_id')
 
+    # 自分自身の場合は自分のプロフィールへ
     if user_id == my_user_id:
         return redirect('/profile')
 
+    # データベース接続（SQLite）
     db = get_db()
 
-    row = db.execute(
-        "SELECT user_id, name, email, department, grade, introduction, icon_path FROM users WHERE user_id = ?",
-        (user_id,)
-    ).fetchone()
+    # ユーザー情報の取得
+    user_row = db.execute("SELECT * FROM users WHERE user_id = ?", (user_id,)).fetchone()
 
-    if not row:
-        return "指定されたユーザーは見つかりません", 404
+    if not user_row:
+        return "ユーザーが見つかりません", 404
 
-    user = {
-        'user_id': row[0],
-        'name': row[1],
-        'email': row[2],
-        'department': row[3],
-        'grade': row[4],
-        'introduction': row[5],
-        'icon_path': row[6] if row[6] else 'test.png'
-    }
+    # fetchone() の結果を辞書形式に変換（テンプレートで扱いやすくするため）
+    user = dict(user_row) if user_row else None
 
+    # 教える/学ぶスキルの取得（posts テーブル経由）
     teach_rows = db.execute("""
         SELECT DISTINCT skills.skill_id, skills.skill_name 
         FROM posts
@@ -815,38 +816,33 @@ def other_profile(user_id):
     """, (user_id,)).fetchall()
     skills_learn = [{'skill_id': r[0], 'skill_name': r[1]} for r in learn_rows]
 
+    # 相手の投稿一覧の取得
+    user_posts_rows = db.execute("""
+        SELECT p.*, c.category_name, s.skill_name 
+        FROM posts p
+        LEFT JOIN categories c ON p.category_id = c.category_id
+        LEFT JOIN skills s ON p.skill_id = s.skill_id
+        WHERE p.user_id = ?
+        ORDER BY p.post_date DESC
+    """, (user_id,)).fetchall()
+    user_posts = [dict(row) for row in user_posts_rows]
+
+    # 評価（平均値と件数）の取得
     review_stats = db.execute("""
-        SELECT AVG(rating) AS avg_rating, COUNT(*) AS review_count
-        FROM reviews WHERE reviewee_id = ?
+        SELECT AVG(rating) AS avg_rating, COUNT(*) AS review_count 
+        FROM reviews 
+        WHERE reviewee_id = ?
     """, (user_id,)).fetchone()
 
-    user_posts_rows = db.execute("""
-        SELECT
-            categories.category_name,
-            skills.skill_name,
-            posts.post_type, posts.post_text, posts.post_id,
-            (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.post_id) AS like_count,
-            (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.post_id AND likes.user_id = ?) AS liked_by_me,
-            posts.image_path
-        FROM posts
-        LEFT JOIN skills ON posts.skill_id = skills.skill_id
-        LEFT JOIN categories ON posts.category_id = categories.category_id
-        WHERE posts.user_id = ?
-        ORDER BY posts.post_date DESC
-    """, (my_user_id, user_id)).fetchall()
-
-    user_posts = []
-    for r in user_posts_rows:
-        user_posts.append({
-            'category_name': r[0] if r[0] else '未設定',
-            'skill_name': r[1] if r[1] else '未設定',
-            'post_type': r[2],
-            'post_text': r[3],
-            'post_id': r[4],
-            'like_count': r[5] if r[5] else 0,
-            'liked_by_me': bool(r[6]),
-            'image_path': r[7]
-        })
+    # 評価コメント（レビュー本文一覧）の取得
+    reviews_rows = db.execute("""
+        SELECT r.rating, r.comment, r.created_at, u.name AS reviewer_name
+        FROM reviews r
+        JOIN users u ON r.reviewer_id = u.user_id
+        WHERE r.reviewee_id = ?
+        ORDER BY r.created_at DESC
+    """, (user_id,)).fetchall()
+    reviews = [dict(row) for row in reviews_rows]
 
     return render_template(
         'other_profile.html',
@@ -854,5 +850,6 @@ def other_profile(user_id):
         skills_teach=skills_teach,
         skills_learn=skills_learn,
         user_posts=user_posts,
-        review_stats=review_stats
+        review_stats=review_stats,
+        reviews=reviews
     )

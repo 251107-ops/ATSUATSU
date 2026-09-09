@@ -27,6 +27,7 @@ app.register_blueprint(categories)
 app.register_blueprint(requests_bp)
 app.register_blueprint(notifications_bp)
 app.register_blueprint(reviews_bp)
+app.register_blueprint(projects_bp)
 
 init_chat_events(socketio)
 init_group_chat_events(socketio)

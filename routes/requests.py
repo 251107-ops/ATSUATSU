@@ -23,6 +23,9 @@ requests_bp = Blueprint('requests_bp', __name__)
 def send_request():
     user_id = session.get('user_id')
     
+    # 呼び出し元（元のページ）のURLを取得。取得できない場合のフォールバック先はトップ画面
+    back_url = request.referrer or url_for('top')
+
     # JSON・Form両方のリクエスト形式に対応
     post_id = request.form.get('post_id')
     if not post_id and request.is_json:
@@ -42,7 +45,7 @@ def send_request():
         if is_async:
             return jsonify({'success': False, 'message': '投稿IDが見つかりません。'}), 400
         flash('投稿IDが見つかりません。')
-        return redirect(url_for('.list_requests'))
+        return redirect(back_url) # ★ 修正：元の画面へ戻る
 
     db = get_db()
 
@@ -55,7 +58,7 @@ def send_request():
             if is_async:
                 return jsonify({'success': False, 'message': '該当の投稿が存在しません。'}), 404
             flash('該当の投稿が存在しません。')
-            return redirect(url_for('.list_requests'))
+            return redirect(back_url) # ★ 修正：元の画面へ戻る
 
         receiver_id = (
             post['user_id']
@@ -71,7 +74,7 @@ def send_request():
                     'reason': 'own_post'
                     }), 400
             flash('自分の投稿にはリクエストを送れません。')
-            return redirect(url_for('.list_requests'))
+            return redirect(back_url) # ★ 修正：元の画面へ戻る
 
         existing = db.execute(
             """
@@ -88,7 +91,7 @@ def send_request():
             if is_async:
                 return jsonify({'success': False, 'message': msg,'reason': 'duplicate'}), 400
             flash(msg)
-            return redirect(url_for('.list_requests'))
+            return redirect(back_url) # ★ 修正：元の画面へ戻る
 
         # リクエスト登録
         cursor = db.execute(
@@ -114,7 +117,7 @@ def send_request():
             return jsonify({'success': True, 'message': 'リクエストを送信しました！'})
         
         flash('リクエストを送信しました！')
-        return redirect(url_for('.list_requests'))
+        return redirect(back_url) # ★ 修正：送信成功時も元の画面（プロフィールなど）へ戻る
 
     except Exception as e:
         db.rollback()
@@ -124,8 +127,7 @@ def send_request():
         if is_async:
             return jsonify({'success': False, 'message': f'送信に失敗しました: {e}'}), 500
         flash(f'送信に失敗しました: {e}')
-        return redirect(url_for('.list_requests'))
-
+        return redirect(back_url) # ★ 修正：元の画面へ戻る
 
 # =====================================================================
 # 2. GET /requests -- リクエスト一覧表示
