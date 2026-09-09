@@ -10,6 +10,7 @@ from routes.posts import posts
 from routes.requests import requests_bp
 from routes.reviews import reviews_bp
 from routes.skill import skill
+from routes.projects import projects_bp
 
 app = Flask(__name__)
 
@@ -124,6 +125,31 @@ with app.app_context():
         content TEXT NOT NULL,
         created_at TEXT DEFAULT (datetime('now','localtime'))
     )''')
+
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS projects (
+            project_id     INTEGER PRIMARY KEY AUTOINCREMENT,
+            owner_user_id  INTEGER NOT NULL REFERENCES users(user_id),
+            project_name   TEXT NOT NULL,
+            description    TEXT NOT NULL,
+            skill_id       INTEGER NOT NULL REFERENCES skills(skill_id),
+            recruit_count  INTEGER NOT NULL DEFAULT 2,
+            group_room_id  TEXT NOT NULL REFERENCES group_rooms(group_room_id),
+            status         TEXT NOT NULL DEFAULT 'recruiting',
+            created_at     TEXT DEFAULT (datetime('now','localtime'))
+        );
+    """)
+
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS project_requests (
+            request_id   INTEGER PRIMARY KEY AUTOINCREMENT,
+            project_id   INTEGER NOT NULL REFERENCES projects(project_id),
+            applicant_id INTEGER NOT NULL REFERENCES users(user_id),
+            status       TEXT NOT NULL DEFAULT 'pending',
+            created_at   TEXT DEFAULT (datetime('now','localtime')),
+            updated_at   TEXT DEFAULT (datetime('now','localtime'))
+        );
+    """)
 
     # ==========================================
     # マスタデータ投入
