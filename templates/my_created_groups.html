@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SkillLink - 作成したグループ</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/variables.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/footer.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/my_rooms.css') }}">
+    <style>
+        .invite-badge {
+            background: #eef2ff;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-family: monospace;
+            color: #3f51b5;
+            font-weight: bold;
+            font-size: 13px;
+        }
+        .badge-public {
+            background: #e8f5e9;
+            color: #2e7d32;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .badge-private {
+            background: #fff3e0;
+            color: #ef6c00;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .room-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-top: 10px;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    {% include 'header.html' %}
+
+    <div class="container">
+        <h2>👑 あなたが作成したグループ一覧</h2>
+
+        {% if groups %}
+            <div class="rooms-grid">
+                {% for room in groups %}
+                    <div class="room-card">
+                        <div>
+                            <h3>スキル: {{ room.skill_name if room.skill_name else "総合交流" }}</h3>
+                            
+                            <div class="room-meta">
+                                <div>
+                                    公開設定: 
+                                    {% if room.is_public == 1 %}
+                                        <span class="badge-public">公開</span>
+                                    {% else %}
+                                        <span class="badge-private">非公開</span>
+                                    {% endif %}
+                                </div>
+                                <p style="margin: 0;">参加人数: <strong>{{ room.total_members }}</strong>人</p>
+                                
+                                {% if room.is_public == 0 %}
+                                    <p style="margin: 4px 0 0 0;">
+                                        招待コード: <span class="invite-badge">{{ room.group_room_id }}</span>
+                                    </p>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- グループチャット画面へ直接入室 -->
+                        <a href="{{ url_for('group_chat.group_chat_room', group_room_id=room.group_room_id) }}" class="btn btn-block">
+                            チャットに入る
+                        </a>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="empty-state">
+                まだ作成したグループはありません。
+            </p>
+            <div style="text-align: center; margin-top: 15px;">
+                <a href="{{ url_for('group_chat.show_create_room_form') }}" class="btn">
+                    + 新しいグループを作成する
+                </a>
+            </div>
+        {% endif %}
+
+        <div style="text-align: center; margin-top: 30px;">
+            <a href="{{ url_for('group_chat.group_chat_hub') }}" style="color: #5c6bc0; text-decoration: none;">← ハブに戻る</a>
+        </div>
+    </div>
+
+    {% include 'footer.html' %}
+</body>
+</html>
