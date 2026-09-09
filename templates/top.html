@@ -181,12 +181,9 @@
                     <div class="card-top">
                         <a href="/users/{{ post.user_id }}" class="user-icon-link" title="{{ post.name }}さんのプロフィールを見る" onclick="event.stopPropagation();">
                             <img src="{{ url_for('static', filename=post.icon_path) if post.icon_path else url_for('static', filename='img/default-avatar.png') }}" alt="{{ post.name }}のアイコン" class="user-icon-img">
-                        <a href="/users/{{ post.user_id }}" class="user-icon-link" onclick="event.stopPropagation();">
-                            <img src="{{ url_for('static', filename=post.icon_path) if post.icon_path else url_for('static', filename='img/default-avatar.png') }}" alt="{{ post.name }}のアイコン" class="user-icon-img">
                         </a>
                         <div>
                             <a href="/users/{{ post.user_id }}" class="name-link" title="{{ post.name }}さんのプロフィールを見る" onclick="event.stopPropagation();">
-                            <a href="/users/{{ post.user_id }}" class="name-link" onclick="event.stopPropagation();">
                                 <span class="name">{{ post.name }}</span>
                             </a>
                             <span class="meta">{{ post.department }} {{ post.grade }}年</span>
@@ -194,8 +191,6 @@
                     </div>
             
                     <div class="tags">
-                        {% if post.category_name %}<span class="tag">{{ post.category_name }}</span>{% endif %}
-                        {% if post.skill_name %}<span class="tag">{{ post.skill_name }}</span>{% endif %}
                         {% if post.category_name %}<span class="tag">{{ post.category_name }}</span>{% endif %}
                         {% if post.skill_name %}<span class="tag">{{ post.skill_name }}</span>{% endif %}
                         <span class="badge {{ 'teach' if post.post_type == '教えたい' else 'learn' }}">{{ post.post_type }}</span>
