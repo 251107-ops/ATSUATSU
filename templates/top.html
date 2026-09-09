@@ -1,14 +1,13 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ホーム | スキルシェア</title>
-<link rel="stylesheet" href="{{ url_for('static', filename='css/top.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/variables.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/footer.css') }}">
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ホーム | スキルシェア</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/top.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/variables.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/footer.css') }}">
 </head>
 <body>
     {% include 'header.html' %}
@@ -42,7 +41,7 @@
             <p class="hero-sub">学内のスキルをシェアして、お互いに高め合えるコミュニティ</p>
         </section>
 
-        <!-- 💡 検索・詳細フィルターエリア（全体を1つのformで包んで送信できるように修正） -->
+        <!-- 検索・詳細フィルターエリア -->
         <section class="search-area">
             <form action="" method="GET" class="search-form-container">
                 <!-- フリーワード検索 -->
@@ -148,7 +147,7 @@
                      data-user-id="{{ post.user_id }}"
                      data-name="{{ post.name }}"
                      data-meta="{{ post.department }} {{ post.grade }}年"
-                     data-icon="{{ url_for('static', filename=post.icon_path) if post.icon_path else url_for('static', filename='img/default-avatar.png') }}"
+                     data-icon="{{ url_for('static', filename=post.icon_path) }}"
                      data-category="{{ post.category_name }}"
                      data-skill="{{ post.skill_name }}"
                      data-type="{{ post.post_type }}"
@@ -158,10 +157,13 @@
                      data-pdf="{{ url_for('static', filename=post.pdf_path) if post.pdf_path else '' }}">
             
                     <div class="card-top">
+                        <a href="/users/{{ post.user_id }}" class="user-icon-link" title="{{ post.name }}さんのプロフィールを見る" onclick="event.stopPropagation();">
+                            <img src="{{ url_for('static', filename=post.icon_path) if post.icon_path else url_for('static', filename='img/default-avatar.png') }}" alt="{{ post.name }}のアイコン" class="user-icon-img">
                         <a href="/users/{{ post.user_id }}" class="user-icon-link" onclick="event.stopPropagation();">
                             <img src="{{ url_for('static', filename=post.icon_path) if post.icon_path else url_for('static', filename='img/default-avatar.png') }}" alt="{{ post.name }}のアイコン" class="user-icon-img">
                         </a>
                         <div>
+                            <a href="/users/{{ post.user_id }}" class="name-link" title="{{ post.name }}さんのプロフィールを見る" onclick="event.stopPropagation();">
                             <a href="/users/{{ post.user_id }}" class="name-link" onclick="event.stopPropagation();">
                                 <span class="name">{{ post.name }}</span>
                             </a>
@@ -170,6 +172,8 @@
                     </div>
             
                     <div class="tags">
+                        {% if post.category_name %}<span class="tag">{{ post.category_name }}</span>{% endif %}
+                        {% if post.skill_name %}<span class="tag">{{ post.skill_name }}</span>{% endif %}
                         {% if post.category_name %}<span class="tag">{{ post.category_name }}</span>{% endif %}
                         {% if post.skill_name %}<span class="tag">{{ post.skill_name }}</span>{% endif %}
                         <span class="badge {{ 'teach' if post.post_type == '教えたい' else 'learn' }}">{{ post.post_type }}</span>
@@ -182,6 +186,7 @@
                         {% endif %}
                     </div>
             
+
                     <p class="body">{{ post.post_text }}</p>
             
                     <button type="button" class="like-btn" data-post-id="{{ post.post_id }}" data-liked="{{ 'true' if post.liked_by_me else 'false' }}">
@@ -228,10 +233,9 @@
             </div>
 
             <div id="modalAttachmentArea" class="modal-attachment-container" style="display: none; margin-top: 12px;">
-
                 <img id="modalPreviewImg" src="" alt="添付画像" style="max-width: 100%; height: auto; border-radius: 8px; border: 1px solid #e2e8f0; display: none;">
 
-                <a id="modalPreviewPdf" href="#" target="_blank" rel="noopener noreferrer" style="display: none; padding: 12px; background: f1f5f9; color: #334155; text-decoration: none; border-radius: 8px; text-align: center; font-weight: bold; border: 1px solid #cbd5e1;">
+                <a id="modalPreviewPdf" href="#" target="_blank" rel="noopener noreferrer" style="display: none; padding: 12px; background: #f1f5f9; color: #334155; text-decoration: none; border-radius: 8px; text-align: center; font-weight: bold; border: 1px solid #cbd5e1;">
                     📄 添付PDFを表示する（別タブで開く）
                 </a>
             </div>
@@ -246,7 +250,6 @@
             <div class="modal-footer">
                 <span id="modalLikes" class="modal-like-count">0</span> ♥
             </div>
-
         </div>
     </div>
 

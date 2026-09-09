@@ -603,3 +603,81 @@ body {
     font-size: 0.9rem;
     font-weight: 500;
 }
+
+/* =====================================================================
+   レスポンシブ対応 (スマホ表示最適化: 768px以下)
+   ===================================================================== */
+@media screen and (max-width: 768px) {
+    .chat-container {
+        height: calc(100vh - 70px); /* スマホ画面全体にフィット */
+        margin: 0;
+        border-radius: 0;
+        border: none;
+    }
+
+    .chat-sidebar {
+        width: 100%;
+        min-width: 100%;
+        border-right: none;
+    }
+
+    .chat-main {
+        width: 100%;
+    }
+
+    /* ルーム選択の有無でサイドバーとメインエリアを切り替え */
+    /* ルーム未選択時はリストを表示、メインを非表示 */
+    .chat-sidebar {
+        display: flex;
+    }
+    .chat-main {
+        display: none;
+    }
+
+    /* メッセージ画面（chat-box）が存在する場合＝ルーム選択中 */
+    /* サイドバーを隠してメイン画面を全画面表示 */
+    .chat-container:has(#chat-box) .chat-sidebar {
+        display: none;
+    }
+    .chat-container:has(#chat-box) .chat-main {
+        display: flex;
+    }
+
+    /* スマホ用の余白・サイズ調整 */
+    .chat-header {
+        padding: 12px 16px;
+    }
+
+    .chat-header h2 {
+        font-size: 16px;
+    }
+
+    .chat-messages {
+        padding: 12px;
+    }
+
+    .msg-line {
+        max-width: 85%; /* スマホでは吹き出しを広く */
+    }
+
+    .chat-footer {
+        padding: 10px;
+        gap: 8px;
+    }
+
+    .chat-footer input[type="text"] {
+        padding: 10px 14px;
+        font-size: 14px;
+    }
+
+    .btn-send {
+        padding: 10px 18px;
+        font-size: 13px;
+    }
+
+    .btn-image-upload {
+        width: 36px;
+        height: 36px;
+        font-size: 16px;
+    }
+}

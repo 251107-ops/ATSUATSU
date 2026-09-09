@@ -194,8 +194,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('modalLikes').textContent = data.likes || '0';
         
                 const modalUserLink = document.getElementById('modalUserLink');
-                if (modalUserLink) modalUserLink.href = '/users/' + data.userId;
-        
+                if (modalUserLink) {
+                    modalUserLink.href = '/users/' + data.userId;
+                }
+
+                // バッジ状態の反映
                 const modalType = document.getElementById('modalType');
                 modalType.textContent = data.type || '';
                 modalType.className = `badge ${data.type === '教えたい' ? 'teach' : 'learn'}`;

@@ -37,7 +37,6 @@ def create_chat_room(user1_id, user2_id, skill_id=None):
     """リクエスト承認時などに2人間のプライベートルームを作成または取得する共通関数"""
     db = get_db()
 
-    # 既にこの2人だけのルームが存在するか確認
     existing_room = db.execute(
         """
         SELECT rm1.room_id 
@@ -108,7 +107,6 @@ def upload_image():
 # 1. チャットハブへのルーティング
 # =====================================================================
 @chat.route('/chat', methods=['GET', 'POST'])
-@chat.route('/chat', methods=['GET', 'POST'])
 def chat_hub():
     user_id = session.get('user_id')
     if not user_id:
@@ -123,23 +121,34 @@ def chat_hub():
     ).fetchone()
     name = user_row['name'] if user_row else session.get('name', 'User')
 
-    # 👥 サイドバー用：自分が参加しているチャットルーム一覧を取得
-    chat_rooms_rows = db.execute(
-        """
+    # 👥 サイドバー用：1on1とグループチャットを両方取得
+    chat_rooms_rows = db.execute('''
         SELECT 
             rm1.room_id AS room_token,
             u.name AS user_name,
             u.icon_path,
-            s.skill_name
+            s.skill_name,
+            0 AS is_group
         FROM room_members rm1
         JOIN room_members rm2 ON rm1.room_id = rm2.room_id AND rm1.user_id != rm2.user_id
         JOIN users u ON rm2.user_id = u.user_id
         LEFT JOIN rooms r ON rm1.room_id = r.room_id
         LEFT JOIN skills s ON r.skill_id = s.skill_id
         WHERE rm1.user_id = ? AND rm1.hidden = 0
-    """,
-        (user_id,),
-    ).fetchall()
+
+        UNION ALL
+
+        SELECT 
+            gr.group_room_id AS room_token,
+            s.skill_name AS user_name,
+            NULL AS icon_path,
+            s.skill_name,
+            1 AS is_group
+        FROM group_members gm
+        JOIN group_rooms gr ON gm.group_room_id = gr.group_room_id
+        LEFT JOIN skills s ON gr.skill_id = s.skill_id
+        WHERE gm.user_id = ?
+    ''', (user_id, user_id)).fetchall()
     
     chat_rooms = []
     for row in chat_rooms_rows:
@@ -148,9 +157,9 @@ def chat_hub():
             'user_name': row['user_name'],
             'icon_path': row['icon_path'],
             'skill_name': row['skill_name'] if row['skill_name'] else '',
+            'is_group': bool(row['is_group'])
         })
 
-    # ルーム未選択状態なので room / chats / req_row は空のまま渡す
     return render_template(
         'chat.html',
         name=name,
@@ -164,7 +173,7 @@ def chat_hub():
 
 
 # =====================================================================
-# 2. チャットルーム画面 (厳格なメンバーシップ検証 ＆ 履歴取得)
+# 2. チャットルーム画面 (1on1 & グループ両対応の検証)
 # =====================================================================
 @chat.route('/chat/room/<string:room_id>')
 def chat_room(room_id):
@@ -174,11 +183,14 @@ def chat_room(room_id):
 
     db = get_db()
 
+    # ★ 修正1: 1on1(room_members) またはグループ(group_members)のメンバー権限を確認
     is_member = db.execute(
         """
         SELECT 1 FROM room_members WHERE room_id = ? AND user_id = ?
-    """,
-        (room_id, user_id),
+        UNION ALL
+        SELECT 1 FROM group_members WHERE group_room_id = ? AND user_id = ?
+        """,
+        (room_id, user_id, room_id, user_id),
     ).fetchone()
 
     if not is_member:
@@ -186,6 +198,7 @@ def chat_room(room_id):
         session.modified = True
         return redirect(url_for('.chat_hub'))
 
+    # 1on1チャットが非表示の場合、再度表示状態に戻す
     db.execute(
         'UPDATE room_members SET hidden = 0 WHERE room_id = ? AND user_id = ?',
         (room_id, user_id),
@@ -199,11 +212,6 @@ def chat_room(room_id):
         'SELECT name FROM users WHERE user_id = ?', (user_id,)
     ).fetchone()
     name = user_row['name'] if user_row else session.get('name', 'User')
-
-    print(
-        f'[HTTP ACCESS] VERIFIED - User: {name} (ID: {user_id}) entering Room:'
-        f' {room_id}'
-    )
 
     # 📥 過去ログの取得
     history_rows = db.execute(
@@ -227,26 +235,37 @@ def chat_room(room_id):
             'time': row['send_time'],
         })
 
-    # 👥 サイドバー用：自分が参加しているチャットルームと相手の情報一覧を取得
-    chat_rooms_rows = db.execute(
-        """
+    # 👥 サイドバー用の一覧取得
+    chat_rooms_rows = db.execute('''
         SELECT 
             rm1.room_id AS room_token,
             u.name AS user_name,
             u.icon_path,
-            s.skill_name
+            s.skill_name,
+            0 AS is_group
         FROM room_members rm1
         JOIN room_members rm2 ON rm1.room_id = rm2.room_id AND rm1.user_id != rm2.user_id
         JOIN users u ON rm2.user_id = u.user_id
         LEFT JOIN rooms r ON rm1.room_id = r.room_id
         LEFT JOIN skills s ON r.skill_id = s.skill_id
         WHERE rm1.user_id = ? AND rm1.hidden = 0
-    """,
-        (user_id,),
-    ).fetchall()
+
+        UNION ALL
+
+        SELECT 
+            gr.group_room_id AS room_token,
+            s.skill_name AS user_name,
+            NULL AS icon_path,
+            s.skill_name,
+            1 AS is_group
+        FROM group_members gm
+        JOIN group_rooms gr ON gm.group_room_id = gr.group_room_id
+        LEFT JOIN skills s ON gr.skill_id = s.skill_id
+        WHERE gm.user_id = ?
+    ''', (user_id, user_id)).fetchall()
 
     chat_rooms = []
-    target_user_name = None  # ヘッダー用の相手の名前
+    target_user_name = None
 
     for row in chat_rooms_rows:
         token_str = str(row['room_token'])
@@ -255,13 +274,11 @@ def chat_room(room_id):
             'user_name': row['user_name'],
             'icon_path': row['icon_path'],
             'skill_name': row['skill_name'] if row['skill_name'] else '',
+            'is_group': bool(row['is_group'])
         })
-        # 現在開いているルームの相手の名前を保持
         if token_str == str(room_id):
             target_user_name = row['user_name']
 
-    # ★ 修正ポイント: room_id の型キャスト対応 ＆ SQLの条件調整
-    # room_id が文字列か数値かどちらでも対応できるように CAST して比較します
     req_row = db.execute(
         """
         SELECT request_id, status, requester_id, receiver_id,
@@ -278,7 +295,7 @@ def chat_room(room_id):
     return render_template(
         'chat.html',
         name=name,
-        target_user_name=target_user_name, # 追加：相手の名前
+        target_user_name=target_user_name,
         room=room_id,
         chats=history,
         user_id=user_id,
@@ -530,9 +547,14 @@ def init_chat_events(socketio):
             return False
 
         db = get_db()
+        # ★ 修正2: プライベートルームとグループルームの両方でWebSocket接続を検証
         is_member = db.execute(
-            'SELECT 1 FROM room_members WHERE room_id = ? AND user_id = ?',
-            (room, user_id),
+            """
+            SELECT 1 FROM room_members WHERE room_id = ? AND user_id = ?
+            UNION ALL
+            SELECT 1 FROM group_members WHERE group_room_id = ? AND user_id = ?
+            """,
+            (room, user_id, room, user_id),
         ).fetchone()
 
         if is_member:
@@ -558,9 +580,14 @@ def init_chat_events(socketio):
 
         if room and user_id and msg_content:
             db = get_db()
+            # ★ 修正2: 両方のタイプのルームでメッセージ送信権限を検証
             is_member = db.execute(
-                'SELECT 1 FROM room_members WHERE room_id = ? AND user_id = ?',
-                (room, user_id),
+                """
+                SELECT 1 FROM room_members WHERE room_id = ? AND user_id = ?
+                UNION ALL
+                SELECT 1 FROM group_members WHERE group_room_id = ? AND user_id = ?
+                """,
+                (room, user_id, room, user_id),
             ).fetchone()
             if not is_member:
                 print(
@@ -582,7 +609,6 @@ def init_chat_events(socketio):
             ).fetchone()
             real_name = user_row['name'] if user_row else 'User'
 
-            # メッセージ保存と ID の獲得
             cursor = db.execute(
                 """
                 INSERT INTO messages (room, user_id, name, content) 
@@ -593,7 +619,6 @@ def init_chat_events(socketio):
             msg_id = cursor.lastrowid
             db.commit()
 
-            # ID・ユーザーIDを付与して全クライアントへ配信
             emit(
                 'message',
                 {
@@ -604,7 +629,6 @@ def init_chat_events(socketio):
                 to=room,
             )
 
-    # 🗑️ メッセージ削除イベント
     @socketio.on('delete_message', namespace='/chat')
     def delete_message(data):
         room = session.get('room')
@@ -613,10 +637,8 @@ def init_chat_events(socketio):
 
         if room and user_id and msg_id:
             db = get_db()
-            # 送信者本人のメッセージかつ現在属しているルームのメッセージか検証して削除
             cursor = db.execute(
-                'DELETE FROM messages WHERE id = ? AND user_id = ? AND room ='
-                ' ?',
+                'DELETE FROM messages WHERE id = ? AND user_id = ? AND room = ?',
                 (msg_id, user_id, room),
             )
             db.commit()
@@ -626,7 +648,6 @@ def init_chat_events(socketio):
                     '[WS DELETE Success] Msg ID:'
                     f' {msg_id} deleted by User: {user_id}'
                 )
-                # ルーム全員の端末の画面から削除する通知を送信
                 emit('message_deleted', {'msg_id': msg_id}, to=room)
 
     @socketio.on('left', namespace='/chat')
@@ -654,25 +675,27 @@ def chat_index():
 
     db = get_db()
 
-    # ユーザーが参加している直近のルームを1件取得
+    # ★ 修正3: 1on1とグループを結合して最新のルームを取得
     latest_room = db.execute(
         '''
-        SELECT room_id 
-        FROM room_members 
-        WHERE user_id = ? 
+        SELECT room_id FROM (
+            SELECT room_id AS room_id FROM room_members WHERE user_id = ?
+            UNION ALL
+            SELECT group_room_id AS room_id FROM group_members WHERE user_id = ?
+        )
         ORDER BY room_id DESC 
         LIMIT 1
     ''',
-        (user_id,),
+        (user_id, user_id),
     ).fetchone()
 
-    # 参加しているルームがあればその画面へ、なければチャットハブ（未選択画面など）へ
     if latest_room:
         return redirect(
             url_for('chat.chat_room', room_id=latest_room['room_id'])
         )
     else:
         return redirect(url_for('chat.chat_hub'))
+
 
 @chat.route('/chat/room/<string:room_id>/close', methods=['POST'])
 def close_room(room_id):
@@ -687,14 +710,12 @@ def close_room(room_id):
     )
     db.commit()
 
-    # 今開いているルームを閉じたら未選択画面へ
     if session.get('room') == room_id:
         session['room'] = None
         session.modified = True
         return redirect(url_for('.chat_hub'))
 
     return redirect(request.referrer or url_for('.chat_hub'))
-
 
 
 # =====================================================================
@@ -708,14 +729,16 @@ def leave_room_action(room_id):
 
     db = get_db()
 
-    # 1. room_members から自分を削除
     db.execute(
         'DELETE FROM room_members WHERE room_id = ? AND user_id = ?',
         (room_id, user_id),
     )
+    db.execute(
+        'DELETE FROM group_members WHERE group_room_id = ? AND user_id = ?',
+        (room_id, user_id),
+    )
     db.commit()
 
-    # 2. もしルーム内にメンバーが誰もいなくなったらルーム自体も削除
     member_count = db.execute(
         'SELECT COUNT(*) AS count FROM room_members WHERE room_id = ?',
         (room_id,),
@@ -726,23 +749,19 @@ def leave_room_action(room_id):
         db.execute('DELETE FROM messages WHERE room = ?', (room_id,))
         db.commit()
 
-    # 削除後は他のチャット画面（または一覧インデックス）へリダイレクト
     return redirect(url_for('chat.chat_index'))
 
 
 # =====================================================================
-# HTTP送信時のフォールバック処理（必要に応じて使用）
+# HTTP送信時のフォールバック処理
 # =====================================================================
 @chat.route('/chat/send', methods=['POST'])
 def send_message():
     db = get_db()
     room_id = request.form.get('room_id')
-    message_text = request.form.get('message')
 
-    # ルームの状態を確認
     room = db.execute("SELECT status FROM requests WHERE room_id = ?", (room_id,)).fetchone()
 
-    # チャットが終了している場合は送信を拒否
     if room and room['status'] == 'completed':
         return jsonify({'error': 'このチャットは既に終了しています'}), 400
 

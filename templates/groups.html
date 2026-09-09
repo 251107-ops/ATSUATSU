@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SkillLink - チャットルーム一覧</title>
+    <title>SkillLink - グループチャット一覧</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/variables.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/footer.css') }}">
@@ -15,33 +15,34 @@
     <div class="container">
         <div class="action-row">
             <div class="action-section">
-                <h3>非公開ルームに参加</h3>
+                <h3>非公開グループに参加</h3>
+                <!-- group_chatのグループ参加処理へ送信するフォーム -->
                 <form action="{{ url_for('group_chat.join_group') }}" method="POST" class="action-form">
                     <input type="text" name="group_room_id" placeholder="8桁の招待コードを入力してください..." required autocomplete="off">
-                    <button type="submit" class="btn">ルームに参加</button>
+                    <button type="submit" class="btn">グループに参加</button>
                 </form>
             </div>
 
             <div class="action-section">
-                <h3>コミュニティルームを開設</h3>
-                <p>お探しのテーマが見つかりませんか？任意のスキルで公開ルームをすぐに開設できます。</p>
-                <a href="{{ url_for('group_chat.show_create_room_form') }}" class="btn btn-secondary">
-                    ＋ 公開ルームを作成
+                <h3>コミュニティグループを開設</h3>
+                <p>お探しのテーマが見つかりませんか？任意のスキルで公開グループをすぐに開設できます。</p>
+                <a href="{{ url_for('chat.show_create_room_form') }}" class="btn btn-secondary">
+                    ＋ 公開グループを作成
                 </a>
             </div>
         </div>
 
-        <h2>現在公開中のルーム</h2>
-        {% set room_list = groups if groups is defined else rooms %}
-        {% if room_list %}
+        <h2>現在公開中のグループ</h2>
+        {% if groups %}
             <div class="rooms-grid">
-                {% for room in room_list %}
+                {% for group in groups %}
                     <div class="room-card">
                         <div>
-                            <h3>スキル: {{ room.skill_name if room.skill_name else "総合交流" }}</h3>
-                            <p>参加人数: <strong>{{ room.total_members }}</strong>人</p>
+                            <h3>スキル: {{ group.skill_name if group.skill_name else "総合交流" }}</h3>
+                            <p>参加人数: <strong>{{ group.total_members }}</strong>人</p>
                         </div>
-                        <a href="{{ url_for('group_chat.join_group', group_room_id=room.group_room_id) }}" class="btn btn-block">
+                        <!-- group_room_idをパラメータとして渡してグループチャットへ入室 -->
+                        <a href="{{ url_for('group_chat.join_group', group_room_id=group.group_room_id) }}" class="btn btn-block">
                             チャットに入る
                         </a>
                     </div>
@@ -49,7 +50,7 @@
             </div>
         {% else %}
             <p class="no-rooms">
-                現在公開中のルームはありません。上のボタンから最初のルームを作成してみましょう！
+                現在公開中のグループはありません。上のボタンから最初のグループを作成してみましょう！
             </p>
         {% endif %}
     </div>

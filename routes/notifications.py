@@ -83,7 +83,7 @@ def list_notifications():
             item['message'] = f"「{proj_name}」への参加申請はお断りされました"
         else:
             item['message'] = "通知があります"
-
+        
         notifications.append(item)
 
     # 一覧を開いたタイミングで既読にする
