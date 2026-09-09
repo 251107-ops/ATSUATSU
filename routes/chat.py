@@ -478,7 +478,7 @@ def show_create_room_form():
     db = get_db()
     skills = db.execute('SELECT skill_id, skill_name FROM skills').fetchall()
 
-    return render_template('create_room.html', skills=skills)
+    return render_template('project_new.html', skills=skills)
 
 
 # =====================================================================

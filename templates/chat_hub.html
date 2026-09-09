@@ -45,10 +45,16 @@
 
             <a href="{{ url_for('chat.show_create_room_form') }}" class="hub-card">
                 <div class="hub-icon" style="color: #2ec4b6;">➕</div>
-                <h3>ルームを作成する</h3>
+                <h3>プロジェクトを作成する</h3>
                 <p>独自のトピックルームを作成し、他のユーザーを招待してやり取りを開始します。</p>
             </a>
 
+            <!-- プロジェクト一覧をつなげる -->
+            <a href="{{ url_for('') }}" class="hub-card">
+                <div class="hub-icon" style="color: #3a86ff;">📒</div>
+                <h3>プロジェクト募集</h3>
+                <p>募集中のプロジェクトを一覧表示します。</p>
+            </a>
             
             <a href="{{ url_for('group_chat.list_groups') }}" class="hub-card">
                 <div class="hub-icon" style="color: #5c6bc0;">🔍</div>
