@@ -91,7 +91,6 @@ def fetch_posts(db, category_id="", post_type="", search_query="", sort_type="ne
 
     return posts_list
 
-
 @posts.route("/")
 def top():
     if 'user_email' not in session:
@@ -99,6 +98,10 @@ def top():
 
     db = get_db()
     user_id = session.get('user_id')
+
+    # おすすめユーザーの取得
+    recommended_users = fetch_recommended_users(db, user_id)
+
     sort_type = request.args.get('sort', 'new')
     selected_category = request.args.get('category', '')
     selected_grade = request.args.get('grade', '')
@@ -127,6 +130,7 @@ def top():
 
     return render_template(
         'top.html',
+        recommended_users=recommended_users,
         posts=combined,
         active_tab='all',
         active_sort=sort_type,
@@ -138,7 +142,6 @@ def top():
         selected_department=selected_department,
         search_query=search_query
     )
-
 
 @posts.route("/top/learn")
 def top_learn():
@@ -168,53 +171,13 @@ def top_learn():
         user_id=user_id
     )
 
+    recommended_users = fetch_recommended_users(db, user_id)
+
     return render_template(
         'top.html',
         posts=posts_list,
+        recommended_users=recommended_users,
         active_tab='learn',
-        active_sort=sort_type,
-        categories=category_data,
-        selected_category=selected_category,
-        grades=grade_data,
-        selected_grade=selected_grade,
-        departments=department_data,
-        selected_department=selected_department,
-        search_query=search_query
-    )
-
-
-@posts.route("/top/teach")
-def top_teach():
-    if 'user_email' not in session:
-        return redirect('/login')
-
-    db = get_db()
-    user_id = session.get('user_id')
-    sort_type = request.args.get('sort', 'new')
-    selected_category = request.args.get('category', '')
-    selected_grade = request.args.get('grade', '')
-    selected_department = request.args.get('department', '')
-    search_query = request.args.get('query', '')
-
-    category_data = db.execute("SELECT * FROM categories").fetchall()
-    grade_data = db.execute("SELECT DISTINCT grade FROM users WHERE grade IS NOT NULL AND grade != ''").fetchall()
-    department_data = db.execute("SELECT DISTINCT department FROM users WHERE department IS NOT NULL AND department != ''").fetchall()
-
-    posts_list = fetch_posts(
-        db,
-        category_id=selected_category,
-        post_type='教えたい',
-        grade=selected_grade,
-        department=selected_department,
-        search_query=search_query,
-        sort_type=sort_type,
-        user_id=user_id
-    )
-
-    return render_template(
-        'top.html',
-        posts=posts_list,
-        active_tab='teach',
         active_sort=sort_type,
         categories=category_data,
         selected_category=selected_category,
@@ -575,7 +538,7 @@ def create_post():
             flash("このスキルに関する投稿はすでに作成されています。（1つのスキルにつき1つまで）")
             return redirect('/posts')
 
-        # 💡 画像・PDFファイルのアップロード処理
+        # 添付ファイル（画像・PDF）のアップロード処理
         image_path = None
         post_file = request.files.get('post_image')
         if post_file and post_file.filename != '':
@@ -586,7 +549,7 @@ def create_post():
                 post_file.save(save_path)
                 image_path = f"uploads/{filename}"
             else:
-                flash("許可されていないファイル形式です（PNG, JPEG, PDFのみ対応）。")
+                flash("許可されていないファイル形式です。添付できるのは画像（PNG, JPG, GIF, WEBP）または PDF のみです。")
                 return redirect('/posts')
 
         if user_id:
@@ -694,38 +657,6 @@ def search_posts():
 
     return redirect('/')
 
-
-@posts.route("/posts/likes", methods=['POST'])
-def like_post():
-    if 'user_email' not in session:
-        return jsonify({'error': 'unauthorized'}), 401
-
-    if request.is_json:
-        data = request.get_json()
-        post_id = data.get('post_id') if data else None
-    else:
-        post_id = request.form.get('post_id')
-
-    user_id = session.get('user_id')
-    if not post_id or not user_id:
-        return jsonify({'error': 'invalid request'}), 400
-
-    db = get_db()
-    existing_like = db.execute(
-        "SELECT 1 FROM likes WHERE user_id = ? AND post_id = ?", (user_id, post_id)
-    ).fetchone()
-
-    if existing_like:
-        db.execute("DELETE FROM likes WHERE user_id = ? AND post_id = ?", (user_id, post_id))
-        liked = False
-    else:
-        db.execute("INSERT INTO likes (user_id, post_id) VALUES (?, ?)", (user_id, post_id))
-        liked = True
-
-    db.commit()
-    return jsonify({'liked': liked, 'post_id': post_id})
-
-
 @posts.route("/likes/page", methods=["GET"])
 def get_like():
     if 'user_email' not in session:
@@ -783,29 +714,23 @@ def other_profile(user_id):
 
     my_user_id = session.get('user_id')
 
+    # 自分自身の場合は自分のプロフィールへ
     if user_id == my_user_id:
         return redirect('/profile')
 
+    # データベース接続（SQLite）
     db = get_db()
 
-    row = db.execute(
-        "SELECT user_id, name, email, department, grade, introduction, icon_path FROM users WHERE user_id = ?",
-        (user_id,)
-    ).fetchone()
+    # ユーザー情報の取得
+    user_row = db.execute("SELECT * FROM users WHERE user_id = ?", (user_id,)).fetchone()
 
-    if not row:
-        return "指定されたユーザーは見つかりません", 404
+    if not user_row:
+        return "ユーザーが見つかりません", 404
 
-    user = {
-        'user_id': row[0],
-        'name': row[1],
-        'email': row[2],
-        'department': row[3],
-        'grade': row[4],
-        'introduction': row[5],
-        'icon_path': row[6] if row[6] else 'test.png'
-    }
+    # fetchone() の結果を辞書形式に変換
+    user = dict(user_row) if user_row else None
 
+    # 教える/学ぶスキルの取得（posts テーブル経由）
     teach_rows = db.execute("""
         SELECT DISTINCT skills.skill_id, skills.skill_name 
         FROM posts
@@ -822,38 +747,47 @@ def other_profile(user_id):
     """, (user_id,)).fetchall()
     skills_learn = [{'skill_id': r[0], 'skill_name': r[1]} for r in learn_rows]
 
+    # ★ 【修正箇所】相手の投稿一覧の取得（いいね数と自分がいいね済みかのフラグを結合）
+    user_posts_rows = db.execute("""
+        SELECT 
+            p.*, 
+            c.category_name, 
+            s.skill_name,
+            COALESCE(l.like_count, 0) AS like_count,
+            CASE WHEN my_l.post_id IS NOT NULL THEN 1 ELSE 0 END AS liked_by_me
+        FROM posts p
+        LEFT JOIN categories c ON p.category_id = c.category_id
+        LEFT JOIN skills s ON p.skill_id = s.skill_id
+        -- 各投稿のいいね合計数を集計して結合
+        LEFT JOIN (
+            SELECT post_id, COUNT(*) AS like_count 
+            FROM likes 
+            GROUP BY post_id
+        ) l ON p.post_id = l.post_id
+        -- ログイン中の自分がいいねしているか判定するために結合
+        LEFT JOIN likes my_l ON p.post_id = my_l.post_id AND my_l.user_id = ?
+        WHERE p.user_id = ?
+        ORDER BY p.post_date DESC
+    """, (my_user_id, user_id)).fetchall()
+    
+    user_posts = [dict(row) for row in user_posts_rows]
+
+    # 評価（平均値と件数）の取得
     review_stats = db.execute("""
-        SELECT AVG(rating) AS avg_rating, COUNT(*) AS review_count
-        FROM reviews WHERE reviewee_id = ?
+        SELECT AVG(rating) AS avg_rating, COUNT(*) AS review_count 
+        FROM reviews 
+        WHERE reviewee_id = ?
     """, (user_id,)).fetchone()
 
-    user_posts_rows = db.execute("""
-        SELECT
-            categories.category_name,
-            skills.skill_name,
-            posts.post_type, posts.post_text, posts.post_id,
-            (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.post_id) AS like_count,
-            (SELECT COUNT(*) FROM likes WHERE likes.post_id = posts.post_id AND likes.user_id = ?) AS liked_by_me,
-            posts.image_path
-        FROM posts
-        LEFT JOIN skills ON posts.skill_id = skills.skill_id
-        LEFT JOIN categories ON posts.category_id = categories.category_id
-        WHERE posts.user_id = ?
-        ORDER BY posts.post_date DESC
-    """, (my_user_id, user_id)).fetchall()
-
-    user_posts = []
-    for r in user_posts_rows:
-        user_posts.append({
-            'category_name': r[0] if r[0] else '未設定',
-            'skill_name': r[1] if r[1] else '未設定',
-            'post_type': r[2],
-            'post_text': r[3],
-            'post_id': r[4],
-            'like_count': r[5] if r[5] else 0,
-            'liked_by_me': bool(r[6]),
-            'image_path': r[7]
-        })
+    # 評価コメント（レビュー本文一覧）の取得
+    reviews_rows = db.execute("""
+        SELECT r.rating, r.comment, r.created_at, u.name AS reviewer_name
+        FROM reviews r
+        JOIN users u ON r.reviewer_id = u.user_id
+        WHERE r.reviewee_id = ?
+        ORDER BY r.created_at DESC
+    """, (user_id,)).fetchall()
+    reviews = [dict(row) for row in reviews_rows]
 
     return render_template(
         'other_profile.html',
@@ -861,5 +795,167 @@ def other_profile(user_id):
         skills_teach=skills_teach,
         skills_learn=skills_learn,
         user_posts=user_posts,
-        review_stats=review_stats
+        review_stats=review_stats,
+        reviews=reviews
     )
+
+
+# --- ★ 追加: おすすめユーザー取得用の共通関数 ---
+def fetch_recommended_users(db, current_user_id):
+    if not current_user_id:
+        return []
+
+    # 1. 自分が投稿した「学びたい」スキルIDを『すべて』取得
+    skills_rows = db.execute("""
+        SELECT DISTINCT skill_id 
+        FROM posts 
+        WHERE user_id = ? AND post_type = '学びたい' AND skill_id IS NOT NULL AND skill_id != ''
+    """, (current_user_id,)).fetchall()
+
+    my_learn_skills = [row['skill_id'] if isinstance(row, dict) else row[0] for row in skills_rows]
+
+    if not my_learn_skills:
+        return []
+
+    placeholders = ','.join(['?'] * len(my_learn_skills))
+
+    sql = f"""
+        SELECT DISTINCT
+            u.user_id,
+            u.name,
+            u.department,
+            u.grade,
+            u.icon_path,
+            s.skill_name AS matched_skill
+        FROM posts p
+        JOIN users u ON p.user_id = u.user_id
+        JOIN skills s ON p.skill_id = s.skill_id
+        WHERE p.post_type = '教えたい'
+          AND p.skill_id IN ({placeholders})
+          AND p.user_id != ?
+        LIMIT 5
+    """
+
+    params = tuple(my_learn_skills) + (current_user_id,)
+    
+    recommended_users = db.execute(sql, params).fetchall()
+    return recommended_users
+
+@posts.route("/top/teach")
+def top_teach():
+    if 'user_email' not in session:
+        return redirect('/login')
+
+    db = get_db()
+    user_id = session.get('user_id')
+    sort_type = request.args.get('sort', 'new')
+    selected_category = request.args.get('category', '')
+    selected_grade = request.args.get('grade', '')
+    selected_department = request.args.get('department', '')
+    search_query = request.args.get('query', '')
+
+    category_data = db.execute("SELECT * FROM categories").fetchall()
+    grade_data = db.execute("SELECT DISTINCT grade FROM users WHERE grade IS NOT NULL AND grade != ''").fetchall()
+    department_data = db.execute("SELECT DISTINCT department FROM users WHERE department IS NOT NULL AND department != ''").fetchall()
+
+    posts_list = fetch_posts(
+        db,
+        category_id=selected_category,
+        post_type='教えたい',
+        grade=selected_grade,
+        department=selected_department,
+        search_query=search_query,
+        sort_type=sort_type,
+        user_id=user_id
+    )
+
+    recommended_users = fetch_recommended_users(db, user_id)
+
+    return render_template(
+        'top.html',
+        posts=posts_list,
+        recommended_users=recommended_users,
+        active_tab='teach',
+        active_sort=sort_type,
+        categories=category_data,
+        selected_category=selected_category,
+        grades=grade_data,
+        selected_grade=selected_grade,
+        departments=department_data,
+        selected_department=selected_department,
+        search_query=search_query
+    )
+
+@posts.route("/like/<int:post_id>", methods=["POST"])
+def like_post(post_id):
+    if 'user_email' not in session:
+        return jsonify({
+            "success": False,
+            "message": "ログインしてください"
+        }), 401
+
+    user_id = session.get('user_id')
+    db = get_db()
+
+    # 投稿が存在するか確認
+    post = db.execute(
+        "SELECT post_id FROM posts WHERE post_id = ?",
+        (post_id,)
+    ).fetchone()
+
+    if not post:
+        return jsonify({
+            "success": False,
+            "message": "投稿が見つかりません"
+        }), 404
+
+    # すでにいいねしているか確認
+    like = db.execute(
+        """
+        SELECT 1
+        FROM likes
+        WHERE post_id = ? AND user_id = ?
+        """,
+        (post_id, user_id)
+    ).fetchone()
+
+    if like:
+        # いいね解除
+        db.execute(
+            """
+            DELETE FROM likes
+            WHERE post_id = ? AND user_id = ?
+            """,
+            (post_id, user_id)
+        )
+        is_liked = False
+
+    else:
+        # いいね追加
+        db.execute(
+            """
+            INSERT INTO likes (post_id, user_id)
+            VALUES (?, ?)
+            """,
+            (post_id, user_id)
+        )
+        is_liked = True
+
+    db.commit()
+
+    # いいね数を取得
+    like_count = db.execute(
+        """
+        SELECT COUNT(*)
+        FROM likes
+        WHERE post_id = ?
+        """,
+        (post_id,)
+    ).fetchone()[0]
+
+    return jsonify({
+        "success": True,
+        "post_id": post_id,
+        "like_count": like_count,
+        "is_liked": is_liked
+    })   
