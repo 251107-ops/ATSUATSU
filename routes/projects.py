@@ -5,23 +5,42 @@ from routes.auth import get_db
 projects_bp = Blueprint('projects_bp', __name__)
 
 
-def fetch_projects(db, user_id=None):
-    """プロジェクト募集カード一覧を取得（top.htmlのcards構造に合わせた辞書で返す）
-    カテゴリはprojectsに持たせず、選択したスキルが属するcategoryをそのまま表示に使う"""
-    rows = db.execute("""
+def fetch_projects(db, user_id=None, category_id="", search_query="", sort_type="new"):
+    conditions = ["p.status = 'recruiting'"]
+    params = []
+
+    if category_id:
+        conditions.append("s.category_id = ?")
+        params.append(category_id)
+
+    if search_query:
+        conditions.append("(s.skill_name LIKE ? OR p.project_name LIKE ? OR p.description LIKE ?)")
+        pattern = f"%{search_query}%"
+        params.extend([pattern, pattern, pattern])
+
+    where_clause = "WHERE " + " AND ".join(conditions)
+
+    if sort_type == 'urgent':
+        # 残り枠が少ない(定員に近い)順。current_membersは後で算出するのでSQL側では出せず、
+        # 一旦全件取得してからPythonでソートする
+        order_by = "ORDER BY p.created_at DESC"
+    else:
+        order_by = "ORDER BY p.created_at DESC"
+
+    rows = db.execute(f"""
         SELECT
             p.project_id, p.project_name, p.description, p.recruit_count, p.status,
             p.group_room_id,
             u.user_id, u.name, u.department, u.grade, u.icon_path,
-            s.skill_name,
+            s.skill_name, s.category_id,
             c.category_name
         FROM projects p
         JOIN users u ON p.owner_user_id = u.user_id
         JOIN skills s ON p.skill_id = s.skill_id
         LEFT JOIN categories c ON s.category_id = c.category_id
-        WHERE p.status = 'recruiting'
-        ORDER BY p.created_at DESC
-    """).fetchall()
+        {where_clause}
+        {order_by}
+    """, params).fetchall()
 
     projects_list = []
     for row in rows:
@@ -30,14 +49,12 @@ def fetch_projects(db, user_id=None):
         ).fetchone()[0]
 
         already_applied = False
+        already_member = False
         if user_id:
             already_applied = bool(db.execute(
                 "SELECT 1 FROM project_requests WHERE project_id = ? AND applicant_id = ? AND status = 'pending'",
                 (row['project_id'], user_id)
             ).fetchone())
-
-        already_member = False
-        if user_id:
             already_member = bool(db.execute(
                 "SELECT 1 FROM group_members WHERE group_room_id = ? AND user_id = ?",
                 (row['group_room_id'], user_id)
@@ -50,7 +67,9 @@ def fetch_projects(db, user_id=None):
             'description': row['description'],
             'recruit_count': row['recruit_count'],
             'current_members': current_members,
+            'remaining_slots': max(row['recruit_count'] - current_members, 0),
             'category_name': row['category_name'] if row['category_name'] else '未設定',
+            'category_id': row['category_id'],
             'skill_name': row['skill_name'],
             'name': row['name'],
             'department': row['department'],
@@ -61,7 +80,12 @@ def fetch_projects(db, user_id=None):
             'already_applied': already_applied,
             'already_member': already_member,
         })
+
+    if sort_type == 'urgent':
+        projects_list.sort(key=lambda x: x['remaining_slots'])
+
     return projects_list
+
 
 
 @projects_bp.route('/project/new', methods=['GET', 'POST'])
@@ -123,15 +147,35 @@ def new_project():
 
 @projects_bp.route('/projects')
 def project_top():
-    """プロジェクト募集カードのみのトップ画面"""
     if 'user_email' not in session:
         return redirect('/login')
 
     db = get_db()
     user_id = session.get('user_id')
-    projects_list = fetch_projects(db, user_id=user_id)
+    sort_type = request.args.get('sort', 'new')
+    selected_category = request.args.get('category', '')
+    search_query = request.args.get('query', '')
 
-    return render_template('project_top.html', posts=projects_list)
+    category_data = db.execute(
+        "SELECT MIN(category_id) AS category_id, category_name FROM categories GROUP BY category_name ORDER BY category_id"
+    ).fetchall()
+
+    projects_list = fetch_projects(
+        db,
+        user_id=user_id,
+        category_id=selected_category,
+        search_query=search_query,
+        sort_type=sort_type
+    )
+
+    return render_template(
+        'project_top.html',
+        posts=projects_list,
+        categories=category_data,
+        selected_category=selected_category,
+        active_sort=sort_type,
+        search_query=search_query
+    )
 
 
 @projects_bp.route('/project/apply', methods=['POST'])

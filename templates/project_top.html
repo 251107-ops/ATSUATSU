@@ -21,10 +21,42 @@
             <p class="hero-sub">仲間を探しているプロジェクト、参加したいプロジェクトを見つけよう</p>
         </section>
 
+        <!-- 検索・カテゴリフィルターエリア -->
+        <section class="search-area">
+            <form action="{{ url_for('projects_bp.project_top') }}" method="GET" class="search-form-container">
+                <!-- 💡 並び替え(sort)の現在値を隠しinputで保持。
+                     これが無いと「並び替えを選んだ後に検索/カテゴリ変更」した際に
+                     sortがnewにリセットされてしまう -->
+                <input type="hidden" name="sort" value="{{ active_sort }}">
+
+                <div class="search-form">
+                    <input type="text" name="query" value="{{ search_query }}" placeholder="プロジェクト名・スキル名で検索">
+                    <button type="submit" class="btn-primary">検索</button>
+                </div>
+
+                <div class="filters">
+                    <select name="category" onchange="this.form.submit()">
+                        <option value="">カテゴリー：すべて</option>
+                        {% for category in categories %}
+                            <option value="{{ category.category_id }}" {{ 'selected' if selected_category|string == category.category_id|string }}>
+                                {{ category.category_name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </form>
+        </section>
+
         <section class="skills-section">
             <div class="section-header">
                 <h2>募集中のプロジェクト</h2>
-                <a href="/project/new" class="btn-primary" style="padding:10px 24px; border-radius:20px; text-decoration:none;">＋ 新規作成</a>
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <select class="sort-select" onchange="location.href='?sort='+this.value+'&query='+encodeURIComponent('{{ search_query }}')+'&category='+encodeURIComponent('{{ selected_category }}');">
+                        <option value="new" {% if active_sort == 'new' %}selected{% endif %}>新着順</option>
+                        <option value="urgent" {% if active_sort == 'urgent' %}selected{% endif %}>残り枠が少ない順</option>
+                    </select>
+                    <a href="/project/new" class="btn-primary" style="padding:10px 24px; border-radius:20px; text-decoration:none;">＋ 新規作成</a>
+                </div>
             </div>
 
             <div class="cards">
@@ -61,13 +93,16 @@
                         <span class="tag">{{ post.skill_name }}</span>
                         <span class="badge" style="background-color:#e6f0fa; color:#385cdb;">プロジェクト</span>
                         <span class="badge" style="background-color:#f1f5f9; color:#64748b;">{{ post.current_members }}/{{ post.recruit_count }}人</span>
+                        {% if post.remaining_slots is defined and post.remaining_slots <= 1 and post.remaining_slots > 0 %}
+                        <span class="badge" style="background-color:#fdeaea; color:#c0392b;">残り{{ post.remaining_slots }}枠</span>
+                        {% endif %}
                     </div>
 
                     <p class="body">{{ post.description }}</p>
                 </div>
                 {% else %}
                 <div class="no-posts">
-                    <p>募集中のプロジェクトはまだありません。</p>
+                    <p>該当するプロジェクトはまだありません。</p>
                 </div>
                 {% endfor %}
             </div>
