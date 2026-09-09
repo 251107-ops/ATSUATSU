@@ -59,6 +59,28 @@
                                 <a href="/profile" class="btn">評価を見る</a>
                             </div>
                         {% elif n.type == 'awaiting_review_teacher' %}
+
+                        {% elif n.type == 'new_project_request' and n.project_request_status == 'pending' %}
+                            <div class="request-actions">
+                                <form action="{{ url_for('projects_bp.accept_project_request', request_id=n.project_request_id) }}" method="POST">
+                                    <button type="submit" class="btn">承認</button>
+                                </form>
+                                <form action="{{ url_for('projects_bp.decline_project_request', request_id=n.project_request_id) }}" method="POST">
+                                    <button type="submit" class="btn btn-outline">拒否</button>
+                                </form>
+                            </div>
+
+                        {% elif n.type == 'project_request_accepted' %}
+                            <div class="request-actions">
+                                <!-- ⚠️ TODO: なりまつさんのグループチャットのroute名が確定したら
+                                     url_for('group_chat.room', group_room_id=n.group_room_id) のような形に差し替える。
+                                     それまでの仮リンクとしてプロジェクト一覧へ遷移させる。 -->
+                                <a href="{{ url_for('projects_bp.project_top') }}" class="btn">プロジェクト一覧へ（グループチャットは準備中）</a>
+                            </div>
+
+                        {% elif n.type == 'project_request_declined' %}
+                            <!-- 拒否通知。アクション不要なのでボタンなし -->
+
                         {% endif %}
                     </div>
                 {% endfor %}

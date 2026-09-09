@@ -125,12 +125,51 @@
 
             <div class="cards">
                 {% for post in posts %}
+                {% if post.card_type == 'project' %}
                 <div class="card"
-                     data-post-id="{{ post.post_id }}"
+                     data-card-type="project"
+                     data-project-id="{{ post.project_id }}"
                      data-user-id="{{ post.user_id }}"
                      data-name="{{ post.name }}"
                      data-meta="{{ post.department }} {{ post.grade }}年"
                      data-icon="{{ url_for('static', filename=post.icon_path) if post.icon_path else url_for('static', filename='img/default-avatar.png') }}"
+                     data-category="{{ post.category_name }}"
+                     data-skill="{{ post.skill_name }}"
+                     data-body="{{ post.description }}"
+                     data-project-name="{{ post.project_name }}"
+                     data-recruit-count="{{ post.recruit_count }}"
+                     data-current-members="{{ post.current_members }}"
+                     data-is-owner="{{ 'true' if post.is_owner else 'false' }}"
+                     data-already-applied="{{ 'true' if post.already_applied else 'false' }}"
+                     data-already-member="{{ 'true' if post.already_member else 'false' }}">
+            
+                    <div class="card-top">
+                        <a href="/users/{{ post.user_id }}" class="user-icon-link" onclick="event.stopPropagation();">
+                            <img src="{{ url_for('static', filename=post.icon_path) if post.icon_path else url_for('static', filename='img/default-avatar.png') }}" alt="{{ post.name }}のアイコン" class="user-icon-img">
+                        </a>
+                        <div>
+                            <span class="name">{{ post.project_name }}</span>
+                            <span class="meta">{{ post.name }}さん募集中</span>
+                        </div>
+                    </div>
+            
+                    <div class="tags">
+                        {% if post.category_name %}<span class="tag">{{ post.category_name }}</span>{% endif %}
+                        <span class="tag">{{ post.skill_name }}</span>
+                        <span class="badge" style="background-color:#e6f0fa; color:#385cdb;">プロジェクト</span>
+                        <span class="badge" style="background-color:#f1f5f9; color:#64748b;">{{ post.current_members }}/{{ post.recruit_count }}人</span>
+                    </div>
+            
+                    <p class="body">{{ post.description }}</p>
+                </div>
+                {% else %}
+                <div class="card"
+                     data-card-type="skill"
+                     data-post-id="{{ post.post_id }}"
+                     data-user-id="{{ post.user_id }}"
+                     data-name="{{ post.name }}"
+                     data-meta="{{ post.department }} {{ post.grade }}年"
+                     data-icon="{{ url_for('static', filename=post.icon_path) }}"
                      data-category="{{ post.category_name }}"
                      data-skill="{{ post.skill_name }}"
                      data-type="{{ post.post_type }}"
@@ -138,39 +177,45 @@
                      data-likes="{{ post.like_count }}"
                      data-image="{{ url_for('static', filename=post.image_path) if post.image_path else '' }}"
                      data-pdf="{{ url_for('static', filename=post.pdf_path) if post.pdf_path else '' }}">
-                    
+            
                     <div class="card-top">
                         <a href="/users/{{ post.user_id }}" class="user-icon-link" title="{{ post.name }}さんのプロフィールを見る" onclick="event.stopPropagation();">
+                            <img src="{{ url_for('static', filename=post.icon_path) if post.icon_path else url_for('static', filename='img/default-avatar.png') }}" alt="{{ post.name }}のアイコン" class="user-icon-img">
+                        <a href="/users/{{ post.user_id }}" class="user-icon-link" onclick="event.stopPropagation();">
                             <img src="{{ url_for('static', filename=post.icon_path) if post.icon_path else url_for('static', filename='img/default-avatar.png') }}" alt="{{ post.name }}のアイコン" class="user-icon-img">
                         </a>
                         <div>
                             <a href="/users/{{ post.user_id }}" class="name-link" title="{{ post.name }}さんのプロフィールを見る" onclick="event.stopPropagation();">
+                            <a href="/users/{{ post.user_id }}" class="name-link" onclick="event.stopPropagation();">
                                 <span class="name">{{ post.name }}</span>
                             </a>
                             <span class="meta">{{ post.department }} {{ post.grade }}年</span>
                         </div>
                     </div>
-
+            
                     <div class="tags">
                         {% if post.category_name %}<span class="tag">{{ post.category_name }}</span>{% endif %}
                         {% if post.skill_name %}<span class="tag">{{ post.skill_name }}</span>{% endif %}
+                        {% if post.category_name %}<span class="tag">{{ post.category_name }}</span>{% endif %}
+                        {% if post.skill_name %}<span class="tag">{{ post.skill_name }}</span>{% endif %}
                         <span class="badge {{ 'teach' if post.post_type == '教えたい' else 'learn' }}">{{ post.post_type }}</span>
-
+            
                         {% if post.image_path %}
                         <span class="badge-attachment">添付画像あり</span>
                         {% endif %}
-
                         {% if post.pdf_path %}
                         <span class="badge-attachment">添付PDFあり</span>
                         {% endif %}
                     </div>
+            
 
                     <p class="body">{{ post.post_text }}</p>
-
+            
                     <button type="button" class="like-btn" data-post-id="{{ post.post_id }}" data-liked="{{ 'true' if post.liked_by_me else 'false' }}">
                         <span class="like-count">{{ post.like_count }}</span>♥
                     </button>
                 </div>
+                {% endif %}
                 {% else %}
                 <div class="no-posts">
                     <p>該当する投稿はまだありません。</p>
@@ -220,6 +265,7 @@
             <form id="requestForm" action="/requests" method="POST" class="modal-action">
                 <input type="hidden" name="post_id" id="modalPostId">
                 <input type="hidden" name="receiver_id" id="modalReceiverId">
+                <input type="hidden" name="project_id" id="modalProjectId">
                 <button type="submit" id="requestBtn" class="request-btn"></button>
             </form>
 

@@ -5,7 +5,7 @@ from datetime import datetime
 from flask import Blueprint, render_template, redirect, session, request, jsonify, flash
 from werkzeug.utils import secure_filename
 from routes.auth import get_db
-from flask import jsonify
+from routes.projects import fetch_projects
 
 posts = Blueprint('posts', __name__)
 
@@ -90,6 +90,141 @@ def fetch_posts(db, category_id="", post_type="", search_query="", sort_type="ne
         })
 
     return posts_list
+
+
+@posts.route("/")
+def top():
+    if 'user_email' not in session:
+        return redirect('/login')
+
+    db = get_db()
+    user_id = session.get('user_id')
+    sort_type = request.args.get('sort', 'new')
+    selected_category = request.args.get('category', '')
+    selected_grade = request.args.get('grade', '')
+    selected_department = request.args.get('department', '')
+    search_query = request.args.get('query', '')
+
+    category_data = db.execute("SELECT MIN(category_id) AS category_id, category_name FROM categories GROUP BY category_name ORDER BY category_id").fetchall()
+    grade_data = db.execute("SELECT DISTINCT grade FROM users WHERE grade IS NOT NULL AND grade != ''").fetchall()
+    department_data = db.execute("SELECT DISTINCT department FROM users WHERE department IS NOT NULL AND department != ''").fetchall()
+
+    posts_list = fetch_posts(
+        db,
+        category_id=selected_category,
+        grade=selected_grade,
+        department=selected_department,
+        search_query=search_query,
+        sort_type=sort_type,
+        user_id=user_id
+    )
+    for p in posts_list:
+        p['card_type'] = 'skill'
+
+    projects_list = fetch_projects(db, user_id=user_id)
+
+    combined = projects_list + posts_list if sort_type != 'popular' else posts_list + projects_list
+
+    return render_template(
+        'top.html',
+        posts=combined,
+        active_tab='all',
+        active_sort=sort_type,
+        categories=category_data,
+        grades=grade_data,
+        selected_grade=selected_grade,
+        selected_category=selected_category,
+        departments=department_data,
+        selected_department=selected_department,
+        search_query=search_query
+    )
+
+
+@posts.route("/top/learn")
+def top_learn():
+    if 'user_email' not in session:
+        return redirect('/login')
+
+    db = get_db()
+    user_id = session.get('user_id')
+    sort_type = request.args.get('sort', 'new')
+    selected_category = request.args.get('category', '')
+    selected_grade = request.args.get('grade', '')
+    selected_department = request.args.get('department', '')
+    search_query = request.args.get('query', '')
+
+    category_data = db.execute("SELECT * FROM categories").fetchall()
+    grade_data = db.execute("SELECT DISTINCT grade FROM users WHERE grade IS NOT NULL AND grade != ''").fetchall()
+    department_data = db.execute("SELECT DISTINCT department FROM users WHERE department IS NOT NULL AND department != ''").fetchall()
+
+    posts_list = fetch_posts(
+        db,
+        category_id=selected_category,
+        post_type='学びたい',
+        grade=selected_grade,
+        department=selected_department,
+        search_query=search_query,
+        sort_type=sort_type,
+        user_id=user_id
+    )
+
+    return render_template(
+        'top.html',
+        posts=posts_list,
+        active_tab='learn',
+        active_sort=sort_type,
+        categories=category_data,
+        selected_category=selected_category,
+        grades=grade_data,
+        selected_grade=selected_grade,
+        departments=department_data,
+        selected_department=selected_department,
+        search_query=search_query
+    )
+
+
+@posts.route("/top/teach")
+def top_teach():
+    if 'user_email' not in session:
+        return redirect('/login')
+
+    db = get_db()
+    user_id = session.get('user_id')
+    sort_type = request.args.get('sort', 'new')
+    selected_category = request.args.get('category', '')
+    selected_grade = request.args.get('grade', '')
+    selected_department = request.args.get('department', '')
+    search_query = request.args.get('query', '')
+
+    category_data = db.execute("SELECT * FROM categories").fetchall()
+    grade_data = db.execute("SELECT DISTINCT grade FROM users WHERE grade IS NOT NULL AND grade != ''").fetchall()
+    department_data = db.execute("SELECT DISTINCT department FROM users WHERE department IS NOT NULL AND department != ''").fetchall()
+
+    posts_list = fetch_posts(
+        db,
+        category_id=selected_category,
+        post_type='教えたい',
+        grade=selected_grade,
+        department=selected_department,
+        search_query=search_query,
+        sort_type=sort_type,
+        user_id=user_id
+    )
+
+    return render_template(
+        'top.html',
+        posts=posts_list,
+        active_tab='teach',
+        active_sort=sort_type,
+        categories=category_data,
+        selected_category=selected_category,
+        grades=grade_data,
+        selected_grade=selected_grade,
+        departments=department_data,
+        selected_department=selected_department,
+        search_query=search_query
+    )
+
 
 @posts.route("/profile", methods=['GET', 'POST'])
 def profile():
