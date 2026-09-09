@@ -1,9 +1,18 @@
 .site-footer {
-    text-align: center;
-    padding: 24px 0;
-    font-size: 13px;
-    font-weight: bold;
-    color: var(--primary-color);
-    border-top: 1px solid var(--border-color);
-    margin-top: 40px;
+  width: 100%;
+  grid-column: 1 / -1;   /* Grid配置時の全幅指定 */
+  flex-basis: 100%;      /* Flex配置時の全幅指定 */
+  text-align: center;
+  padding: 24px 0;
+  font-size: 13px;
+  font-weight: bold;
+  color: var(--primary-color);
+  border-top: 1px solid var(--border-color);
+  margin-top: 40px;
+  
+  /* レイアウトの折り返しと配置調整 */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  clear: both;
 }

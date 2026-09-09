@@ -5,6 +5,7 @@ from datetime import datetime
 from flask import Blueprint, render_template, redirect, session, request, jsonify, flash
 from werkzeug.utils import secure_filename
 from routes.auth import get_db
+from flask import jsonify
 
 posts = Blueprint('posts', __name__)
 
@@ -558,38 +559,6 @@ def search_posts():
 
     return redirect('/')
 
-
-@posts.route("/posts/likes", methods=['POST'])
-def like_post():
-    if 'user_email' not in session:
-        return jsonify({'error': 'unauthorized'}), 401
-
-    if request.is_json:
-        data = request.get_json()
-        post_id = data.get('post_id') if data else None
-    else:
-        post_id = request.form.get('post_id')
-
-    user_id = session.get('user_id')
-    if not post_id or not user_id:
-        return jsonify({'error': 'invalid request'}), 400
-
-    db = get_db()
-    existing_like = db.execute(
-        "SELECT 1 FROM likes WHERE user_id = ? AND post_id = ?", (user_id, post_id)
-    ).fetchone()
-
-    if existing_like:
-        db.execute("DELETE FROM likes WHERE user_id = ? AND post_id = ?", (user_id, post_id))
-        liked = False
-    else:
-        db.execute("INSERT INTO likes (user_id, post_id) VALUES (?, ?)", (user_id, post_id))
-        liked = True
-
-    db.commit()
-    return jsonify({'liked': liked, 'post_id': post_id})
-
-
 @posts.route("/likes/page", methods=["GET"])
 def get_like():
     if 'user_email' not in session:
@@ -660,7 +629,7 @@ def other_profile(user_id):
     if not user_row:
         return "ユーザーが見つかりません", 404
 
-    # fetchone() の結果を辞書形式に変換（テンプレートで扱いやすくするため）
+    # fetchone() の結果を辞書形式に変換
     user = dict(user_row) if user_row else None
 
     # 教える/学ぶスキルの取得（posts テーブル経由）
@@ -680,15 +649,29 @@ def other_profile(user_id):
     """, (user_id,)).fetchall()
     skills_learn = [{'skill_id': r[0], 'skill_name': r[1]} for r in learn_rows]
 
-    # 相手の投稿一覧の取得
+    # ★ 【修正箇所】相手の投稿一覧の取得（いいね数と自分がいいね済みかのフラグを結合）
     user_posts_rows = db.execute("""
-        SELECT p.*, c.category_name, s.skill_name 
+        SELECT 
+            p.*, 
+            c.category_name, 
+            s.skill_name,
+            COALESCE(l.like_count, 0) AS like_count,
+            CASE WHEN my_l.post_id IS NOT NULL THEN 1 ELSE 0 END AS liked_by_me
         FROM posts p
         LEFT JOIN categories c ON p.category_id = c.category_id
         LEFT JOIN skills s ON p.skill_id = s.skill_id
+        -- 各投稿のいいね合計数を集計して結合
+        LEFT JOIN (
+            SELECT post_id, COUNT(*) AS like_count 
+            FROM likes 
+            GROUP BY post_id
+        ) l ON p.post_id = l.post_id
+        -- ログイン中の自分がいいねしているか判定するために結合
+        LEFT JOIN likes my_l ON p.post_id = my_l.post_id AND my_l.user_id = ?
         WHERE p.user_id = ?
         ORDER BY p.post_date DESC
-    """, (user_id,)).fetchall()
+    """, (my_user_id, user_id)).fetchall()
+    
     user_posts = [dict(row) for row in user_posts_rows]
 
     # 評価（平均値と件数）の取得
@@ -717,6 +700,7 @@ def other_profile(user_id):
         review_stats=review_stats,
         reviews=reviews
     )
+
     # --- ★ 追加: おすすめユーザー取得用の共通関数 ---
 def fetch_recommended_users(db, current_user_id):
     if not current_user_id:
@@ -946,3 +930,76 @@ def top_teach():
         selected_department=selected_department,
         search_query=search_query
     )
+@posts.route("/like/<int:post_id>", methods=["POST"])
+def like_post(post_id):
+    if 'user_email' not in session:
+        return jsonify({
+            "success": False,
+            "message": "ログインしてください"
+        }), 401
+
+    user_id = session.get('user_id')
+    db = get_db()
+
+    # 投稿が存在するか確認
+    post = db.execute(
+        "SELECT post_id FROM posts WHERE post_id = ?",
+        (post_id,)
+    ).fetchone()
+
+    if not post:
+        return jsonify({
+            "success": False,
+            "message": "投稿が見つかりません"
+        }), 404
+
+    # すでにいいねしているか確認
+    like = db.execute(
+        """
+        SELECT 1
+        FROM likes
+        WHERE post_id = ? AND user_id = ?
+        """,
+        (post_id, user_id)
+    ).fetchone()
+
+    if like:
+        # いいね解除
+        db.execute(
+            """
+            DELETE FROM likes
+            WHERE post_id = ? AND user_id = ?
+            """,
+            (post_id, user_id)
+        )
+        is_liked = False
+
+    else:
+        # いいね追加
+        db.execute(
+            """
+            INSERT INTO likes (post_id, user_id)
+            VALUES (?, ?)
+            """,
+            (post_id, user_id)
+        )
+        is_liked = True
+
+    db.commit()
+
+    # いいね数を取得
+    like_count = db.execute(
+        """
+        SELECT COUNT(*)
+        FROM likes
+        WHERE post_id = ?
+        """,
+        (post_id,)
+    ).fetchone()[0]
+
+    return jsonify({
+        "success": True,
+        "post_id": post_id,
+        "like_count": like_count,
+        "is_liked": is_liked
+    })   

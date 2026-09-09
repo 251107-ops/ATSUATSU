@@ -17,7 +17,6 @@ def new_review(request_id):
         WHERE request_id = ? OR room_id = ?
     """, (request_id, str(request_id))).fetchone()
 
-    # ⭕ 画面遷移（テキスト返却）せず flash メッセージを出して一覧へ戻す
     if not req:
         flash('指定されたリクエストが見つかりませんでした。', 'error')
         return redirect(url_for('requests_bp.list_requests'))
@@ -46,8 +45,6 @@ def new_review(request_id):
         flash('このセッションは既に評価済みです。', 'info')
         return redirect(url_for('requests_bp.list_requests'))
 
-    # 評価対象（相手）とスキル情報を取得
-    # ★ ここで取れる skill_name / post_type を「評価時点のスナップショット」として使う
     info = db.execute("""
         SELECT u.name AS partner_name, s.skill_name, p.post_type
         FROM requests r
@@ -61,8 +58,6 @@ def new_review(request_id):
         rating = request.form.get('rating', '')
         comment = request.form.get('comment', '').strip()
 
-        # ⭕ 評価（星）が未選択などのバリデーションエラー時
-        # ページ遷移せず flash メッセージを表示し、入力内容を維持して同じ画面を再描画
         if not rating or not rating.isdigit() or not (1 <= int(rating) <= 5):
             flash('評価（星1〜5）を選択してください。', 'error')
             return render_template('review_new.html', req=req, info=info, comment=comment)
@@ -91,27 +86,3 @@ def new_review(request_id):
         return redirect(url_for('requests_bp.list_requests'))
 
     return render_template('review_new.html', req=req, info=info)
-
-
-@reviews_bp.route('/profile/reviews')
-def list_reviews():
-    user_id = session.get('user_id')
-    if not user_id:
-        return redirect('/login')
-
-    db = get_db()
-
-    # ★ posts / skills を経由しなくなったので、投稿が消えても影響を受けない
-    reviews = db.execute("""
-        SELECT comment, created_at, skill_name, post_type
-        FROM reviews
-        WHERE reviewee_id = ?
-        ORDER BY created_at DESC
-    """, (user_id,)).fetchall()
-
-    stats = db.execute("""
-        SELECT AVG(rating) AS avg_rating, COUNT(*) AS review_count
-        FROM reviews WHERE reviewee_id = ?
-    """, (user_id,)).fetchone()
-
-    return render_template('review_list.html', reviews=reviews, stats=stats)
