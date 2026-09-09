@@ -125,12 +125,64 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.card').forEach(card => {
             card.addEventListener('click', () => {
                 const data = card.dataset;
-
-                // ログイン中のユーザーIDを取得（top.htmlのhidden inputより）
                 const currentUserIdInput = document.getElementById('currentUserId');
                 const currentUserId = currentUserIdInput ? currentUserIdInput.value : '';
-
-                // 各要素への値のセット
+                const requestBtn = document.getElementById('requestBtn');
+        
+                if (data.cardType === 'project') {
+                    requestForm.action = '/project/apply';
+                    document.getElementById('modalPostId').value = '';
+                    document.getElementById('modalReceiverId').value = '';
+                    document.getElementById('modalProjectId').value = data.projectId || '';
+        
+                    document.getElementById('modalIcon').src = data.icon || '';
+                    document.getElementById('modalName').textContent = data.projectName || '';
+                    document.getElementById('modalMeta').textContent = data.name + 'さん募集中';
+                    document.getElementById('modalCategory').textContent = data.category || '';
+                    document.getElementById('modalSkill').textContent = data.skill || '';
+                    document.getElementById('modalBody').textContent = data.body || '';
+                    document.getElementById('modalLikes').textContent = '';
+        
+                    const modalType = document.getElementById('modalType');
+                    modalType.textContent = `${data.currentMembers}/${data.recruitCount}人`;
+                    modalType.className = 'badge';
+        
+                    const modalUserLink = document.getElementById('modalUserLink');
+                    if (modalUserLink) modalUserLink.href = '/users/' + data.userId;
+        
+                    requestBtn.disabled = false;
+                    requestBtn.style.opacity = '1';
+                    requestBtn.style.cursor = 'pointer';
+        
+                    if (data.alreadyMember === 'true') {
+                        requestBtn.disabled = true;
+                        requestBtn.textContent = 'すでに参加しています';
+                        requestBtn.style.opacity = '0.5';
+                        requestBtn.style.cursor = 'not-allowed';
+                    } else if (data.isOwner === 'true') {
+                        requestBtn.disabled = true;
+                        requestBtn.textContent = '自分のプロジェクトです';
+                        requestBtn.style.opacity = '0.5';
+                        requestBtn.style.cursor = 'not-allowed';
+                    } else if (data.alreadyApplied === 'true') {
+                        requestBtn.disabled = true;
+                        requestBtn.textContent = '申請済みです';
+                        requestBtn.style.opacity = '0.5';
+                        requestBtn.style.cursor = 'not-allowed';
+                    } else {
+                        requestBtn.textContent = 'プロジェクト参加申請';
+                    }
+        
+                    const attachmentArea = document.getElementById('modalAttachmentArea');
+                    if (attachmentArea) attachmentArea.style.display = 'none';
+        
+                    modal.classList.add('active');
+                    return;
+                }
+        
+                // 既存のスキルカード処理
+                requestForm.action = '/requests';
+                document.getElementById('modalProjectId').value = '';
                 document.getElementById('modalPostId').value = data.postId || '';
                 document.getElementById('modalReceiverId').value = data.userId || '';
                 document.getElementById('modalIcon').src = data.icon || '';
@@ -140,8 +192,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('modalSkill').textContent = data.skill || '';
                 document.getElementById('modalBody').textContent = data.body || '';
                 document.getElementById('modalLikes').textContent = data.likes || '0';
-
-                //ユーザーアイコン・名前のリンク先を動的にセット
+        
                 const modalUserLink = document.getElementById('modalUserLink');
                 if (modalUserLink) {
                     modalUserLink.href = '/users/' + data.userId;
@@ -151,72 +202,42 @@ document.addEventListener('DOMContentLoaded', () => {
                 const modalType = document.getElementById('modalType');
                 modalType.textContent = data.type || '';
                 modalType.className = `badge ${data.type === '教えたい' ? 'teach' : 'learn'}`;
-
-                // 💡 【修正点】添付ファイル（画像 or PDF）の描画判定処理
+        
                 const attachmentArea = document.getElementById('modalAttachmentArea');
                 const previewImg = document.getElementById('modalPreviewImg');
                 const previewPdf = document.getElementById('modalPreviewPdf');
-
+        
                 if (attachmentArea) {
                     const filePath = data.image ? data.image.trim() : '';
-
                     if (filePath !== '') {
                         attachmentArea.style.display = 'block';
-
-                        // PDF判定 (.pdf で終わるかチェック)
                         if (filePath.toLowerCase().endsWith('.pdf')) {
                             if (previewImg) previewImg.style.display = 'none';
-                            if (previewPdf) {
-                                previewPdf.href = filePath;
-                                previewPdf.style.display = 'block';
-                            }
+                            if (previewPdf) { previewPdf.href = filePath; previewPdf.style.display = 'block'; }
                         } else {
-                            // 画像判定 (PNG / JPG等)
                             if (previewPdf) previewPdf.style.display = 'none';
-                            if (previewImg) {
-                                previewImg.src = filePath;
-                                previewImg.style.display = 'block';
-                            }
+                            if (previewImg) { previewImg.src = filePath; previewImg.style.display = 'block'; }
                         }
                     } else {
-                        // 添付無しの場合
                         attachmentArea.style.display = 'none';
-                        if (previewImg) {
-                            previewImg.src = '';
-                            previewImg.style.display = 'none';
-                        }
-                        if (previewPdf) {
-                            previewPdf.href = '#';
-                            previewPdf.style.display = 'none';
-                        }
+                        if (previewImg) { previewImg.src = ''; previewImg.style.display = 'none'; }
+                        if (previewPdf) { previewPdf.href = '#'; previewPdf.style.display = 'none'; }
                     }
                 }
-
-                // ボタン要素を取得
-                const requestBtn = document.getElementById('requestBtn');
-
-                // 毎回ボタンの連打・無効化状態をリセット
+        
                 requestBtn.disabled = false;
                 requestBtn.style.opacity = '1';
                 requestBtn.style.cursor = 'pointer';
-
-                // 自分の投稿かどうか判定
+        
                 if (currentUserId && String(currentUserId) === String(data.userId)) {
-                    // 自分の投稿の場合はボタンを無効化
                     requestBtn.disabled = true;
                     requestBtn.textContent = '自分の投稿です';
                     requestBtn.style.opacity = '0.5';
                     requestBtn.style.cursor = 'not-allowed';
                 } else {
-                    // 他人の投稿の場合はテキスト切り替え
-                    if (data.type === '教えたい') {
-                        requestBtn.textContent = '教わりたい（リクエストを送る）';
-                    } else {
-                        requestBtn.textContent = '教えたい（オファーを送る）';
-                    }
+                    requestBtn.textContent = data.type === '教えたい' ? '教わりたい（リクエストを送る）' : '教えたい（オファーを送る）';
                 }
-
-                // モーダルを開く
+        
                 modal.classList.add('active');
             });
         });
@@ -263,7 +284,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         showBanner(result.message || '送信に失敗しました。', 'error');
                     
                         // ★「自分の投稿」「重複送信」の場合は、押しても解決しないのでモーダルごと閉じる
-                        const shouldCloseAnyway = result.reason === 'own_post' || result.reason === 'duplicate';
+                        const shouldCloseAnyway = ['own_post', 'duplicate', 'own_project', 'already_member'].includes(result.reason);
                     
                         if (shouldCloseAnyway) {
                             if (modal) modal.classList.remove('active');
