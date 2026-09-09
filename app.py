@@ -100,6 +100,57 @@ with app.app_context():
     )''')
 
     # ==========================================
+    # グループチャット用テーブル
+    # ==========================================
+    db.execute('''CREATE TABLE IF NOT EXISTS group_rooms (
+        group_room_id TEXT PRIMARY KEY,
+        skill_id INTEGER NOT NULL REFERENCES skills(skill_id) ON DELETE CASCADE,
+        created_by INTEGER NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+        created_at TEXT DEFAULT (datetime('now','localtime')),
+        is_public INTEGER DEFAULT 1
+    )''')
+
+    db.execute('''CREATE TABLE IF NOT EXISTS group_members (
+        group_room_id TEXT NOT NULL REFERENCES group_rooms(group_room_id) ON DELETE CASCADE,
+        user_id INTEGER NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+        role TEXT DEFAULT 'member',
+        joined_at TEXT DEFAULT (datetime('now','localtime')),
+        PRIMARY KEY (group_room_id, user_id)
+    )''')
+
+    db.execute('''CREATE TABLE IF NOT EXISTS group_messages (
+        message_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        group_room_id INTEGER NOT NULL REFERENCES group_rooms(group_room_id) ON DELETE CASCADE,
+        sender_id INTEGER NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+        content TEXT NOT NULL,
+        created_at TEXT DEFAULT (datetime('now','localtime'))
+    )''')
+
+    # ==========================================
+    # プロジェクト機能用テーブル
+    # ==========================================
+    db.execute('''CREATE TABLE IF NOT EXISTS projects (
+        project_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        owner_user_id INTEGER NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+        project_name TEXT NOT NULL,
+        description TEXT,
+        skill_id INTEGER NOT NULL REFERENCES skills(skill_id) ON DELETE CASCADE,
+        recruit_count INTEGER NOT NULL DEFAULT 2,
+        group_room_id TEXT REFERENCES group_rooms(group_room_id) ON DELETE CASCADE,
+        status TEXT DEFAULT 'recruiting',
+        created_at TEXT DEFAULT (datetime('now','localtime'))
+    )''')
+
+    db.execute('''CREATE TABLE IF NOT EXISTS project_requests (
+        request_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        project_id INTEGER NOT NULL REFERENCES projects(project_id) ON DELETE CASCADE,
+        applicant_id INTEGER NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+        status TEXT DEFAULT 'pending',
+        created_at TEXT DEFAULT (datetime('now','localtime')),
+        updated_at TEXT
+    )''')
+
+    # ==========================================
     # 💡 グループチャット用テーブル (新規追加)
     # ==========================================
     db.execute('''CREATE TABLE IF NOT EXISTS group_rooms (

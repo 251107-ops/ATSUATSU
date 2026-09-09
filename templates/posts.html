@@ -1,476 +1,637 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{{ '投稿を編集' if edit_post else '投稿作成' }} | スキルシェア</title>
-<link rel="stylesheet" href="{{ url_for('static', filename='css/variables.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/posts.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/footer.css') }}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>{{ '投稿を編集' if edit_post else '投稿作成' }} | スキルシェア</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/variables.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/posts.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/footer.css') }}">
 </head>
+
 <body>
+
+    <!-- ヘッダー -->
     {% include 'header.html' %}
+
 
     <div class="page-wrap">
 
+        <!-- =========================
+             投稿作成・編集
+        ========================== -->
         <div class="post-card">
-            <h2>{{ '投稿を編集' if edit_post else '新規投稿作成' }}</h2>
 
-            <!-- フラッシュメッセージ表示エリア -->
+            <h2>
+                {{ '投稿を編集' if edit_post else '新規投稿作成' }}
+            </h2>
+
+
+            <!-- フラッシュメッセージ -->
             {% with messages = get_flashed_messages() %}
-              {% if messages %}
-                <div class="alert-container" style="margin-bottom: 20px;">
-                  {% for message in messages %}
-                    <div style="background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; padding: 12px; border-radius: 6px; font-weight: bold;">
-                      {{ message }}
+                {% if messages %}
+                    <div class="alert-container" style="margin-bottom: 20px;">
+
+                        {% for message in messages %}
+                            <div style="
+                                background-color: #f8d7da;
+                                color: #721c24;
+                                border: 1px solid #f5c6cb;
+                                padding: 12px;
+                                border-radius: 6px;
+                                font-weight: bold;
+                            ">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+
                     </div>
-                  {% endfor %}
-                </div>
-              {% endif %}
+                {% endif %}
             {% endwith %}
 
-            <form method="POST" action="{{ url_for('posts.edit_post', post_id=edit_post.post_id) if edit_post else url_for('posts.create_post') }}" enctype="multipart/form-data">
 
+            <!-- 投稿フォーム -->
+            <form
+                method="POST"
+                action="{{ url_for('posts.edit_post', post_id=edit_post.post_id) if edit_post else url_for('posts.create_post') }}"
+                enctype="multipart/form-data"
+            >
+
+                <!-- 募集タイプ -->
                 <div class="form-group">
+
                     <p>募集タイプを選択してください：</p>
+
                     <select name="post_type" required>
-                        <option value="教えたい" {{ 'selected' if (edit_post and edit_post.post_type == '教えたい') or (not edit_post and preset_type == '教えたい') }}>教えたい</option>
-                        <option value="学びたい" {{ 'selected' if (edit_post and edit_post.post_type == '学びたい') or (not edit_post and preset_type == '学びたい') }}>学びたい</option>
+
+                        <option
+                            value="教えたい"
+                            {{ 'selected' if (edit_post and edit_post.post_type == '教えたい') or (not edit_post and preset_type == '教えたい') }}
+                        >
+                            教えたい
+                        </option>
+
+                        <option
+                            value="学びたい"
+                            {{ 'selected' if (edit_post and edit_post.post_type == '学びたい') or (not edit_post and preset_type == '学びたい') }}
+                        >
+                            学びたい
+                        </option>
+
                     </select>
+
                 </div>
 
+
+                <!-- カテゴリ -->
                 <div class="form-group">
+
                     <p>カテゴリを選択してください：</p>
-                    <select id="category_select" name="category_id" required>
-                        <option value="">-- カテゴリを選択してください --</option>
+
+                    <select
+                        id="category_select"
+                        name="category_id"
+                        required
+                    >
+
+                        <option value="">
+                            -- カテゴリを選択してください --
+                        </option>
+
                         {% for category in categories %}
-                            <option value="{{ category.category_id }}" {{ 'selected' if edit_post and edit_post.category_id == category.category_id }}>
-                                {{ category.category_name }}
+
+                            <option
+                                value="{{ category.category_id if category.category_id is defined else category[0] }}"
+                                {{ 'selected' if edit_post and edit_post.category_id == (category.category_id if category.category_id is defined else category[0]) }}
+                            >
+                                {{ category.category_name if category.category_name is defined else category[1] }}
                             </option>
+
                         {% endfor %}
+
                     </select>
+
                 </div>
 
+
+                <!-- スキル -->
                 <div class="form-group">
+
                     <p>対応するスキルを選択してください：</p>
-                    <select id="skill_select" name="skill_id" required>
-                        <option value="">-- 先にカテゴリを選んでください --</option>
+
+                    <select
+                        id="skill_select"
+                        name="skill_id"
+                        required
+                    >
+                        <option value="">
+                            -- 先にカテゴリを選んでください --
+                        </option>
                     </select>
-                </div>
-                
-                <div class="form-group">
-                    <p>ここに投稿内容を入力してください。</p>
-                    <textarea name="post_text" rows="8" placeholder="投稿内容を入力" required>{{ edit_post.post_text if edit_post else '' }}</textarea>
+
                 </div>
 
+
+                <!-- 投稿内容 -->
                 <div class="form-group">
-                    <p>ファイルを添付（任意 / 画像・PNG, PDF, JPG, JPEG, GIF, WEBP）：</p>
+
+                    <p>ここに投稿内容を入力してください。</p>
+
+                    <textarea
+                        name="post_text"
+                        rows="8"
+                        placeholder="投稿内容を入力"
+                        required
+                    >{{ edit_post.post_text if edit_post else '' }}</textarea>
+
+                </div>
+
+
+                <!-- ファイル添付 -->
+                <div class="form-group">
+
+                    <p>
+                        ファイルを添付
+                        （任意 / PNG, JPG, JPEG, GIF, WEBP, PDF）：
+                    </p>
+
                     <div class="file-upload-wrapper">
 
-                        <!-- 💡 許可拡張子を統一 -->
                         {% if edit_post and edit_post.image_path %}
-                        <p style="font-size: 13px; color: var(--text-sub, #7f8c8d); margin-bottom: 8px;">
-                            現在の添付ファイル: {{ edit_post.image_path }}（新しいファイルを選ぶと差し替えられます）
-                        </p>
-                    {% endif %}
-                    <input type="file" id="post_image" name="post_image" accept=".png, .jpg, .jpeg, .gif, .webp, .pdf">
-                        
-                        <label for="post_image" class="btn-outline-small">
+
+                            <p style="
+                                font-size: 13px;
+                                color: var(--text-sub, #7f8c8d);
+                                margin-bottom: 8px;
+                            ">
+                                現在の添付ファイル：
+                                {{ edit_post.image_path }}
+                                （新しいファイルを選ぶと差し替えられます）
+                            </p>
+
+                        {% endif %}
+
+
+                        <input
+                            type="file"
+                            id="post_image"
+                            name="post_image"
+                            accept=".png,.jpg,.jpeg,.gif,.webp,.pdf"
+                        >
+
+                        <label
+                            for="post_image"
+                            class="btn-outline-small"
+                        >
                             ファイルを選択
                         </label>
 
-                        <span id="file_name_display">選択されていません</span>
+                        <span id="file_name_display">
+                            選択されていません
+                        </span>
+
                     </div>
+
                 </div>
 
-                <button type="submit" class="btn-submit">{{ '更新する' if edit_post else '投稿する' }}</button>
+
+                <!-- 投稿ボタン -->
+                <button
+                    type="submit"
+                    class="btn-submit"
+                >
+                    {{ '更新する' if edit_post else '投稿する' }}
+                </button>
+
             </form>
+
         </div>
 
-        <!-- 課題2修正：カテゴリ選択を追加してスキルを確実に追加できるように修正 -->
+
+
+        <!-- =========================
+             新しいスキルを追加
+        ========================== -->
+
         {% if not edit_post %}
+
         <div class="skill-add-card">
+
             <h2>新しいスキルをシステムに追加</h2>
-            <form id="skillAddForm" method="POST" action="/skill_edit">
-                <p>選択肢にないスキルを追加したい場合はカテゴリを選択して入力してください：</p>
-                <div class="skill-add-row" style="display: flex; gap: 10px; flex-wrap: wrap;">
-                    <select id="add_skill_category" name="category_id" required style="padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
-                        <option value="">-- カテゴリ選択 --</option>
+
+            <form
+                id="skillAddForm"
+                method="POST"
+                action="/skill_edit"
+            >
+
+                <p>
+                    選択肢にないスキルを追加したい場合は
+                    カテゴリを選択して入力してください：
+                </p>
+
+
+                <div
+                    class="skill-add-row"
+                    style="
+                        display: flex;
+                        gap: 10px;
+                        flex-wrap: wrap;
+                    "
+                >
+
+                    <!-- カテゴリ -->
+                    <select
+                        id="add_skill_category"
+                        name="category_id"
+                        required
+                        style="
+                            padding: 8px;
+                            border-radius: 4px;
+                            border: 1px solid #ccc;
+                        "
+                    >
+
+                        <option value="">
+                            -- カテゴリ選択 --
+                        </option>
+
                         {% for category in categories %}
-                            <option value="{{ category.category_id if category.category_id is defined else category[0] }}">
+
+                            <option
+                                value="{{ category.category_id if category.category_id is defined else category[0] }}"
+                            >
                                 {{ category.category_name if category.category_name is defined else category[1] }}
                             </option>
+
                         {% endfor %}
+
                     </select>
-                    <input type="text" id="add_skill_name" name="skill_name" placeholder="例: Vue.js, Figma" required style="flex: 1;">
-                    <button type="submit" class="btn-outline-small">スキルを登録</button>
+
+
+                    <!-- スキル名 -->
+                    <input
+                        type="text"
+                        id="add_skill_name"
+                        name="skill_name"
+                        placeholder="例: Vue.js, Figma"
+                        required
+                        style="flex: 1;"
+                    >
+
+
+                    <!-- 登録 -->
+                    <button
+                        type="submit"
+                        class="btn-outline-small"
+                    >
+                        スキルを登録
+                    </button>
+
                 </div>
+
             </form>
+
         </div>
+
         {% endif %}
 
     </div>
+
+
+    <!-- フッター -->
     {% include 'footer.html' %}
 
+
+
     <script>
+
+        /* ==========================================
+           登録済みスキル一覧
+        ========================================== */
+
         const allSkills = [
+
             {% for s in skills %}
-            { 
-                id: "{{ s.skill_id }}", 
-                name: "{{ s.skill_name }}", 
-                categoryId: "{{ s.category_id }}" 
+
+            {
+                id: "{{ s.skill_id if s.skill_id is defined else s[0] }}",
+                name: "{{ s.skill_name if s.skill_name is defined else s[1] }}",
+                categoryId: "{{ s.category_id if s.category_id is defined else s[2] }}"
             },
+
             {% endfor %}
+
         ];
 
-        // 投稿フォームのカテゴリ・スキル連動処理
-        const editSkillId = "{{ edit_post.skill_id if edit_post else '' }}";
 
-        function populateSkills(categoryId, preselectSkillId) {
-            const skillSelect = document.getElementById('skill_select');
+        /* ==========================================
+           編集時のスキルID
+        ========================================== */
+
+        const editSkillId =
+            "{{ edit_post.skill_id if edit_post else '' }}";
+
+
+
+        /* ==========================================
+           カテゴリ → スキル
+        ========================================== */
+
+        function populateSkills(categoryId, preselectSkillId = null) {
+
+            const skillSelect =
+                document.getElementById('skill_select');
+
             skillSelect.innerHTML = '';
 
+
+            /* カテゴリ未選択 */
+
             if (!categoryId) {
-                skillSelect.innerHTML = '<option value="">-- 先にカテゴリを選んでください --</option>';
+
+                skillSelect.innerHTML =
+                    '<option value="">-- 先にカテゴリを選んでください --</option>';
+
                 return;
             }
 
-            const filtered = allSkills.filter(s => String(s.categoryId) === String(categoryId));
+
+            /* 該当カテゴリのスキルを取得 */
+
+            const filtered =
+                allSkills.filter(
+                    s => String(s.categoryId) === String(categoryId)
+                );
+
+
+            /* スキルが存在しない */
 
             if (filtered.length === 0) {
-                skillSelect.innerHTML = '<option value="">-- このカテゴリにスキルがありません --</option>';
+
+                skillSelect.innerHTML =
+                    '<option value="">-- このカテゴリにスキルがありません --</option>';
+
                 return;
             }
 
-            skillSelect.innerHTML = '<option value="">-- スキルを選択してください --</option>';
+
+            /* 初期項目 */
+
+            skillSelect.innerHTML =
+                '<option value="">-- スキルを選択してください --</option>';
+
+
+            /* スキルを追加 */
+
             filtered.forEach(s => {
-                const opt = document.createElement('option');
-                opt.value = s.id;
-                opt.textContent = s.name;
-                if (preselectSkillId && String(s.id) === String(preselectSkillId)) {
-                    opt.selected = true;
+
+                const option =
+                    document.createElement('option');
+
+                option.value = s.id;
+
+                option.textContent = s.name;
+
+
+                /* 編集時の既存スキル */
+
+                if (
+                    preselectSkillId &&
+                    String(s.id) === String(preselectSkillId)
+                ) {
+                    option.selected = true;
                 }
-                skillSelect.appendChild(opt);
+
+
+                skillSelect.appendChild(option);
+
             });
+
         }
 
-        document.getElementById('category_select').addEventListener('change', function() {
-            populateSkills(this.value, null);
-        });
 
-        // 編集モードの場合、ページ読み込み時に既存のカテゴリ・スキルを反映
-        document.addEventListener('DOMContentLoaded', function() {
-            const categorySelect = document.getElementById('category_select');
-            if (categorySelect.value) {
-                populateSkills(categorySelect.value, editSkillId);
-            }
-        });
 
-        // 重複スキル追加のチェック処理
-        document.getElementById('skillAddForm').addEventListener('submit', function(e) {
-            const selectedCategoryId = String(document.getElementById('add_skill_category').value);
-            const inputSkillName = document.getElementById('add_skill_name').value.trim();
+        /* ==========================================
+           ページ読み込み
+        ========================================== */
 
-            const normalize = str => str.toLowerCase().replace(/\s+/g, '');
+        document.addEventListener(
+            'DOMContentLoaded',
+            function () {
 
-            const isDuplicate = allSkills.some(s => 
-                String(s.categoryId) === selectedCategoryId && 
-                normalize(s.name) === normalize(inputSkillName)
-            );
+                const categorySelect =
+                    document.getElementById('category_select');
 
-            if (isDuplicate) {
-                e.preventDefault();
-                alert(`「${inputSkillName}」は指定したカテゴリ内にすでに登録されています。`);
-            }
-        });
 
-        // 💡 ファイル選択時にファイル名表示＆フォーマット（PDF含む）エラー吹き出しの制御
-        document.getElementById('post_image').addEventListener('change', function() {
-            const fileNameDisplay = document.getElementById('file_name_display');
-            const allowedExtensions = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'pdf'];
+                if (categorySelect && categorySelect.value) {
 
-            // エラー状態を初期化
-            this.setCustomValidity('');
+                    populateSkills(
+                        categorySelect.value,
+                        editSkillId
+                    );
 
-            if (this.files && this.files.length > 0) {
-                const fileName = this.files[0].name;
-                const ext = fileName.split('.').pop().toLowerCase();
-
-                // 拡張子チェック
-                if (!allowedExtensions.includes(ext)) {
-                    // ★ ここでブラウザのエラー吹き出しメッセージを設定
-                    this.setCustomValidity('許可されていないファイル形式です。添付できるのは画像（PNG, JPG, GIF, WEBP）または PDF のみです。');
-                    
-                    fileNameDisplay.textContent = '※非対応の形式です';
-                    fileNameDisplay.style.color = 'red';
-                    
-                    // エラー吹き出しを表示する
-                    this.reportValidity();
-                    return;
                 }
 
-                // 正常な場合
-                fileNameDisplay.textContent = fileName;
-                fileNameDisplay.style.color = '';
-            } else {
-                fileNameDisplay.textContent = '選択されていません';
-                fileNameDisplay.style.color = '';
             }
-        });
+        );
 
-        // 重複スキル追加のチェック処理
-        document.getElementById('skillAddForm').addEventListener('submit', function(e) {
-            const selectedCategoryId = String(document.getElementById('add_skill_category').value);
-            const inputSkillName = document.getElementById('add_skill_name').value.trim();
 
-            const normalize = str => str.toLowerCase().replace(/\s+/g, '');
 
-            const isDuplicate = allSkills.some(s => 
-                String(s.categoryId) === selectedCategoryId && 
-                normalize(s.name) === normalize(inputSkillName)
+        /* ==========================================
+           カテゴリ変更
+        ========================================== */
+
+        document
+            .getElementById('category_select')
+            .addEventListener(
+                'change',
+                function () {
+
+                    populateSkills(
+                        this.value,
+                        null
+                    );
+
+                }
             );
 
-            if (isDuplicate) {
-                e.preventDefault();
-                alert(`「${inputSkillName}」は指定したカテゴリ内にすでに登録されています。`);
-            }
-        });
 
-        // 💡 ファイル選択時にファイル名表示＆フォーマット（PDF含む）エラー吹き出しの制御
-        document.getElementById('post_image').addEventListener('change', function() {
-            const fileNameDisplay = document.getElementById('file_name_display');
-            const allowedExtensions = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'pdf'];
 
-            // エラー状態を初期化
-            this.setCustomValidity('');
+        /* ==========================================
+           スキル重複チェック
+        ========================================== */
 
-            if (this.files && this.files.length > 0) {
-                const fileName = this.files[0].name;
-                const ext = fileName.split('.').pop().toLowerCase();
+        const skillAddForm =
+            document.getElementById('skillAddForm');
 
-                // 拡張子チェック
-                if (!allowedExtensions.includes(ext)) {
-                    // ★ ここでブラウザのエラー吹き出しメッセージを設定
-                    this.setCustomValidity('許可されていないファイル形式です。添付できるのは画像（PNG, JPG, GIF, WEBP）または PDF のみです。');
-                    
-                    fileNameDisplay.textContent = '※非対応の形式です';
-                    fileNameDisplay.style.color = 'red';
-                    
-                    // エラー吹き出しを表示する
-                    this.reportValidity();
-                    return;
+
+        if (skillAddForm) {
+
+            skillAddForm.addEventListener(
+                'submit',
+                function (e) {
+
+                    const selectedCategoryId =
+                        String(
+                            document.getElementById(
+                                'add_skill_category'
+                            ).value
+                        );
+
+
+                    const inputSkillName =
+                        document.getElementById(
+                            'add_skill_name'
+                        ).value.trim();
+
+
+                    /* 大文字小文字・空白を無視 */
+
+                    const normalize = str =>
+                        str
+                            .toLowerCase()
+                            .replace(/\s+/g, '');
+
+
+                    /* 重複確認 */
+
+                    const isDuplicate =
+                        allSkills.some(
+                            s =>
+                                String(s.categoryId) ===
+                                    selectedCategoryId &&
+                                normalize(s.name) ===
+                                    normalize(inputSkillName)
+                        );
+
+
+                    if (isDuplicate) {
+
+                        e.preventDefault();
+
+                        alert(
+                            `「${inputSkillName}」は指定したカテゴリ内にすでに登録されています。`
+                        );
+
+                    }
+
                 }
+            );
 
-                // 正常な場合
-                fileNameDisplay.textContent = fileName;
-                fileNameDisplay.style.color = '';
-            } else {
-                fileNameDisplay.textContent = '選択されていません';
-                fileNameDisplay.style.color = '';
-            }
-        });
+        }
+
+
+
+        /* ==========================================
+           ファイル選択
+        ========================================== */
+
+        const postImage =
+            document.getElementById('post_image');
+
+
+        if (postImage) {
+
+            postImage.addEventListener(
+                'change',
+                function () {
+
+                    const fileNameDisplay =
+                        document.getElementById(
+                            'file_name_display'
+                        );
+
+
+                    const allowedExtensions = [
+                        'png',
+                        'jpg',
+                        'jpeg',
+                        'gif',
+                        'webp',
+                        'pdf'
+                    ];
+
+
+                    /* エラー解除 */
+
+                    this.setCustomValidity('');
+
+
+                    /* ファイルあり */
+
+                    if (
+                        this.files &&
+                        this.files.length > 0
+                    ) {
+
+                        const fileName =
+                            this.files[0].name;
+
+
+                        const ext =
+                            fileName
+                                .split('.')
+                                .pop()
+                                .toLowerCase();
+
+
+                        /* 拡張子チェック */
+
+                        if (
+                            !allowedExtensions.includes(ext)
+                        ) {
+
+                            this.setCustomValidity(
+                                '許可されていないファイル形式です。添付できるのは画像（PNG, JPG, GIF, WEBP）またはPDFのみです。'
+                            );
+
+
+                            fileNameDisplay.textContent =
+                                '※非対応の形式です';
+
+                            fileNameDisplay.style.color =
+                                'red';
+
+
+                            this.reportValidity();
+
+                            return;
+
+                        }
+
+
+                        /* 正常 */
+
+                        fileNameDisplay.textContent =
+                            fileName;
+
+                        fileNameDisplay.style.color =
+                            '';
+
+                    }
+
+                    /* ファイルなし */
+
+                    else {
+
+                        fileNameDisplay.textContent =
+                            '選択されていません';
+
+                        fileNameDisplay.style.color =
+                            '';
+
+                    }
+
+                }
+            );
+
+        }
+
     </script>
-</body>
-</html>
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>投稿作成 | スキルシェア</title>
-<link rel="stylesheet" href="{{ url_for('static', filename='css/variables.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/posts.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/footer.css') }}">
-</head>
-<body>
-    {% include 'header.html' %}
 
-    <div class="page-wrap">
-
-        <div class="post-card">
-            <h2>新規投稿作成</h2>
-
-            <!-- フラッシュメッセージ表示エリア -->
-            {% with messages = get_flashed_messages() %}
-              {% if messages %}
-                <div class="alert-container" style="margin-bottom: 20px;">
-                  {% for message in messages %}
-                    <div style="background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; padding: 12px; border-radius: 6px; font-weight: bold;">
-                      {{ message }}
-                    </div>
-                  {% endfor %}
-                </div>
-              {% endif %}
-            {% endwith %}
-
-            <form method="POST" action="/posts" enctype="multipart/form-data">
-
-                <div class="form-group">
-                    <p>募集タイプを選択してください：</p>
-                    <select name="post_type" required>
-                        <option value="教えたい" {{ 'selected' if preset_type == '教えたい' }}>教えたい</option>
-                        <option value="学びたい" {{ 'selected' if preset_type == '学びたい' }}>学びたい</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <p>カテゴリを選択してください：</p>
-                    <select id="category_select" name="category_id" required>
-                        <option value="">-- カテゴリを選択してください --</option>
-                        {% for category in categories %}
-                            <option value="{{ category.category_id if category.category_id is defined else category[0] }}">
-                                {{ category.category_name if category.category_name is defined else category[1] }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <p>対応するスキルを選択してください：</p>
-                    <select id="skill_select" name="skill_id" required>
-                        <option value="">-- 先にカテゴリを選んでください --</option>
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <p>ここに投稿内容を入力してください。</p>
-                    <textarea name="post_text" rows="8" placeholder="投稿内容を入力" required></textarea>
-                </div>
-
-                <!-- ファイル添付フィールド（画像・PDF） -->
-                <div class="form-group">
-                    <p>ファイルを添付（任意 / 画像・PNG, PDF, JPG, JPEG, GIF, WEBP）：</p>
-                    <div class="file-upload-wrapper">
-
-                        <!-- 💡 許可拡張子を統一 -->
-                        <input type="file" id="post_image" name="post_image" accept=".png, .jpg, .jpeg, .gif, .webp, .pdf">
-                        
-                        <label for="post_image" class="btn-outline-small">
-                            ファイルを選択
-                        </label>
-
-                        <span id="file_name_display">選択されていません</span>
-                    </div>
-                </div>
-
-                <button type="submit" class="btn-submit">投稿する</button>
-            </form>
-        </div>
-
-        <!-- 課題2修正：カテゴリ選択を追加してスキルを確実に追加できるように修正 -->
-        <div class="skill-add-card">
-            <h2>新しいスキルをシステムに追加</h2>
-            <form id="skillAddForm" method="POST" action="/skill_edit">
-                <p>選択肢にないスキルを追加したい場合はカテゴリを選択して入力してください：</p>
-                <div class="skill-add-row" style="display: flex; gap: 10px; flex-wrap: wrap;">
-                    <select id="add_skill_category" name="category_id" required style="padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
-                        <option value="">-- カテゴリ選択 --</option>
-                        {% for category in categories %}
-                            <option value="{{ category.category_id if category.category_id is defined else category[0] }}">
-                                {{ category.category_name if category.category_name is defined else category[1] }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                    <input type="text" id="add_skill_name" name="skill_name" placeholder="例: Vue.js, Figma" required style="flex: 1;">
-                    <button type="submit" class="btn-outline-small">スキルを登録</button>
-                </div>
-            </form>
-        </div>
-
-    </div>
-    {% include 'footer.html' %}
-
-    <script>
-        const allSkills = [
-            {% for s in skills %}
-            { 
-                id: "{{ s.skill_id if s.skill_id is defined else s[0] }}", 
-                name: "{{ s.skill_name if s.skill_name is defined else s[1] }}", 
-                categoryId: "{{ s.category_id if (s.category_id is defined and s.category_id != '') else (s[2] if s[2] else '') }}" 
-            },
-            {% endfor %}
-        ];
-
-        // 投稿フォームのカテゴリ・スキル連動処理
-        document.getElementById('category_select').addEventListener('change', function() {
-            const categoryId = String(this.value);
-            const skillSelect = document.getElementById('skill_select');
-            skillSelect.innerHTML = '';
-
-            if (!categoryId) {
-                skillSelect.innerHTML = '<option value="">-- 先にカテゴリを選んでください --</option>';
-                return;
-            }
-
-            const filtered = allSkills.filter(s => String(s.categoryId) === categoryId);
-
-            if (filtered.length === 0) {
-                skillSelect.innerHTML = '<option value="">-- このカテゴリにスキルがありません --</option>';
-                return;
-            }
-
-            skillSelect.innerHTML = '<option value="">-- スキルを選択してください --</option>';
-            filtered.forEach(s => {
-                const opt = document.createElement('option');
-                opt.value = s.id;
-                opt.textContent = s.name;
-                skillSelect.appendChild(opt);
-            });
-        });
-
-        // 重複スキル追加のチェック処理
-        document.getElementById('skillAddForm').addEventListener('submit', function(e) {
-            const selectedCategoryId = String(document.getElementById('add_skill_category').value);
-            const inputSkillName = document.getElementById('add_skill_name').value.trim();
-
-            const normalize = str => str.toLowerCase().replace(/\s+/g, '');
-
-            const isDuplicate = allSkills.some(s => 
-                String(s.categoryId) === selectedCategoryId && 
-                normalize(s.name) === normalize(inputSkillName)
-            );
-
-            if (isDuplicate) {
-                e.preventDefault();
-                alert(`「${inputSkillName}」は指定したカテゴリ内にすでに登録されています。`);
-            }
-        });
-
-        // 💡 ファイル選択時にファイル名表示＆フォーマット（PDF含む）エラー吹き出しの制御
-        document.getElementById('post_image').addEventListener('change', function() {
-            const fileNameDisplay = document.getElementById('file_name_display');
-            const allowedExtensions = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'pdf'];
-
-            // エラー状態を初期化
-            this.setCustomValidity('');
-
-            if (this.files && this.files.length > 0) {
-                const fileName = this.files[0].name;
-                const ext = fileName.split('.').pop().toLowerCase();
-
-                // 拡張子チェック
-                if (!allowedExtensions.includes(ext)) {
-                    // ★ ここでブラウザのエラー吹き出しメッセージを設定
-                    this.setCustomValidity('許可されていないファイル形式です。添付できるのは画像（PNG, JPG, GIF, WEBP）または PDF のみです。');
-                    
-                    fileNameDisplay.textContent = '※非対応の形式です';
-                    fileNameDisplay.style.color = 'red';
-                    
-                    // エラー吹き出しを表示する
-                    this.reportValidity();
-                    return;
-                }
-
-                // 正常な場合
-                fileNameDisplay.textContent = fileName;
-                fileNameDisplay.style.color = '';
-            } else {
-                fileNameDisplay.textContent = '選択されていません';
-                fileNameDisplay.style.color = '';
-            }
-        });
-    </script>
 </body>
 </html>

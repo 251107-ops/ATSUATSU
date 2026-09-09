@@ -142,7 +142,6 @@ def top():
         selected_department=selected_department,
         search_query=search_query
     )
-
 @posts.route("/top/learn")
 def top_learn():
     if 'user_email' not in session:
@@ -187,7 +186,6 @@ def top_learn():
         selected_department=selected_department,
         search_query=search_query
     )
-
 
 @posts.route("/profile", methods=['GET', 'POST'])
 def profile():
@@ -539,6 +537,7 @@ def create_post():
             return redirect('/posts')
 
         # 添付ファイル（画像・PDF）のアップロード処理
+        # 添付ファイル（画像・PDF）のアップロード処理
         image_path = None
         post_file = request.files.get('post_image')
         if post_file and post_file.filename != '':
@@ -799,7 +798,6 @@ def other_profile(user_id):
         reviews=reviews
     )
 
-
 # --- ★ 追加: おすすめユーザー取得用の共通関数 ---
 def fetch_recommended_users(db, current_user_id):
     if not current_user_id:
@@ -845,7 +843,6 @@ def fetch_recommended_users(db, current_user_id):
 def top_teach():
     if 'user_email' not in session:
         return redirect('/login')
-
     db = get_db()
     user_id = session.get('user_id')
     sort_type = request.args.get('sort', 'new')
@@ -885,7 +882,6 @@ def top_teach():
         selected_department=selected_department,
         search_query=search_query
     )
-
 @posts.route("/like/<int:post_id>", methods=["POST"])
 def like_post(post_id):
     if 'user_email' not in session:

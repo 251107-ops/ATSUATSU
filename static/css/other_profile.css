@@ -1,0 +1,130 @@
+/* --- Flash Messages --- */
+.flash-messages {
+  max-width: 1000px;
+  margin: 20px auto 0;
+  padding: 0 16px;
+}
+
+.flash-message.success {
+  background-color: #e6f4ea;
+  color: #137333;
+  padding: 14px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: bold;
+  text-align: center;
+  border: 1px solid #ceead6;
+}
+
+/* --- Layout & Sections --- */
+.skill-field__label-learn {
+  margin-top: 16px;
+}
+
+.review-section,
+.my-posts-section {
+  margin-top: 24px;
+}
+
+.section-title {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 16px;
+}
+
+.empty-notice {
+  color: #666;
+  padding: 16px 0;
+}
+
+.empty-notice--padded {
+  padding: 20px 0;
+}
+
+/* --- Review Section --- */
+.review-card {
+  background: #fff;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  border: 1px solid #e2e8f0;
+}
+
+.review-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.review-rating-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.review-header .stars {
+  color: #ffb400;
+  font-weight: bold;
+}
+
+.review-header .rating-num {
+  font-weight: bold;
+}
+
+.review-date {
+  font-size: 12px;
+  color: #718096;
+}
+
+.review-comment {
+  margin: 8px 0;
+  color: #2d3748;
+}
+
+.reviewer-info {
+  font-size: 12px;
+  color: #718096;
+  text-align: right;
+}
+
+/* --- Post Cards --- */
+.card--interactive {
+  cursor: pointer;
+}
+
+/* --- Modal Components --- */
+.modal-user-link {
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.modal-user-icon {
+  width: 48px;
+  height: 48px;
+}
+
+.modal-user-name {
+  font-weight: bold;
+}
+
+.modal-user-meta {
+  font-size: 12px;
+  color: #666;
+}
+
+.modal-attachment-container {
+  display: none;
+  margin-top: 12px;
+}
+
+.modal-preview-img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  display: block;
+}
