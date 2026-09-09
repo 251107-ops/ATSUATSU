@@ -91,7 +91,6 @@ def fetch_posts(db, category_id="", post_type="", search_query="", sort_type="ne
 
     return posts_list
 
-
 @posts.route("/")
 def top():
     if 'user_email' not in session:
@@ -99,6 +98,10 @@ def top():
 
     db = get_db()
     user_id = session.get('user_id')
+
+    # おすすめユーザーの取得
+    recommended_users = fetch_recommended_users(db, user_id)
+
     sort_type = request.args.get('sort', 'new')
     selected_category = request.args.get('category', '')
     selected_grade = request.args.get('grade', '')
@@ -130,6 +133,7 @@ def top():
 
     return render_template(
         'top.html',
+        recommended_users=recommended_users,
         posts=combined,
         recommended_users=recommended_users,
         active_tab='all',
@@ -142,7 +146,11 @@ def top():
         selected_department=selected_department,
         search_query=search_query
     )
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> 3f8298babb2a308151643fc9005af16ee928f40d
 @posts.route("/top/learn")
 def top_learn():
     if 'user_email' not in session:
@@ -171,7 +179,10 @@ def top_learn():
         user_id=user_id
     )
 
+<<<<<<< HEAD
     # ★ おすすめユーザーの取得
+=======
+>>>>>>> 3f8298babb2a308151643fc9005af16ee928f40d
     recommended_users = fetch_recommended_users(db, user_id)
 
     return render_template(
@@ -189,6 +200,10 @@ def top_learn():
         search_query=search_query
     )
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 3f8298babb2a308151643fc9005af16ee928f40d
 @posts.route("/profile", methods=['GET', 'POST'])
 def profile():
     if 'user_email' not in session:
@@ -539,6 +554,7 @@ def create_post():
             return redirect('/posts')
 
         # 添付ファイル（画像・PDF）のアップロード処理
+        # 添付ファイル（画像・PDF）のアップロード処理
         image_path = None
         post_file = request.files.get('post_image')
         if post_file and post_file.filename != '':
@@ -799,6 +815,10 @@ def other_profile(user_id):
         reviews=reviews
     )
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 3f8298babb2a308151643fc9005af16ee928f40d
 # --- ★ 追加: おすすめユーザー取得用の共通関数 ---
 def fetch_recommended_users(db, current_user_id):
     if not current_user_id:
@@ -844,7 +864,11 @@ def fetch_recommended_users(db, current_user_id):
 def top_teach():
     if 'user_email' not in session:
         return redirect('/login')
+<<<<<<< HEAD
  
+=======
+
+>>>>>>> 3f8298babb2a308151643fc9005af16ee928f40d
     db = get_db()
     user_id = session.get('user_id')
     sort_type = request.args.get('sort', 'new')
@@ -852,11 +876,19 @@ def top_teach():
     selected_grade = request.args.get('grade', '')
     selected_department = request.args.get('department', '')
     search_query = request.args.get('query', '')
+<<<<<<< HEAD
  
     category_data = db.execute("SELECT * FROM categories").fetchall()
     grade_data = db.execute("SELECT DISTINCT grade FROM users WHERE grade IS NOT NULL AND grade != ''").fetchall()
     department_data = db.execute("SELECT DISTINCT department FROM users WHERE department IS NOT NULL AND department != ''").fetchall()
  
+=======
+
+    category_data = db.execute("SELECT * FROM categories").fetchall()
+    grade_data = db.execute("SELECT DISTINCT grade FROM users WHERE grade IS NOT NULL AND grade != ''").fetchall()
+    department_data = db.execute("SELECT DISTINCT department FROM users WHERE department IS NOT NULL AND department != ''").fetchall()
+
+>>>>>>> 3f8298babb2a308151643fc9005af16ee928f40d
     posts_list = fetch_posts(
         db,
         category_id=selected_category,
@@ -867,10 +899,16 @@ def top_teach():
         sort_type=sort_type,
         user_id=user_id
     )
+<<<<<<< HEAD
  
     # ★ おすすめユーザーの取得
     recommended_users = fetch_recommended_users(db, user_id)
  
+=======
+
+    recommended_users = fetch_recommended_users(db, user_id)
+
+>>>>>>> 3f8298babb2a308151643fc9005af16ee928f40d
     return render_template(
         'top.html',
         posts=posts_list,
@@ -885,7 +923,11 @@ def top_teach():
         selected_department=selected_department,
         search_query=search_query
     )
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> 3f8298babb2a308151643fc9005af16ee928f40d
 @posts.route("/like/<int:post_id>", methods=["POST"])
 def like_post(post_id):
     if 'user_email' not in session:
