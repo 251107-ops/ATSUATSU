@@ -5,6 +5,7 @@ from datetime import datetime
 from flask import Blueprint, render_template, redirect, session, request, jsonify, flash
 from werkzeug.utils import secure_filename
 from routes.auth import get_db
+from routes.projects import fetch_projects
 
 posts = Blueprint('posts', __name__)
 
@@ -117,10 +118,16 @@ def top():
         sort_type=sort_type,
         user_id=user_id
     )
+    for p in posts_list:
+        p['card_type'] = 'skill'
+
+    projects_list = fetch_projects(db, user_id=user_id)
+
+    combined = projects_list + posts_list if sort_type != 'popular' else posts_list + projects_list
 
     return render_template(
         'top.html',
-        posts=posts_list,
+        posts=combined,
         active_tab='all',
         active_sort=sort_type,
         categories=category_data,

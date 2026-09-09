@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>プロジェクト一覧 | スキルシェア</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/top.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/variables.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/footer.css') }}">
+</head>
+<body>
+    {% include 'header.html' %}
+
+    <main>
+        <input type="hidden" id="currentUserId" value="{{ session.get('user_id', '') }}">
+        <div id="topBanner" class="top-banner"></div>
+
+        <section class="hero">
+            <h1 class="hero-title">プロジェクト募集一覧</h1>
+            <p class="hero-sub">仲間を探しているプロジェクト、参加したいプロジェクトを見つけよう</p>
+        </section>
+
+        <section class="skills-section">
+            <div class="section-header">
+                <h2>募集中のプロジェクト</h2>
+                <a href="/project/new" class="btn-primary" style="padding:10px 24px; border-radius:20px; text-decoration:none;">＋ 新規作成</a>
+            </div>
+
+            <div class="cards">
+                {% for post in posts %}
+                <div class="card"
+                     data-card-type="project"
+                     data-project-id="{{ post.project_id }}"
+                     data-user-id="{{ post.user_id }}"
+                     data-name="{{ post.name }}"
+                     data-meta="{{ post.department }} {{ post.grade }}年"
+                     data-icon="{{ url_for('static', filename=post.icon_path) if post.icon_path else url_for('static', filename='img/default-avatar.png') }}"
+                     data-category="{{ post.category_name }}"
+                     data-skill="{{ post.skill_name }}"
+                     data-body="{{ post.description }}"
+                     data-project-name="{{ post.project_name }}"
+                     data-recruit-count="{{ post.recruit_count }}"
+                     data-current-members="{{ post.current_members }}"
+                     data-is-owner="{{ 'true' if post.is_owner else 'false' }}"
+                     data-already-applied="{{ 'true' if post.already_applied else 'false' }}"
+                     data-already-member="{{ 'true' if post.already_member else 'false' }}">
+
+                    <div class="card-top">
+                        <a href="/users/{{ post.user_id }}" class="user-icon-link" onclick="event.stopPropagation();">
+                            <img src="{{ url_for('static', filename=post.icon_path) if post.icon_path else url_for('static', filename='img/default-avatar.png') }}" alt="{{ post.name }}のアイコン" class="user-icon-img">
+                        </a>
+                        <div>
+                            <span class="name">{{ post.project_name }}</span>
+                            <span class="meta">{{ post.name }}さん募集中</span>
+                        </div>
+                    </div>
+
+                    <div class="tags">
+                        {% if post.category_name %}<span class="tag">{{ post.category_name }}</span>{% endif %}
+                        <span class="tag">{{ post.skill_name }}</span>
+                        <span class="badge" style="background-color:#e6f0fa; color:#385cdb;">プロジェクト</span>
+                        <span class="badge" style="background-color:#f1f5f9; color:#64748b;">{{ post.current_members }}/{{ post.recruit_count }}人</span>
+                    </div>
+
+                    <p class="body">{{ post.description }}</p>
+                </div>
+                {% else %}
+                <div class="no-posts">
+                    <p>募集中のプロジェクトはまだありません。</p>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+    </main>
+
+    <div id="cardModal" class="modal-overlay">
+        <div class="modal-content">
+            <button type="button" class="modal-close" id="modalClose">&times;</button>
+            <div class="modal-header">
+                <a id="modalUserLink" href="#" class="modal-user-link" style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 12px;">
+                    <img id="modalIcon" src="" alt="ユーザーアイコン" class="modal-user-icon" style="width: 48px; height: 48px;">
+                    <div>
+                        <div id="modalName" style="font-weight: bold;"></div>
+                        <div id="modalMeta" style="font-size: 12px; color: #666;"></div>
+                    </div>
+                </a>
+            </div>
+            <div class="modal-tags">
+                <div class="modal-tag-row">
+                    <div id="modalCategory" class="modal-tag-item"></div>
+                    <span id="modalType" class="badge"></span>
+                </div>
+                <div class="modal-tag-row">
+                    <div id="modalSkill" class="modal-tag-item"></div>
+                </div>
+            </div>
+            <div class="modal-body-box"><p id="modalBody"></p></div>
+            <div id="modalAttachmentArea" class="modal-attachment-container" style="display: none; margin-top: 12px;">
+                <img id="modalPreviewImg" src="" alt="添付画像" style="max-width: 100%; height: auto; border-radius: 8px; display: none;">
+                <a id="modalPreviewPdf" href="#" target="_blank" style="display: none;">📄 添付PDFを表示する</a>
+            </div>
+            <form id="requestForm" action="/requests" method="POST" class="modal-action">
+                <input type="hidden" name="post_id" id="modalPostId">
+                <input type="hidden" name="receiver_id" id="modalReceiverId">
+                <input type="hidden" name="project_id" id="modalProjectId">
+                <button type="submit" id="requestBtn" class="request-btn"></button>
+            </form>
+            <div class="modal-footer"><span id="modalLikes" class="modal-like-count">0</span></div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/top.js') }}"></script>
+    {% include 'footer.html' %}
+</body>
+</html>
