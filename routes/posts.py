@@ -105,6 +105,9 @@ def top():
     selected_department = request.args.get('department', '')
     search_query = request.args.get('query', '')
 
+    # ★ おすすめユーザーの取得
+    recommended_users = fetch_recommended_users(db, user_id)
+
     category_data = db.execute("SELECT MIN(category_id) AS category_id, category_name FROM categories GROUP BY category_name ORDER BY category_id").fetchall()
     grade_data = db.execute("SELECT DISTINCT grade FROM users WHERE grade IS NOT NULL AND grade != ''").fetchall()
     department_data = db.execute("SELECT DISTINCT department FROM users WHERE department IS NOT NULL AND department != ''").fetchall()
@@ -128,6 +131,7 @@ def top():
     return render_template(
         'top.html',
         posts=combined,
+        recommended_users=recommended_users,
         active_tab='all',
         active_sort=sort_type,
         categories=category_data,
@@ -138,8 +142,7 @@ def top():
         selected_department=selected_department,
         search_query=search_query
     )
-
-
+    
 @posts.route("/top/learn")
 def top_learn():
     if 'user_email' not in session:
@@ -168,9 +171,13 @@ def top_learn():
         user_id=user_id
     )
 
+    # ★ おすすめユーザーの取得
+    recommended_users = fetch_recommended_users(db, user_id)
+
     return render_template(
         'top.html',
         posts=posts_list,
+        recommended_users=recommended_users,
         active_tab='learn',
         active_sort=sort_type,
         categories=category_data,
@@ -181,50 +188,6 @@ def top_learn():
         selected_department=selected_department,
         search_query=search_query
     )
-
-
-@posts.route("/top/teach")
-def top_teach():
-    if 'user_email' not in session:
-        return redirect('/login')
-
-    db = get_db()
-    user_id = session.get('user_id')
-    sort_type = request.args.get('sort', 'new')
-    selected_category = request.args.get('category', '')
-    selected_grade = request.args.get('grade', '')
-    selected_department = request.args.get('department', '')
-    search_query = request.args.get('query', '')
-
-    category_data = db.execute("SELECT * FROM categories").fetchall()
-    grade_data = db.execute("SELECT DISTINCT grade FROM users WHERE grade IS NOT NULL AND grade != ''").fetchall()
-    department_data = db.execute("SELECT DISTINCT department FROM users WHERE department IS NOT NULL AND department != ''").fetchall()
-
-    posts_list = fetch_posts(
-        db,
-        category_id=selected_category,
-        post_type='教えたい',
-        grade=selected_grade,
-        department=selected_department,
-        search_query=search_query,
-        sort_type=sort_type,
-        user_id=user_id
-    )
-
-    return render_template(
-        'top.html',
-        posts=posts_list,
-        active_tab='teach',
-        active_sort=sort_type,
-        categories=category_data,
-        selected_category=selected_category,
-        grades=grade_data,
-        selected_grade=selected_grade,
-        departments=department_data,
-        selected_department=selected_department,
-        search_query=search_query
-    )
-
 
 @posts.route("/profile", methods=['GET', 'POST'])
 def profile():
@@ -836,51 +799,6 @@ def other_profile(user_id):
         reviews=reviews
     )
 
-# --- 各トップページルートの更新例 ---
-
-@posts.route("/")
-def top():
-    db = get_db()
-    current_user_id = session.get('user_id')
-
-    if 'user_email' not in session:
-        return redirect('/login')
-
-    # おすすめユーザーの取得（関数の呼び出し）
-    recommended_users = fetch_recommended_users(db, current_user_id)
-
-    user_id = session.get('user_id')
-    sort_type = request.args.get('sort', 'new')
-    selected_category = request.args.get('category', '')
-    selected_grade = request.args.get('grade', '')
-    selected_department = request.args.get('department', '')
-    search_query = request.args.get('query', '')
-
-    category_data = db.execute("SELECT MIN(category_id) AS category_id, category_name FROM categories GROUP BY category_name ORDER BY category_id").fetchall()
-    grade_data = db.execute("SELECT DISTINCT grade FROM users WHERE grade IS NOT NULL AND grade != ''").fetchall()
-    department_data = db.execute("SELECT DISTINCT department FROM users WHERE department IS NOT NULL AND department != ''").fetchall()
-
-    posts_list = fetch_posts(
-        db,
-        category_id=selected_category,
-        grade=selected_grade,
-        department=selected_department,
-        search_query=search_query,
-        sort_type=sort_type,
-        user_id=user_id
-    )
-
-    # top関数の正しい返り値
-    return render_template(
-        'top.html', 
-        recommended_users=recommended_users,
-        posts=posts_list,
-        categories=category_data,
-        grades=grade_data,
-        departments=department_data
-    )
-
-
 # --- ★ 追加: おすすめユーザー取得用の共通関数 ---
 def fetch_recommended_users(db, current_user_id):
     if not current_user_id:
@@ -922,58 +840,11 @@ def fetch_recommended_users(db, current_user_id):
     recommended_users = db.execute(sql, params).fetchall()
     return recommended_users
 
-@posts.route("/top/learn")
-def top_learn():
-    if 'user_email' not in session:
-        return redirect('/login')
-
-    db = get_db()
-    user_id = session.get('user_id')
-    sort_type = request.args.get('sort', 'new')
-    selected_category = request.args.get('category', '')
-    selected_grade = request.args.get('grade', '')
-    selected_department = request.args.get('department', '')
-    search_query = request.args.get('query', '')
-
-    category_data = db.execute("SELECT * FROM categories").fetchall()
-    grade_data = db.execute("SELECT DISTINCT grade FROM users WHERE grade IS NOT NULL AND grade != ''").fetchall()
-    department_data = db.execute("SELECT DISTINCT department FROM users WHERE department IS NOT NULL AND department != ''").fetchall()
-
-    posts_list = fetch_posts(
-        db,
-        category_id=selected_category,
-        post_type='学びたい',
-        grade=selected_grade,
-        department=selected_department,
-        search_query=search_query,
-        sort_type=sort_type,
-        user_id=user_id
-    )
-
-    # ★ 追加: おすすめユーザーの取得
-    recommended_users = fetch_recommended_users(db, user_id)
-
-    return render_template(
-        'top.html',
-        posts=posts_list,
-        recommended_users=recommended_users, # ★ 追加
-        active_tab='learn',
-        active_sort=sort_type,
-        categories=category_data,
-        selected_category=selected_category,
-        grades=grade_data,
-        selected_grade=selected_grade,
-        departments=department_data,
-        selected_department=selected_department,
-        search_query=search_query
-    )
-
-
 @posts.route("/top/teach")
 def top_teach():
     if 'user_email' not in session:
         return redirect('/login')
-
+ 
     db = get_db()
     user_id = session.get('user_id')
     sort_type = request.args.get('sort', 'new')
@@ -981,11 +852,11 @@ def top_teach():
     selected_grade = request.args.get('grade', '')
     selected_department = request.args.get('department', '')
     search_query = request.args.get('query', '')
-
+ 
     category_data = db.execute("SELECT * FROM categories").fetchall()
     grade_data = db.execute("SELECT DISTINCT grade FROM users WHERE grade IS NOT NULL AND grade != ''").fetchall()
     department_data = db.execute("SELECT DISTINCT department FROM users WHERE department IS NOT NULL AND department != ''").fetchall()
-
+ 
     posts_list = fetch_posts(
         db,
         category_id=selected_category,
@@ -996,14 +867,14 @@ def top_teach():
         sort_type=sort_type,
         user_id=user_id
     )
-
-    # ★ 追加: おすすめユーザーの取得
+ 
+    # ★ おすすめユーザーの取得
     recommended_users = fetch_recommended_users(db, user_id)
-
+ 
     return render_template(
         'top.html',
         posts=posts_list,
-        recommended_users=recommended_users, # ★ 追加
+        recommended_users=recommended_users,
         active_tab='teach',
         active_sort=sort_type,
         categories=category_data,
@@ -1014,6 +885,7 @@ def top_teach():
         selected_department=selected_department,
         search_query=search_query
     )
+    
 @posts.route("/like/<int:post_id>", methods=["POST"])
 def like_post(post_id):
     if 'user_email' not in session:
