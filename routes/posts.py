@@ -701,52 +701,6 @@ def other_profile(user_id):
         reviews=reviews
     )
 
-    # --- ★ 追加: おすすめユーザー取得用の共通関数 ---
-def fetch_recommended_users(db, current_user_id):
-    if not current_user_id:
-        return []
-
-    # 1. 自分が投稿した「学びたい」スキルIDを『すべて』取得
-    skills_rows = db.execute("""
-        SELECT DISTINCT skill_id 
-        FROM posts 
-        WHERE user_id = ? AND post_type = '学びたい' AND skill_id IS NOT NULL AND skill_id != ''
-    """, (current_user_id,)).fetchall()
-
-    # スキルIDのリストを作成
-    my_learn_skills = [row['skill_id'] if isinstance(row, dict) else row[0] for row in skills_rows]
-
-    # 学びたいスキルが存在しない場合は空リストを返す
-    if not my_learn_skills:
-        return []
-
-    # 2. プレースホルダー (?, ?, ...) を動的に生成
-    placeholders = ','.join(['?'] * len(my_learn_skills))
-
-    # 3. 複数の「学びたい」スキルIDのいずれかを「教えたい」他ユーザーを一括取得
-    sql = f"""
-        SELECT DISTINCT
-            u.user_id,
-            u.name,
-            u.department,
-            u.grade,
-            u.icon_path,
-            s.skill_name AS matched_skill
-        FROM posts p
-        JOIN users u ON p.user_id = u.user_id
-        JOIN skills s ON p.skill_id = s.skill_id
-        WHERE p.post_type = '教えたい'
-          AND p.skill_id IN ({placeholders})
-          AND p.user_id != ?
-        LIMIT 10
-    """
-
-    # パラメータの組み立て（スキルID群 + 自分のユーザーID）
-    params = tuple(my_learn_skills) + (current_user_id,)
-    
-    recommended_users = db.execute(sql, params).fetchall()
-    return recommended_users
-
 # --- 各トップページルートの更新例 ---
 
 @posts.route("/")
@@ -792,7 +746,7 @@ def top():
     )
 
 
-# 関数は top の外側に定義します
+# --- ★ 追加: おすすめユーザー取得用の共通関数 ---
 def fetch_recommended_users(db, current_user_id):
     if not current_user_id:
         return []
@@ -804,17 +758,13 @@ def fetch_recommended_users(db, current_user_id):
         WHERE user_id = ? AND post_type = '学びたい' AND skill_id IS NOT NULL AND skill_id != ''
     """, (current_user_id,)).fetchall()
 
-    # スキルIDのリストを作成
     my_learn_skills = [row['skill_id'] if isinstance(row, dict) else row[0] for row in skills_rows]
 
-    # 学びたいスキルが存在しない場合は空リストを返す
     if not my_learn_skills:
         return []
 
-    # 2. プレースホルダー (?, ?, ...) を動的に生成
     placeholders = ','.join(['?'] * len(my_learn_skills))
 
-    # 3. 複数の「学びたい」スキルIDのいずれかを「教えたい」他ユーザーを一括取得
     sql = f"""
         SELECT DISTINCT
             u.user_id,
@@ -829,10 +779,9 @@ def fetch_recommended_users(db, current_user_id):
         WHERE p.post_type = '教えたい'
           AND p.skill_id IN ({placeholders})
           AND p.user_id != ?
-        LIMIT 10
+        LIMIT 5
     """
 
-    # パラメータの組み立て（スキルID群 + 自分のユーザーID）
     params = tuple(my_learn_skills) + (current_user_id,)
     
     recommended_users = db.execute(sql, params).fetchall()
