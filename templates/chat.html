@@ -57,9 +57,13 @@
         <div class="chat-main">
             {% if room %} 
                 <div class="chat-header">
-                    <div>
-                        <h2>{{ target_user_name if target_user_name else 'チャット' }}</h2>
-                        <p class="user-info">ログイン中: <strong>{{ name }}</strong></p>
+                    <div class="chat-header">
+                    <div class="chat-header-main">
+                        <a href="javascript:void(0);" onclick="window.location.href='/chat';" class="btn-back-to-list" title="一覧に戻る">‹</a>
+                        <div>
+                            <h2>{{ target_user_name if target_user_name else 'チャット' }}</h2>
+                            <p class="user-info">ログイン中: <strong>{{ name }}</strong></p>
+                        </div>
                     </div>
                 
                     {% if req_row %}
