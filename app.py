@@ -1,27 +1,29 @@
 import os
 from flask import Flask, render_template, session
 from flask_socketio import SocketIO, send
-from routes.posts import posts
-from routes.skill import skill
-from routes.chat import chat, init_chat_events
-from routes.category import categories
 from routes.auth import auth, get_db, init_db
-from routes.requests import requests_bp
+from routes.category import categories
+from routes.chat import chat, init_chat_events
+from routes.group_chat import group_chat, init_group_chat_events
 from routes.notifications import notifications_bp
+from routes.posts import posts
+from routes.requests import requests_bp
 from routes.reviews import reviews_bp
+from routes.skill import skill
 from routes.projects import projects_bp
 
 app = Flask(__name__)
 
 # 💡 開発中は固定の文字列にするか、Blueprintを登録する「前」に必ず設定します
 app.secret_key = '.secret_key'
-socketio = SocketIO(app, cors_allowed_origins="*")
+socketio = SocketIO(app, cors_allowed_origins='*')
 
 # Blueprint の登録
 app.register_blueprint(auth)
 app.register_blueprint(posts)
 app.register_blueprint(skill)
 app.register_blueprint(chat)
+app.register_blueprint(group_chat)
 app.register_blueprint(categories)
 app.register_blueprint(requests_bp)
 app.register_blueprint(notifications_bp)
@@ -29,26 +31,32 @@ app.register_blueprint(reviews_bp)
 app.register_blueprint(projects_bp)
 
 init_chat_events(socketio)
-init_db() 
+init_group_chat_events(socketio)
+init_db()
+
 
 @app.after_request
 def add_header(response):
-    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0, max-age=0'
+    response.headers['Cache-Control'] = (
+        'no-store, no-cache, must-revalidate, post-check=0, pre-check=0,'
+        ' max-age=0'
+    )
     response.headers['Pragma'] = 'no-cache'
     response.headers['Expires'] = '0'
     return response
+
 
 with app.app_context():
     db = get_db()
     db.execute('''CREATE TABLE IF NOT EXISTS users (user_id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL, email TEXT NOT NULL UNIQUE, password TEXT NOT NULL, grade TEXT NOT NULL, department TEXT NOT NULL,
         introduction TEXT, icon_path TEXT)''')
-    
+
     # 💡 posts テーブルの定義に image_path TEXT を追加
     db.execute('''CREATE TABLE IF NOT EXISTS posts (post_id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, skill_id INTEGER NOT NULL, post_type TEXT NOT NULL,
         post_text TEXT NOT NULL, image_path TEXT, post_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP, category_id INTEGER NOT NULL,
         FOREIGN KEY(user_id) REFERENCES users(user_id), FOREIGN KEY(skill_id) REFERENCES skills(skill_id), FOREIGN KEY(category_id) REFERENCES categories(category_id))''')
-    
+
     # 💡 既存のDBファイルに image_path カラムが無い場合のための自動追加処理
     try:
         db.execute('ALTER TABLE posts ADD COLUMN image_path TEXT')
@@ -59,9 +67,9 @@ with app.app_context():
     db.execute('''CREATE TABLE IF NOT EXISTS skills (skill_id INTEGER PRIMARY KEY AUTOINCREMENT, skill_name TEXT NOT NULL, category_id INTEGER NOT NULL , FOREIGN KEY(category_id) REFERENCES categories(category_id), UNIQUE (skill_name, category_id))''')
     db.execute('''CREATE TABLE IF NOT EXISTS categories (category_id INTEGER PRIMARY KEY AUTOINCREMENT, category_name TEXT NOT NULL UNIQUE)''')
     db.execute('''CREATE TABLE IF NOT EXISTS likes (user_id INTEGER NOT NULL, post_id INTEGER NOT NULL, PRIMARY KEY (user_id, post_id), FOREIGN KEY (user_id) REFERENCES users(user_id), FOREIGN KEY (post_id) REFERENCES posts(post_id))''')
-    
+
     # ==========================================
-    # 💡 チャット機能用テーブル (rooms, room_members, messages)
+    # 💡 1対1チャット機能用テーブル (既存のまま維持)
     # ==========================================
     db.execute('''CREATE TABLE IF NOT EXISTS rooms (
         room_id TEXT PRIMARY KEY,
@@ -76,7 +84,10 @@ with app.app_context():
     )''')
 
     try:
-        db.execute('ALTER TABLE room_members ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0')
+        db.execute(
+            'ALTER TABLE room_members ADD COLUMN hidden INTEGER NOT NULL'
+            ' DEFAULT 0'
+        )
     except Exception:
         pass
 
@@ -139,6 +150,61 @@ with app.app_context():
         updated_at TEXT
     )''')
 
+    # ==========================================
+    # 💡 グループチャット用テーブル (新規追加)
+    # ==========================================
+    db.execute('''CREATE TABLE IF NOT EXISTS group_rooms (
+        group_room_id TEXT PRIMARY KEY,
+        skill_id INTEGER NOT NULL REFERENCES skills(skill_id) ON DELETE CASCADE,
+        created_by INTEGER NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+        created_at TEXT DEFAULT (datetime('now','localtime')),
+        is_public INTEGER DEFAULT 1
+    )''')
+
+    db.execute('''CREATE TABLE IF NOT EXISTS group_members (
+        group_room_id TEXT NOT NULL REFERENCES group_rooms(group_room_id) ON DELETE CASCADE,
+        user_id INTEGER NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+        role TEXT DEFAULT 'member',
+        joined_at TEXT DEFAULT (datetime('now','localtime')),
+        PRIMARY KEY (group_room_id, user_id)
+    )''')
+
+    db.execute('''CREATE TABLE IF NOT EXISTS group_messages (
+        message_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        group_room_id INTEGER NOT NULL REFERENCES group_rooms(group_room_id) ON DELETE CASCADE,
+        sender_id INTEGER NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+        content TEXT NOT NULL,
+        created_at TEXT DEFAULT (datetime('now','localtime'))
+    )''')
+
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS projects (
+            project_id     INTEGER PRIMARY KEY AUTOINCREMENT,
+            owner_user_id  INTEGER NOT NULL REFERENCES users(user_id),
+            project_name   TEXT NOT NULL,
+            description    TEXT NOT NULL,
+            skill_id       INTEGER NOT NULL REFERENCES skills(skill_id),
+            recruit_count  INTEGER NOT NULL DEFAULT 2,
+            group_room_id  TEXT NOT NULL REFERENCES group_rooms(group_room_id),
+            status         TEXT NOT NULL DEFAULT 'recruiting',
+            created_at     TEXT DEFAULT (datetime('now','localtime'))
+        );
+    """)
+
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS project_requests (
+            request_id   INTEGER PRIMARY KEY AUTOINCREMENT,
+            project_id   INTEGER NOT NULL REFERENCES projects(project_id),
+            applicant_id INTEGER NOT NULL REFERENCES users(user_id),
+            status       TEXT NOT NULL DEFAULT 'pending',
+            created_at   TEXT DEFAULT (datetime('now','localtime')),
+            updated_at   TEXT DEFAULT (datetime('now','localtime'))
+        );
+    """)
+
+    # ==========================================
+    # マスタデータ投入
+    # ==========================================
     db.execute('''INSERT OR IGNORE INTO categories (category_name) VALUES
         ('IT・PCスキル'),
         ('語学'),
@@ -148,7 +214,7 @@ with app.app_context():
         ('スポーツ・運動'),
         ('ライフスタイル'),
         ('その他')''')
-    
+
     db.execute('''INSERT OR IGNORE INTO skills (skill_name, category_id)
         SELECT 'Python', category_id FROM categories WHERE category_name = 'IT・PCスキル' UNION ALL
         SELECT 'Excel', category_id FROM categories WHERE category_name = 'IT・PCスキル' UNION ALL
@@ -177,16 +243,19 @@ with app.app_context():
     ''')
     db.commit()
 
+
 @app.context_processor
 def inject_unread_notifications():
     if 'user_id' in session:
         db = get_db()
         count = db.execute(
-            "SELECT COUNT(*) FROM notifications WHERE user_id = ? AND is_read = 0",
-            (session['user_id'],)
+            'SELECT COUNT(*) FROM notifications WHERE user_id = ? AND is_read'
+            ' = 0',
+            (session['user_id'],),
         ).fetchone()[0]
         return {'unread_notifications': count}
     return {'unread_notifications': 0}
 
-if __name__ == "__main__":
+
+if __name__ == '__main__':
     socketio.run(app, debug=True)

@@ -955,3 +955,10 @@ def like_post(post_id):
         "like_count": like_count,
         "is_liked": is_liked
     })   
+
+@posts.route("/posts/likes", methods=["POST"])
+def like_post_alias():
+    post_id = request.form.get('post_id') or (request.get_json(silent=True) or {}).get('post_id')
+    if not post_id:
+        return jsonify({"success": False, "message": "post_idが必要です"}), 400
+    return like_post(int(post_id))

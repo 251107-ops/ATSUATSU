@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SkillLink - チャットハブ</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
+    <style>
+        body { font-family: 'Helvetica Neue', Arial, sans-serif; color: #333; margin: 0; padding: 0; background: #fafafa; }
+        .hub-container { max-width: 800px; margin: 60px auto; padding: 0 20px; text-align: center; }
+        .hub-title { color: #2c3e50; margin-bottom: 10px; font-size: 28px; }
+        .hub-subtitle { color: #777; margin-bottom: 40px; font-size: 16px; }
+        .hub-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 25px; justify-content: center; }
+        .hub-card { 
+            background: white; 
+            border: 1px solid #e0e0e0; 
+            border-radius: 8px; 
+            padding: 30px 20px; 
+            text-decoration: none; 
+            color: inherit; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.02); 
+            transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+        }
+        .hub-card:hover { 
+            transform: translateY(-4px); 
+            box-shadow: 0 8px 15px rgba(0,0,0,0.05); 
+            border-color: #5c6bc0; 
+        }
+        .hub-icon { font-size: 40px; margin-bottom: 15px; }
+        .hub-card h3 { margin: 0 0 10px 0; color: #2c3e50; font-size: 18px; }
+        .hub-card p { margin: 0; color: #777; font-size: 13px; line-height: 1.4; }
+    </style>
+</head>
+<body>
+    {% include 'header.html' %}
+    <div class="hub-container">
+        <h1 class="hub-title">{{ name }}さん、チャットへようこそ！</h1>
+        <p class="hub-subtitle">以下から希望の機能を選択してチャットを開始してください。</p>
+        
+        <div class="hub-grid">
+
+            <a href="{{ url_for('projects_bp.new_project') }}" class="hub-card">
+                <div class="hub-icon" style="color: #2ec4b6;">➕</div>
+                <h3>プロジェクトを作成する</h3>
+                <p>独自のトピックルームを作成し、他のユーザーを招待してやり取りを開始します。</p>
+            </a>
+
+            <!-- プロジェクト一覧をつなげる -->
+            <a href="{{  url_for('projects_bp.project_top') }}" class="hub-card">
+                <div class="hub-icon" style="color: #3a86ff;">📒</div>
+                <h3>プロジェクト募集</h3>
+                <p>募集中のプロジェクトを一覧表示します。</p>
+            </a>
+            
+            <a href="{{ url_for('group_chat.list_groups') }}" class="hub-card">
+                <div class="hub-icon" style="color: #5c6bc0;">🔍</div>
+                <h3>公開グループを探す</h3>
+                <p>公開されているグループを検索・閲覧してチャットに参加します。</p>
+            </a>
+
+            
+            <a href="{{ url_for('group_chat.list_groups') }}" class="hub-card">
+                <div class="hub-icon" style="color: #8338ec;">👨‍👩‍👧‍👦</div>
+                <h3>グループチャット</h3>
+                <p>グループ一覧の確認・作成・参加や、グループチャットでのやり取りを行います。</p>
+            </a>
+
+            <a href="{{ url_for('group_chat.my_created_group_rooms') }}" class="hub-card">
+                <div class="hub-icon" style="color: #ffb703;">👑</div>
+                <h3>作成したルーム</h3>
+                <p>自身がオーナーとして作成した専用のチャットスペースを管理します。</p>
+            </a>
+
+            
+            <a href="{{ url_for('group_chat.list_groups') }}" class="hub-card">
+                <div class="hub-icon" style="color: #3a86ff;">🤝</div>
+                <h3>参加したグループ</h3>
+                <p>これまでに参加・アクセス権限を得たグループトークの一覧を表示します。</p>
+            </a>
+
+        </div>
+    </div>
+</body>
+</html>

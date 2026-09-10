@@ -294,9 +294,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // 「いいね」ボタンの非同期処理
-  document.querySelectorAll('.like-btn').forEach(btn => {
+   // 「いいね」ボタンの非同期処理
+   document.querySelectorAll('.like-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
+      if (btn.disabled) return;
+      btn.disabled = true;
+
       const postId = btn.dataset.postId;
       try {
         const response = await fetch('/posts/likes', {
@@ -307,20 +310,15 @@ document.addEventListener('DOMContentLoaded', () => {
         if (response.ok) {
           const result = await response.json();
           const countSpan = btn.querySelector('.like-count');
-          if (countSpan) {
-            let count = parseInt(countSpan.textContent) || 0;
-            if (result.liked) {
-              count += 1;
-              btn.dataset.liked = 'true';
-            } else {
-              count -= 1;
-              btn.dataset.liked = 'false';
-            }
-            countSpan.textContent = count;
+          if (countSpan && typeof result.like_count !== 'undefined') {
+            countSpan.textContent = result.like_count;
           }
+          btn.dataset.liked = result.is_liked ? 'true' : 'false';
         }
       } catch (err) {
         console.error('いいね処理に失敗しました:', err);
+      } finally {
+        btn.disabled = false;
       }
     });
   });
