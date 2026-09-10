@@ -2,10 +2,19 @@
     <a href="/">
         <img src="{{ url_for('static', filename='img/logo.png') }}" alt="SkillLink" class="logo">
     </a>
+
+    <!-- ハンバーガーメニューボタン（スマホ用） -->
+    <button class="hamburger-menu" id="hamburger-toggle" aria-label="メニューを開く">
+        <span></span>
+        <span></span>
+        <span></span>
+    </button>
+
+    <div class="nav-container" id="nav-container">
         <nav class="nav">
             <a href="/">ホーム</a>
             <a href="/notifications" class="nav-notif">
-                通知
+                <span>通知</span>
                 {% if unread_notifications and unread_notifications > 0 %}
                     <span class="notif-badge">{{ unread_notifications }}</span>
                 {% endif %}
@@ -17,5 +26,20 @@
             <a href="/posts">投稿作成</a>
             <a href="/profile">マイページ</a>
         </nav>
-       <a href="/logout" class="btn-outline">ログアウト</a>
+        <a href="/logout" class="btn-outline">ログアウト</a>
+    </div>
 </header>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const hamburger = document.getElementById('hamburger-toggle');
+    const navContainer = document.getElementById('nav-container');
+
+    if (hamburger && navContainer) {
+        hamburger.addEventListener('click', () => {
+            hamburger.classList.toggle('active');
+            navContainer.classList.toggle('active');
+        });
+    }
+});
+</script>
