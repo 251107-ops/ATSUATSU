@@ -24,7 +24,7 @@ def send_request():
     user_id = session.get('user_id')
     
     # 呼び出し元（元のページ）のURLを取得。取得できない場合のフォールバック先はトップ画面
-    back_url = request.referrer or url_for('top')
+    back_url = request.referrer or url_for('posts.top')
 
     # JSON・Form両方のリクエスト形式に対応
     post_id = request.form.get('post_id')
@@ -91,7 +91,7 @@ def send_request():
             if is_async:
                 return jsonify({'success': False, 'message': msg,'reason': 'duplicate'}), 400
             flash(msg)
-            return redirect(back_url) # ★ 修正：元の画面へ戻る
+            return redirect(back_url) 
 
         # リクエスト登録
         cursor = db.execute(

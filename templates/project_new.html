@@ -65,7 +65,7 @@
                 </select>
             </div>
 
-            <div class="form-group">
+            <!-- <div class="form-group">
                 <label>ルームの公開状態を選択</label>
                 <div class="type-selector">
                     <button type="button" class="btn-type active" id="btn-public" onclick="selectType('public')">公開</button>
@@ -73,7 +73,7 @@
                 </div>
                 <p class="note" id="type-description">公開ルームは一覧に表示され、誰でも参加申請できます。</p>
                 <input type="hidden" id="is_public" name="is_public" value="public">
-            </div>
+            </div> -->
 
             <button type="submit" class="btn-submit">決定して作成</button>
         </form>
@@ -84,7 +84,7 @@
     <script>
         const allSkills = [
             {% for s in skills %}
-            { id: "{{ s.skill_id }}", name: "{{ s.skill_name }}", categoryId: "{{ s.category_id }}" },
+            { id: {{ s.skill_id | tojson }}, name: {{ s.skill_name | tojson }}, categoryId: {{ s.category_id | tojson}} },
             {% endfor %}
         ];
 
