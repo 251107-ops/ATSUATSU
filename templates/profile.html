@@ -51,12 +51,13 @@
         {% endif %}
       {% endwith %}
 
-      <div class="main__head">
-        <h1 class="main__title" id="profileTitle">プロフィール</h1>
-        <a href="/profile_edit" class="btn btn--primary">プロフィール編集</a>
-      </div>
+      <!-- ★ 1つ目の独立カード：プロフィール -->
+      <div class="content-card profile-block">
+        <div class="main__head">
+          <h1 class="main__title" id="profileTitle">プロフィール</h1>
+          <a href="/profile_edit" class="btn btn--primary">プロフィール編集</a>
+        </div>
 
-      <div class="main profile-block">
         <div class="profile-card-content">
           <div class="avatar-block">
             <div class="avatar-wrap">
@@ -66,7 +67,7 @@
                 <span id="avatarPlaceholder" class="avatar-placeholder">{{ user.name[:2] if user else '田中' }}</span>
               {% endif %}
             </div>
-            <a href="{{ url_for('reviews_bp.list_reviews') }}" class="rating-summary">
+            <div class="rating-summary">
               <span class="rating-stars">
                   {% set avg = review_stats.avg_rating or 0 %}
                   {% for i in range(1, 6) %}
@@ -79,7 +80,7 @@
               {% else %}
                   <span class="rating-value">評価なし</span>
               {% endif %}
-          </a>
+            </div>
           </div>
 
           <div class="field-grid">
@@ -111,7 +112,7 @@
                           <span class="bio-empty">まだ自己紹介が登録されていません。プロフィール編集から追加してみましょう。</span>
                      {% endif %}
                 </div>
-           </div>
+            </div>
           </div>
         </div>
 
@@ -135,14 +136,48 @@
         </div>
       </div>
 
-      <div class="main my-posts-section">
+      <!-- ★ 2つ目の独立カード：評価一覧 -->
+      <div class="content-card review-section">
+        <h2>評価一覧</h2>
+        <div class="review-list" style="margin-top: 16px;">
+          {% if reviews %}
+            {% for review in reviews %}
+              <div class="review-card" style="background: #fff; padding: 16px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #e2e8f0;">
+                <div class="review-header" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <span class="stars" style="color: #ffb400; font-weight: bold;">
+                      {% for i in range(1, 6) %}
+                        {% if i <= review.rating %}★{% else %}☆{% endif %}
+                      {% endfor %}
+                    </span>
+                    <span class="rating-num" style="font-weight: bold;">{{ review.rating }}.0</span>
+                  </div>
+                  <span class="review-date" style="font-size: 12px; color: #718096;">{{ review.created_at }}</span>
+                </div>
+                
+                <p class="review-comment" style="margin: 8px 0; color: #2d3748;">
+                  {{ review.comment if review.comment else '（コメントなし）' }}
+                </p>
+                
+                <div class="reviewer-info" style="font-size: 12px; color: #718096; text-align: right;">
+                  評価者: {{ review.reviewer_name }}
+                </div>
+              </div>
+            {% endfor %}
+          {% else %}
+            <p style="color: #666; padding: 16px 0;">まだ評価コメントはありません。</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- ★ 3つ目の独立カード：自分の投稿 -->
+      <div class="content-card my-posts-section">
         <h2>自分の投稿</h2>
-        <div class="cards">
+        <div class="cards" style="margin-top: 16px;">
             {% for post in user_posts %}
             {% set default_icon = url_for('static', filename='img/default-avatar.svg') %}
             {% set user_icon = url_for('static', filename=user.icon_path) if user and user.icon_path else default_icon %}
             
-            {# --- 添付ファイルのパス取得と判定 --- #}
             {% set raw_file = post.file_path if post.file_path else (post.image_path if post.image_path else (post.pdf_path if post.pdf_path else '')) %}
             {% set is_valid_file = raw_file and '添付' not in raw_file %}
             {% set file_url = url_for('static', filename=raw_file) if is_valid_file else '' %}
@@ -190,23 +225,6 @@
                 <button type="button" class="like-btn" onclick="event.stopPropagation();" data-post-id="{{ post.post_id }}" data-liked="{{ 'true' if post.liked_by_me else 'false' }}">
                   <span class="like-count">{{ post.like_count }}</span>♥
                 </button>
-
-                <div class="post-owner-actions" onclick="event.stopPropagation();" style="display:flex; gap:8px; margin-top:10px;">
-                  <a href="/posts/{{ post.post_id }}/edit"
-                     style="background-color: var(--primary-color, #385cdb); color: #ffffff; border: none; padding: 6px 16px; border-radius: 16px; font-size: 13px; font-weight: bold; text-decoration: none; display: inline-block; transition: background-color 0.2s;"
-                     onmouseover="this.style.backgroundColor='var(--primary-hover, #2a46b0)'"
-                     onmouseout="this.style.backgroundColor='var(--primary-color, #385cdb)'">
-                      編集
-                  </a>
-                  <form action="/posts/{{ post.post_id }}/delete" method="POST" onsubmit="return confirm('この投稿を削除しますか？進行中のリクエストがある場合は削除できません。');" style="display:inline;">
-                      <button type="submit"
-                          style="background-color: #ffffff; color: var(--primary-color, #385cdb); border: 1px solid var(--primary-color, #385cdb); padding: 6px 16px; border-radius: 16px; font-size: 13px; font-weight: bold; cursor: pointer; transition: all 0.2s;"
-                          onmouseover="this.style.backgroundColor='var(--tag-blue-bg, #eef2ff)'"
-                          onmouseout="this.style.backgroundColor='#ffffff'">
-                          削除
-                      </button>
-                  </form>
-              </div>
             </div>
             {% else %}
             <p style="color: #666; padding: 20px 0;">まだ投稿がありません。</p>
@@ -218,7 +236,11 @@
 
   </div>
 
-  <!-- モーダル（共通仕様） -->
+  {% include 'footer.html' %}
+
+  <script src="{{ url_for('static', filename='js/profile.js') }}"></script>
+
+  <!-- モーダル -->
   <div id="cardModal" class="modal-overlay">
       <div class="modal-content">
           <button type="button" class="modal-close" id="modalClose" onclick="closeModal()">&times;</button>
@@ -247,14 +269,11 @@
               <p id="modalBody"></p>
           </div>
 
-          <!-- 添付ファイル表示エリア -->
           <div id="modalAttachmentArea" class="modal-attachment-container" style="display: none; margin-top: 12px;">
-               <!-- 画像の場合 -->
                <img id="modalPreviewImg" src="" alt="添付画像" style="max-width: 100%; height: auto; border-radius: 8px; border: 1px solid #e2e8f0; display: none;">
 
-               <!-- PDFの場合 -->
                <a id="modalPreviewPdf" href="#" target="_blank" rel="noopener noreferrer" style="display: none; padding: 12px; background: #f1f5f9; color: #334155; text-decoration: none; border-radius: 8px; text-align: center; font-weight: bold; border: 1px solid #cbd5e1;">
-                   📄 添付PDFを表示する（別タブで開く）
+                    📄 添付PDFを表示する（別タブで開く）
                </a>
           </div>
           <div class="modal-action" style="margin-top: 20px;">
@@ -271,7 +290,6 @@
       function openPostModal(cardEl) {
     const ds = cardEl.dataset;
     
-    // 基本情報のセット
     document.getElementById('modalIcon').src = ds.icon || '/static/img/default-avatar.svg';
     document.getElementById('modalName').textContent = ds.name || '';
     document.getElementById('modalMeta').textContent = ds.meta || '';
@@ -285,33 +303,34 @@
     document.getElementById('modalBody').textContent = ds.body || '';
     document.getElementById('modalLikes').textContent = ds.likes || '0';
 
-    // ID関係のセット（ページに応じて存在する要素のみ設定）
+    const modalLikeBtn = document.getElementById('modalLikeBtn');
+    modalLikeBtn.dataset.postId = ds.postId || '';
+    const likedNow = cardEl.querySelector('.like-btn')?.dataset.liked === 'true';
+    modalLikeBtn.dataset.liked = likedNow ? 'true' : 'false';
+    modalLikeBtn.classList.toggle('is-liked', likedNow);
+
     if (document.getElementById('modalUserLink')) document.getElementById('modalUserLink').href = '/profile/' + (ds.userId || '');
     if (document.getElementById('modalPostId')) document.getElementById('modalPostId').value = ds.postId || '';
     if (document.getElementById('modalReceiverId')) document.getElementById('modalReceiverId').value = ds.userId || '';
 
-    // ★ 添付ファイル（画像 / PDF）の分岐制御（補強版）
     const imgArea = document.getElementById('modalAttachmentArea');
     const previewImg = document.getElementById('modalPreviewImg');
     const previewPdf = document.getElementById('modalPreviewPdf');
 
     let hasAttachment = false;
 
-    // 画像URLのバリデーション（URLとして拡張子を持っているか判定）
     const imageVal = (ds.image && ds.image.trim() !== '' && !ds.image.includes('添付画像')) ? ds.image.trim() : '';
     const pdfVal = (ds.pdf && ds.pdf.trim() !== '' && !ds.pdf.includes('添付')) ? ds.pdf.trim() : '';
 
-    // 画像の制御
     if (imageVal && (imageVal.endsWith('.png') || imageVal.endsWith('.jpg') || imageVal.endsWith('.jpeg') || imageVal.endsWith('.gif') || imageVal.endsWith('.webp') || imageVal.includes('/static/'))) {
         previewImg.src = imageVal;
         previewImg.style.display = 'block';
         hasAttachment = true;
     } else {
         previewImg.style.display = 'none';
-        previewImg.removeAttribute('src'); // src属性自体を取り除くことで破損アイコンを防ぐ
+        previewImg.removeAttribute('src');
     }
 
-    // PDFの制御
     if (pdfVal) {
         previewPdf.href = pdfVal;
         previewPdf.style.display = 'block';
@@ -321,12 +340,10 @@
         previewPdf.href = '#';
     }
 
-    // どちらか一方でも添付があれば表示枠を開く
     if (imgArea) {
         imgArea.style.display = hasAttachment ? 'block' : 'none';
     }
 
-    // モーダルを表示
     const modal = document.getElementById('cardModal');
     modal.classList.add('active');
     modal.style.display = 'flex';
@@ -341,7 +358,42 @@ function closeModal() {
 document.getElementById('cardModal').addEventListener('click', (e) => {
     if (e.target.id === 'cardModal') closeModal();
 });
+
+document.getElementById('modalLikeBtn').addEventListener('click', async function () {
+    if (this.disabled) return;
+    this.disabled = true;
+
+    const postId = this.dataset.postId;
+    if (!postId) { this.disabled = false; return; }
+
+    try {
+        const response = await fetch('/posts/likes', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ post_id: postId })
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            document.getElementById('modalLikes').textContent = data.like_count;
+            this.dataset.liked = data.is_liked ? 'true' : 'false';
+            this.classList.toggle('is-liked', data.is_liked);
+
+            const originalBtn = document.querySelector('.like-btn[data-post-id="' + postId + '"]');
+            if (originalBtn) {
+                originalBtn.dataset.liked = data.is_liked ? 'true' : 'false';
+                const countSpan = originalBtn.querySelector('.like-count');
+                if (countSpan) countSpan.textContent = data.like_count;
+            }
+        }
+    } catch (err) {
+        console.error('いいね処理に失敗しました:', err);
+    } finally {
+        this.disabled = false;
+    }
+});
+
+
   </script>
-  {% include 'footer.html' %}
 </body>
 </html>

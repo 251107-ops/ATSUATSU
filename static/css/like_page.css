@@ -146,24 +146,16 @@ a {
     white-space: pre-wrap;
 }
 
-/* いいねボタン */
-.like-btn {
-    align-self: flex-start;
-    margin-top: auto; /* ボタンを常にカードの一番下に寄せる */
-    background-color: var(--tag-blue-bg);
-    color: var(--primary-color);
+.modal-like-btn {
+    background: none;
     border: none;
-    padding: 8px 16px;
-    border-radius: 20px;
-    font-size: 13px;
-    font-weight: bold;
+    font-size: 15px;
+    color: #b0bec5;
     cursor: pointer;
-    transition: background-color 0.2s, color 0.2s;
+    padding: 0;
 }
-
-.like-btn:hover {
-    background-color: var(--primary-hover); /* ホバー時の変数を適用 */
-    color: #ffffff;
+.modal-like-btn.is-liked {
+    color: #e57373;
 }
 
 /* 投稿が無い場合の表示 */

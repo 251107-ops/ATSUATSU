@@ -659,3 +659,15 @@ a {
 .card[data-card-type="project"] .card-top .name {
     color: #385cdb;
 }
+
+.modal-like-btn {
+    background: none;
+    border: none;
+    font-size: 15px;
+    color: #b0bec5;
+    cursor: pointer;
+    padding: 0;
+}
+.modal-like-btn.is-liked {
+    color: #e57373;
+}

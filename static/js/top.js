@@ -63,10 +63,13 @@ document.addEventListener('DOMContentLoaded', () => {
     /* ==========================================
        2. いいね機能（非同期通信）
        ========================================== */
-    document.querySelectorAll('.like-btn').forEach(btn => {
+       document.querySelectorAll('.like-btn').forEach(btn => {
+        if (btn.closest('#cardsContainer')) return; // お気に入りページは like_page.js が担当
+
         btn.addEventListener('click', async (e) => {
-            // カード本体へのクリックイベント伝播を防止（モーダルが開くのを防ぐ）
             e.stopPropagation();
+            if (btn.disabled) return;
+            btn.disabled = true;
 
             const postId = btn.dataset.postId;
             try {
@@ -79,23 +82,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (response.ok) {
                     const result = await response.json();
                     const countSpan = btn.querySelector('.like-count');
-                    let count = parseInt(countSpan.textContent, 10);
-
-                    if (result.liked) {
-                        count += 1;
-                        btn.dataset.liked = 'true';
-                    } else {
-                        count -= 1;
-                        btn.dataset.liked = 'false';
-                    }
-                    countSpan.textContent = count;
+                    if (countSpan) countSpan.textContent = result.like_count;
+                    btn.dataset.liked = result.is_liked ? 'true' : 'false';
                 }
             } catch (error) {
                 console.error('いいね処理エラー:', error);
+            } finally {
+                btn.disabled = false;
             }
         });
     });
-
+    
     /* ==========================================
        3. スキルカード拡大表示（モーダル） & リクエスト
        ========================================== */
@@ -191,7 +188,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('modalCategory').textContent = data.category || '';
                 document.getElementById('modalSkill').textContent = data.skill || '';
                 document.getElementById('modalBody').textContent = data.body || '';
-                document.getElementById('modalLikes').textContent = data.likes || '0';
+
+                const liveLikeCount = card.querySelector('.like-count')
+                    ? card.querySelector('.like-count').textContent
+                    : (data.likes || '0');
+                document.getElementById('modalLikes').textContent = liveLikeCount;
+
+                // モーダル内いいねボタンを、そのカードの現在状態に同期
+                const modalLikeBtn = document.getElementById('modalLikeBtn');
+                modalLikeBtn.style.display = '';
+                modalLikeBtn.dataset.postId = data.postId || '';
+                const likedNow = card.querySelector('.like-btn')?.dataset.liked === 'true';
+                modalLikeBtn.dataset.liked = likedNow ? 'true' : 'false';
+                modalLikeBtn.classList.toggle('is-liked', likedNow);
         
                 const modalUserLink = document.getElementById('modalUserLink');
                 if (modalUserLink) {
@@ -306,6 +315,52 @@ document.addEventListener('DOMContentLoaded', () => {
                         requestBtn.style.cursor = 'pointer';
                         requestBtn.textContent = '再送信する';
                     }
+                }
+            });
+        }
+
+        const modalLikeBtn = document.getElementById('modalLikeBtn');
+        if (modalLikeBtn) {
+            modalLikeBtn.addEventListener('click', async function () {
+                if (this.disabled) return;
+                this.disabled = true;
+
+                const postId = this.dataset.postId;
+                if (!postId) { this.disabled = false; return; }
+
+                try {
+                    const response = await fetch('/posts/likes', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ post_id: postId })
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        document.getElementById('modalLikes').textContent = data.like_count;
+                        this.dataset.liked = data.is_liked ? 'true' : 'false';
+                        this.classList.toggle('is-liked', data.is_liked);
+
+                        const originalBtn = document.querySelector('.like-btn[data-post-id="' + postId + '"]');
+                        if (originalBtn) {
+                            originalBtn.dataset.liked = data.is_liked ? 'true' : 'false';
+                            const countSpan = originalBtn.querySelector('.like-count');
+                            if (countSpan) countSpan.textContent = data.like_count;
+
+                            const isFavoritesPage = !!document.getElementById('cardsContainer');
+                            if (!data.is_liked && isFavoritesPage) {
+                                const targetCard = document.getElementById('card-' + postId) || originalBtn.closest('.card');
+                                if (targetCard) targetCard.remove();
+                                if (typeof window.updateFavPageUI === 'function') window.updateFavPageUI();
+                                modal.classList.remove('active');
+                            }
+
+                        }
+                    }
+                } catch (err) {
+                    console.error('いいね処理に失敗しました:', err);
+                } finally {
+                    this.disabled = false;
                 }
             });
         }

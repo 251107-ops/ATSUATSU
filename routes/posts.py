@@ -142,7 +142,6 @@ def top():
         selected_department=selected_department,
         search_query=search_query
     )
-
 @posts.route("/top/learn")
 def top_learn():
     if 'user_email' not in session:
@@ -187,7 +186,6 @@ def top_learn():
         selected_department=selected_department,
         search_query=search_query
     )
-
 
 @posts.route("/profile", methods=['GET', 'POST'])
 def profile():
@@ -728,7 +726,7 @@ def other_profile(user_id):
     if not user_row:
         return "ユーザーが見つかりません", 404
 
-    # fetchone() の結果を辞書形式に変換（テンプレートで扱いやすくするため）
+    # fetchone() の結果を辞書形式に変換
     user = dict(user_row) if user_row else None
 
     # 教える/学ぶスキルの取得（posts テーブル経由）
@@ -800,7 +798,6 @@ def other_profile(user_id):
         reviews=reviews
     )
 
-
 # --- ★ 追加: おすすめユーザー取得用の共通関数 ---
 def fetch_recommended_users(db, current_user_id):
     if not current_user_id:
@@ -846,7 +843,6 @@ def fetch_recommended_users(db, current_user_id):
 def top_teach():
     if 'user_email' not in session:
         return redirect('/login')
-
     db = get_db()
     user_id = session.get('user_id')
     sort_type = request.args.get('sort', 'new')
@@ -886,7 +882,6 @@ def top_teach():
         selected_department=selected_department,
         search_query=search_query
     )
-
 @posts.route("/like/<int:post_id>", methods=["POST"])
 def like_post(post_id):
     if 'user_email' not in session:
@@ -960,3 +955,10 @@ def like_post(post_id):
         "like_count": like_count,
         "is_liked": is_liked
     })   
+
+@posts.route("/posts/likes", methods=["POST"])
+def like_post_alias():
+    post_id = request.form.get('post_id') or (request.get_json(silent=True) or {}).get('post_id')
+    if not post_id:
+        return jsonify({"success": False, "message": "post_idが必要です"}), 400
+    return like_post(int(post_id))

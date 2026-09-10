@@ -8,7 +8,6 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/footer.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/request_list.css') }}">
-
 </head>
 <body>
     {% include 'header.html' %}
@@ -38,7 +37,7 @@
                             <div class="request-actions">
                                 <a href="{{ url_for('chat.chat_room', room_id=n.room_id) }}" class="btn">チャットへ</a>
                             </div>
-                            {% elif n.type == 'session_completed' %}
+                        {% elif n.type == 'session_completed' %}
                             <!-- 教える側への完了通知。アクション不要なのでボタンなし -->
                         
                         {% elif n.type == 'awaiting_review' %}
@@ -56,7 +55,8 @@
                             </div>
                         {% elif n.type == 'new_review' %}
                             <div class="request-actions">
-                                <a href="{{ url_for('reviews_bp.list_reviews') }}" class="btn">評価を見る</a>
+                                <!-- 修正箇所: list_reviews から profile へ変更 -->
+                                <a href="/profile" class="btn">評価を見る</a>
                             </div>
                         {% elif n.type == 'awaiting_review_teacher' %}
 

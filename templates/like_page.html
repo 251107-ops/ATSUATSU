@@ -14,10 +14,8 @@
     {% include 'header.html' %}
 
     <main class="like-page-wrap">
-        <!-- ログイン中のユーザーIDを保持（JS判定用） -->
         <input type="hidden" id="currentUserId" value="{{ session.get('user_id', '') }}">
 
-        <!-- メッセージバナー表示エリア（top.htmlと完全に統一） -->
         <div id="topBanner" class="top-banner"></div>
 
         {% with messages = get_flashed_messages() %}
@@ -53,12 +51,12 @@
             {% set is_valid_file = raw_file and '添付' not in raw_file %}
             {% set file_url = url_for('static', filename=raw_file) if is_valid_file else '' %}
 
-            <div class="card" id="card-{{ post.post_id }}" style="cursor: pointer;"
+            <div class="card" id="card-{{ post.post_id }}" style="cursor: pointer;" onclick="openPostModal(this)"
                  data-post-id="{{ post.post_id }}"
                  data-user-id="{{ post.user_id }}"
                  data-name="{{ post.name }}"
                  data-meta="{{ post.department }} {{ post.grade }}年"
-                 data-icon="{{ url_for('static', filename=post.icon_path) if post.icon_path else url_for('static', filename='img/default-avatar.png') }}"
+                 data-icon="{{ url_for('static', filename=post.icon_path) if post.icon_path else url_for('static', filename='img/default-avatar.svg') }}"
                  data-category="{{ post.category_name }}"
                  data-skill="{{ post.skill_name }}"
                  data-type="{{ post.post_type }}"
@@ -69,7 +67,7 @@
 
                 <div class="card-top">
                     <a href="/profile/{{ post.user_id }}" class="user-icon-link" title="{{ post.name }}さんのプロフィールを見る" onclick="event.stopPropagation();">
-                        <img src="{{ url_for('static', filename=post.icon_path) if post.icon_path else url_for('static', filename='img/default-avatar.png') }}" alt="{{ post.name }}のアイコン" class="user-icon-img">
+                        <img src="{{ url_for('static', filename=post.icon_path) if post.icon_path else url_for('static', filename='img/default-avatar.svg') }}" onerror="this.onerror=null; this.src='/static/img/default-avatar.svg';" alt="{{ post.name }}のアイコン" class="user-icon-img">
                     </a>
                     <div>
                         <a href="/profile/{{ post.user_id }}" class="name-link" title="{{ post.name }}さんのプロフィールを見る" onclick="event.stopPropagation();">
@@ -92,29 +90,7 @@
                 </div>
 
                 <p class="body">{{ post.post_text }}</p>
-
-                <button type="button" class="like-btn" onclick="
-                    event.stopPropagation();
-                    const card = document.getElementById('card-{{ post.post_id }}');
-                    
-                    fetch('/posts/likes', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ post_id: '{{ post.post_id }}' })
-                    })
-                    .then(res => res.json())
-                    .then(data => {
-                        if (!data.liked && card) {
-                            card.remove();
-                            const remaining = document.querySelectorAll('#cardsContainer .card').length;
-                            document.getElementById('favCount').textContent = `(${remaining}件)`;
-                            if (remaining === 0) {
-                                document.getElementById('cardsContainer').innerHTML = '<div class=&quot;no-posts&quot;><p>お気に入り登録した投稿はまだありません。</p></div>';
-                            }
-                        }
-                    })
-                    .catch(err => console.error('Error:', err));
-                ">
+                <button type="button" class="like-btn" data-post-id="{{ post.post_id }}" data-liked="{{ 'true' if post.liked_by_me else 'false' }}">
                     <span class="like-count">{{ post.like_count }}</span>♥
                 </button>
             </div>
@@ -127,14 +103,13 @@
 
     </main>
 
-    <!-- スキルカード拡大表示用モーダル（top.htmlと完全に同一の仕様） -->
     <div id="cardModal" class="modal-overlay">
         <div class="modal-content">
-            <button type="button" class="modal-close" id="modalClose">&times;</button>
+            <button type="button" class="modal-close" id="modalClose" onclick="closeModal()">&times;</button>
             
             <div class="modal-header">
                 <a id="modalUserLink" href="#" class="modal-user-link" title="プロフィールを見る" style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 12px;">
-                    <img id="modalIcon" src="" alt="ユーザーアイコン" class="modal-user-icon" style="width: 48px; height: 48px;">
+                    <img id="modalIcon" src="" onerror="this.onerror=null; this.src='/static/img/default-avatar.svg';" alt="ユーザーアイコン" class="modal-user-icon" style="width: 48px; height: 48px;">
                     <div>
                         <div id="modalName" style="font-weight: bold;"></div>
                         <div id="modalMeta" style="font-size: 12px; color: #666;"></div>
@@ -164,20 +139,148 @@
                 </a>
             </div>
 
-            <form id="requestForm" action="/requests" method="POST" class="modal-action">
+            <form id="requestForm" action="/requests" method="POST" class="modal-action" style="margin-top: 20px;">
                 <input type="hidden" name="post_id" id="modalPostId">
                 <input type="hidden" name="receiver_id" id="modalReceiverId">
-                <button type="submit" id="requestBtn" class="request-btn"></button>
+                <button type="submit" id="requestBtn" class="request-btn" style="width: 100%; padding: 12px; background-color: #3457d5; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">教わりたい（リクエストを送る）</button>
             </form>
 
             <div class="modal-footer">
-                <span id="modalLikes" class="modal-like-count">0</span> ♥
+                <button type="button" id="modalLikeBtn" class="modal-like-btn">
+                    <span id="modalLikes" class="modal-like-count">0</span> ♥
+                </button>
             </div>
         </div>
     </div>
 
-    <!-- top.jsを読み込んでモーダル動作およびエラーバナー制御を完全共通化 -->
-    <script src="{{ url_for('static', filename='js/top.js') }}"></script>
+    <script>
+    function openPostModal(cardEl) {
+        const ds = cardEl.dataset;
+        
+        document.getElementById('modalIcon').src = ds.icon || '/static/img/default-avatar.svg';
+        document.getElementById('modalName').textContent = ds.name || '';
+        document.getElementById('modalMeta').textContent = ds.meta || '';
+        document.getElementById('modalCategory').textContent = ds.category || '';
+        document.getElementById('modalSkill').textContent = ds.skill || '';
+        
+        const typeBadge = document.getElementById('modalType');
+        typeBadge.textContent = ds.type || '';
+        typeBadge.className = 'badge ' + (ds.type === '教えたい' ? 'teach' : 'learn');
+
+        document.getElementById('modalBody').textContent = ds.body || '';
+
+        const liveLikeCount = cardEl.querySelector('.like-count')
+            ? cardEl.querySelector('.like-count').textContent
+            : (ds.likes || '0');
+        document.getElementById('modalLikes').textContent = liveLikeCount;
+
+        // いいねボタンの状態を、裏のカードの現在値から同期
+        const modalLikeBtn = document.getElementById('modalLikeBtn');
+        const originalLikeBtn = document.querySelector('.like-btn[data-post-id="' + (ds.postId || '') + '"]');
+
+        modalLikeBtn.dataset.postId = ds.postId || '';
+        const isLiked = originalLikeBtn ? originalLikeBtn.dataset.liked === 'true' : false;
+        modalLikeBtn.dataset.liked = isLiked ? 'true' : 'false';
+        modalLikeBtn.classList.toggle('is-liked', isLiked);
+
+        if (originalLikeBtn) {
+            document.getElementById('modalLikes').textContent =
+                originalLikeBtn.querySelector('.like-count').textContent;
+        }
+
+        if (document.getElementById('modalUserLink')) document.getElementById('modalUserLink').href = '/profile/' + (ds.userId || '');
+        if (document.getElementById('modalPostId')) document.getElementById('modalPostId').value = ds.postId || '';
+        if (document.getElementById('modalReceiverId')) document.getElementById('modalReceiverId').value = ds.userId || '';
+
+        const imgArea = document.getElementById('modalAttachmentArea');
+        const previewImg = document.getElementById('modalPreviewImg');
+        const previewPdf = document.getElementById('modalPreviewPdf');
+
+        let hasAttachment = false;
+
+        const imageVal = (ds.image && ds.image.trim() !== '' && !ds.image.includes('添付画像')) ? ds.image.trim() : '';
+        const pdfVal = (ds.pdf && ds.pdf.trim() !== '' && !ds.pdf.includes('添付')) ? ds.pdf.trim() : '';
+
+        if (imageVal && (imageVal.endsWith('.png') || imageVal.endsWith('.jpg') || imageVal.endsWith('.jpeg') || imageVal.endsWith('.gif') || imageVal.endsWith('.webp') || imageVal.includes('/static/'))) {
+            previewImg.src = imageVal;
+            previewImg.style.display = 'block';
+            hasAttachment = true;
+        } else {
+            previewImg.style.display = 'none';
+            previewImg.removeAttribute('src');
+        }
+
+        if (pdfVal) {
+            previewPdf.href = pdfVal;
+            previewPdf.style.display = 'block';
+            hasAttachment = true;
+        } else {
+            previewPdf.style.display = 'none';
+            previewPdf.href = '#';
+        }
+
+        if (imgArea) {
+            imgArea.style.display = hasAttachment ? 'block' : 'none';
+        }
+
+        const modal = document.getElementById('cardModal');
+        modal.classList.add('active');
+        modal.style.display = 'flex';
+    }
+
+    function closeModal() {
+        const modal = document.getElementById('cardModal');
+        modal.classList.remove('active');
+        modal.style.display = 'none';
+    }
+
+    document.getElementById('cardModal').addEventListener('click', (e) => {
+        if (e.target.id === 'cardModal') closeModal();
+    });
+
+    document.getElementById('modalLikeBtn').addEventListener('click', async function () {
+    if (this.disabled) return;
+    this.disabled = true;
+
+    const postId = this.dataset.postId;
+    if (!postId) { this.disabled = false; return; }
+
+    try {
+        const response = await fetch('/posts/likes', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ post_id: postId })
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            document.getElementById('modalLikes').textContent = data.like_count;
+            this.dataset.liked = data.is_liked ? 'true' : 'false';
+            this.classList.toggle('is-liked', data.is_liked);
+
+            // 裏のカードにも反映
+            const originalLikeBtn = document.querySelector('.like-btn[data-post-id="' + postId + '"]');
+            if (originalLikeBtn) {
+                originalLikeBtn.dataset.liked = data.is_liked ? 'true' : 'false';
+                const countSpan = originalLikeBtn.querySelector('.like-count');
+                if (countSpan) countSpan.textContent = data.like_count;
+
+                // お気に入り解除されたらカードごと削除してモーダルも閉じる
+                if (!data.is_liked) {
+                    const targetCard = document.getElementById('card-' + postId) || originalLikeBtn.closest('.card');
+                    if (targetCard) targetCard.remove();
+                    if (typeof window.updateFavPageUI === 'function') window.updateFavPageUI();
+                    closeModal();
+                }
+            }
+        }
+    } catch (err) {
+        console.error('いいね処理に失敗しました:', err);
+    } finally {
+        this.disabled = false;
+    }}
+);
+    </script>
     {% include 'footer.html' %}
 </body>
 </html>

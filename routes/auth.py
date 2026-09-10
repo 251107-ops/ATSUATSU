@@ -1,25 +1,100 @@
 import os
 import random
 import sqlite3
-import uuid
 from datetime import datetime, timedelta
 from argon2 import PasswordHasher
 from argon2.exceptions import InvalidHashError, VerifyMismatchError
 from flask import Blueprint, g, redirect, render_template, request, session, url_for
-from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
 
 ph = PasswordHasher()
 
 DATABASE = os.path.join(os.path.dirname(__file__), '..', 'nikuman.db')
 
-# 💡 routesフォルダ内に置く場合は template_folder の指定が必要です
 auth = Blueprint('auth', __name__, template_folder='../templates')
-auth.secret_key = os.urandom(24)  # セッション情報の暗号化に必要な秘密鍵
+
+
+# --- データベース接続管理 ---
+
+def connect_db():
+    rv = sqlite3.connect(DATABASE, timeout=20.0)
+    rv.row_factory = sqlite3.Row
+    return rv
+
+
+def get_db():
+    if not hasattr(g, 'sqlite_db'):
+        g.sqlite_db = connect_db()
+    return g.sqlite_db
+
+
+@auth.teardown_app_request
+def close_db(error):
+    if hasattr(g, 'sqlite_db'):
+        g.sqlite_db.close()
+
+
+def init_db():
+    db = connect_db()
+    try:
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS requests (
+                request_id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                post_id             INTEGER NOT NULL REFERENCES posts(post_id),
+                requester_id        INTEGER NOT NULL REFERENCES users(user_id),
+                receiver_id         INTEGER NOT NULL REFERENCES users(user_id),
+                room_id             TEXT REFERENCES rooms(room_id),
+                status              TEXT NOT NULL DEFAULT 'pending',
+                requester_completed INTEGER NOT NULL DEFAULT 0,
+                receiver_completed  INTEGER NOT NULL DEFAULT 0,
+                created_at          TEXT DEFAULT (datetime('now','localtime')),
+                updated_at          TEXT DEFAULT (datetime('now','localtime'))
+            )
+        """)
+
+        for col in ["requester_completed", "receiver_completed"]:
+            try:
+                db.execute(f"ALTER TABLE requests ADD COLUMN {col} INTEGER NOT NULL DEFAULT 0")
+            except sqlite3.OperationalError:
+                pass
+
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS notifications (
+                notification_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id         INTEGER NOT NULL REFERENCES users(user_id),
+                type            TEXT NOT NULL,
+                related_id      INTEGER,
+                is_read         INTEGER NOT NULL DEFAULT 0,
+                created_at      TEXT DEFAULT (datetime('now','localtime'))
+            )
+        """)
+
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS reviews (
+                review_id   INTEGER PRIMARY KEY AUTOINCREMENT,
+                request_id  INTEGER NOT NULL UNIQUE REFERENCES requests(request_id),
+                reviewer_id INTEGER NOT NULL REFERENCES users(user_id),
+                reviewee_id INTEGER NOT NULL REFERENCES users(user_id),
+                rating      INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
+                comment     TEXT,
+                skill_name  TEXT,
+                post_type   TEXT,
+                created_at  TEXT DEFAULT (datetime('now','localtime'))
+            );
+        """)
+
+        for col in ["skill_name", "post_type"]:
+            try:
+                db.execute(f"ALTER TABLE reviews ADD COLUMN {col} TEXT")
+            except sqlite3.OperationalError:
+                pass
+
+        db.commit()
+    finally:
+        db.close()
 
 
 # --- ルーティング設定 ---
-
 
 # ログイン画面
 @auth.route('/login', methods=['GET', 'POST'])
@@ -28,28 +103,23 @@ def login():
     email = ''
 
     if request.method == 'POST':
-        email = request.form.get('email', '')
+        email = request.form.get('email', '').strip()
         password = request.form.get('password', '')
-        name = request.form.get('name', '')
 
         db = get_db()
-        # データベースから該当するメールアドレスのユーザー情報を取得
         user_data = db.execute(
             'SELECT user_id, name, email, password FROM users WHERE email = ?',
-            [email],
+            (email,),
         ).fetchone()
 
-        # ⭕ ハッシュ化されたパスワードの検証
         if user_data:
             try:
                 if ph.verify(user_data['password'], password):
                     session.clear()
-
-                    session['user_email'] = email  # セッションにメールアドレスを保存（ログイン完了）
-                    session['user_id'] = user_data['user_id']  # セッションにユーザーIDを保存
-                    session['name'] = user_data['name']  # セッションにユーザー名を保存（Chat用）
+                    session['user_email'] = email
+                    session['user_id'] = user_data['user_id']
+                    session['name'] = user_data['name']
                     session['room'] = None
-
                     session.modified = True
                     return redirect('/')
             except (VerifyMismatchError, InvalidHashError):
@@ -57,20 +127,17 @@ def login():
 
         error_message = '入力されたメールアドレスもしくはパスワードが誤っています'
 
-    return render_template(
-        'login.html', email=email, error_message=error_message
-    )
+    return render_template('login.html', email=email, error_message=error_message)
 
 
 # 新規登録 1ページ目
 @auth.route('/register1', methods=['GET', 'POST'])
 def register1():
     if request.method == 'POST':
-        name = request.form.get('name', '')
-        email = request.form.get('email', '')
+        name = request.form.get('name', '').strip()
+        email = request.form.get('email', '').strip()
         password = request.form.get('password', '')
 
-        # ⭕ method='sha256' を削除（自動で最新の安全なアルゴリズムが使われます）
         pass_hash = ph.hash(password)
         return render_template(
             'register2.html', name=name, email=email, password=pass_hash
@@ -82,16 +149,13 @@ def register1():
 # 新規登録 2ページ目
 @auth.route('/register2', methods=['POST'])
 def register2():
-    name = request.form.get('name', '')
-    email = request.form.get('email', '')
-    password = request.form.get(
-        'password', ''
-    )  # 1ページ目から引き継いだハッシュ化済みパスワード
+    name = request.form.get('name', '').strip()
+    email = request.form.get('email', '').strip()
+    password = request.form.get('password', '')
     grade = request.form.get('grade', '')
-    department = request.form.get('department', '')
-    introduction = request.form.get('introduction', '')
+    department = request.form.get('department', '').strip()
+    introduction = request.form.get('introduction', '').strip()
 
-    # ★ 学年のデータ整形（「2年」→「2」に変換して保存）
     if grade:
         grade = grade.replace('年', '').strip()
 
@@ -101,16 +165,13 @@ def register2():
     ).fetchone()
 
     if not user_check:
-        # まずユーザーを登録し、自動採番されたuser_idを取得する
         cursor = db.execute(
-            'INSERT INTO users (name, email, password, grade, department,'
-            ' introduction, icon_path) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            'INSERT INTO users (name, email, password, grade, department, introduction, icon_path) VALUES (?, ?, ?, ?, ?, ?, ?)',
             (name, email, password, grade, department, introduction, ''),
         )
         db.commit()
         new_user_id = cursor.lastrowid
 
-        # アイコン画像が送信されていれば保存する
         icon_file = request.files.get('icon')
         if icon_file and icon_file.filename:
             allowed_ext = {'.png', '.jpg', '.jpeg', '.gif'}
@@ -130,7 +191,7 @@ def register2():
                 )
                 db.commit()
 
-        return redirect('/login')  # 登録完了後にログインページへリダイレクト
+        return redirect('/login')
     else:
         error_message = 'このデータは既に登録されています'
         return render_template(
@@ -145,10 +206,11 @@ def register2():
 # ログアウト処理
 @auth.route('/logout')
 def logout():
-    session.clear()  # セッションからユーザー情報を削除（ログアウト）
+    session.clear()
     return redirect('/login')
 
 
+# パスワード変更
 @auth.route('/change-password', methods=['GET', 'POST'])
 def change_password():
     error_message = ''
@@ -168,23 +230,18 @@ def change_password():
         ).fetchone()
 
         current_valid = False
-
         if user_data:
             try:
-                current_valid = ph.verify(
-                    user_data['password'], current_password
-                )
+                current_valid = ph.verify(user_data['password'], current_password)
             except (VerifyMismatchError, InvalidHashError):
                 current_valid = False
 
         if not current_valid:
-            error_message = 'Current password is incorrect.'
-
+            error_message = '現在のパスワードが正しくありません。'
         elif new_password != password_confirm:
-            error_message = 'New passwords do not match.'
-
+            error_message = '新しいパスワードが一致しません。'
         elif not new_password.strip():
-            error_message = 'New password cannot be empty.'
+            error_message = '新しいパスワードを入力してください。'
         else:
             new_pass_hash = ph.hash(new_password)
             db.execute(
@@ -193,92 +250,91 @@ def change_password():
             )
             db.commit()
             return redirect('/profile')
+
     return render_template('settings.html', error_message=error_message)
 
 
-# データベース接続関数
-def connect_db():
-    rv = sqlite3.connect(DATABASE, timeout=20.0)
-    rv.row_factory = sqlite3.Row  # カラム名でのデータ取得を可能にする設定
-    return rv
+# マイページ表示
+@auth.route('/profile')
+def profile():
+    if 'user_id' not in session:
+        return redirect('/login')
 
+    user_id = session['user_id']
+    db = get_db()
 
-# データベースインスタンスの取得
-def get_db():
-    if not hasattr(g, 'sqlite_db'):
-        g.sqlite_db = connect_db()
-    return g.sqlite_db
+    user = db.execute(
+        'SELECT user_id, name, email, grade, department, introduction, icon_path FROM users WHERE user_id = ?',
+        (user_id,)
+    ).fetchone()
 
+    if not user:
+        return render_template('404.html'), 404
 
-def init_db():
-    db = connect_db()
+    skills_teach = db.execute(
+        '''
+        SELECT DISTINCT s.skill_name
+        FROM posts p
+        JOIN skills s ON p.skill_id = s.skill_id
+        WHERE p.user_id = ? AND p.post_type = '教えたい'
+        ''',
+        (user_id,)
+    ).fetchall()
 
-    db.execute("""
-        CREATE TABLE IF NOT EXISTS requests (
-                request_id   INTEGER PRIMARY KEY AUTOINCREMENT,
-                post_id      INTEGER NOT NULL REFERENCES posts(post_id),
-                requester_id INTEGER NOT NULL REFERENCES users(user_id),
-                receiver_id  INTEGER NOT NULL REFERENCES users(user_id),
-                room_id      TEXT REFERENCES rooms(room_id),
-                status       TEXT NOT NULL DEFAULT 'pending',
-                requester_completed INTEGER NOT NULL DEFAULT 0,
-                receiver_completed  INTEGER NOT NULL DEFAULT 0,
-                created_at   TEXT DEFAULT (datetime('now','localtime')),
-                updated_at   TEXT DEFAULT (datetime('now','localtime'))
-        )
-    """)
+    skills_learn = db.execute(
+        '''
+        SELECT DISTINCT s.skill_name
+        FROM posts p
+        JOIN skills s ON p.skill_id = s.skill_id
+        WHERE p.user_id = ? AND p.post_type = '学びたい'
+        ''',
+        (user_id,)
+    ).fetchall()
 
-    try:
-        db.execute("ALTER TABLE requests ADD COLUMN requester_completed INTEGER NOT NULL DEFAULT 0")
-    except sqlite3.OperationalError:
-        pass
-    try:
-        db.execute("ALTER TABLE requests ADD COLUMN receiver_completed INTEGER NOT NULL DEFAULT 0")
-    except sqlite3.OperationalError:
-        pass
+    user_posts = db.execute(
+        '''
+        SELECT p.*, s.skill_name, c.category_name,
+               (SELECT COUNT(*) FROM likes WHERE post_id = p.post_id) AS like_count,
+               EXISTS(SELECT 1 FROM likes WHERE post_id = p.post_id AND user_id = ?) AS liked_by_me
+        FROM posts p
+        JOIN skills s ON p.skill_id = s.skill_id
+        JOIN categories c ON p.category_id = c.category_id
+        WHERE p.user_id = ?
+        ORDER BY p.post_date DESC
+        ''',
+        (user_id, user_id)
+    ).fetchall()
 
-    db.execute("""
-        CREATE TABLE IF NOT EXISTS notifications (
-            notification_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id     INTEGER NOT NULL REFERENCES users(user_id),
-            type        TEXT NOT NULL,
-            related_id  INTEGER,
-            is_read     INTEGER NOT NULL DEFAULT 0,
-            created_at  TEXT DEFAULT (datetime('now','localtime'))
-        )
-    """)
+    reviews = db.execute(
+        '''
+        SELECT r.*, u.name AS reviewer_name, u.icon_path AS reviewer_icon
+        FROM reviews r
+        JOIN users u ON r.reviewer_id = u.user_id
+        WHERE r.reviewee_id = ?
+        ORDER BY r.created_at DESC
+        ''',
+        (user_id,)
+    ).fetchall()
 
-    db.execute("""
-        CREATE TABLE IF NOT EXISTS reviews (
-            review_id   INTEGER PRIMARY KEY AUTOINCREMENT,
-            request_id  INTEGER NOT NULL UNIQUE REFERENCES requests(request_id),
-            reviewer_id INTEGER NOT NULL REFERENCES users(user_id),
-            reviewee_id INTEGER NOT NULL REFERENCES users(user_id),
-            rating      INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
-            comment     TEXT,
-            skill_name  TEXT,
-            post_type   TEXT,
-            created_at  TEXT DEFAULT (datetime('now','localtime'))
-        );
-    """)
+    avg_rating_val = db.execute(
+        'SELECT AVG(rating) FROM reviews WHERE reviewee_id = ?',
+        (user_id,)
+    ).fetchone()[0] or 0
 
-    try:
-        db.execute("ALTER TABLE reviews ADD COLUMN skill_name TEXT")
-    except sqlite3.OperationalError:
-        pass
-    try:
-        db.execute("ALTER TABLE reviews ADD COLUMN post_type TEXT")
-    except sqlite3.OperationalError:
-        pass
+    review_stats = {
+        'avg_rating': round(avg_rating_val, 1),
+        'review_count': len(reviews)
+    }
 
-    db.commit()
-    db.close()
-
-
-@auth.teardown_app_request
-def close_db(error):
-    if hasattr(g, 'sqlite_db'):
-        g.sqlite_db.close()
+    return render_template(
+        'profile.html',
+        user=user,
+        skills_teach=skills_teach,
+        skills_learn=skills_learn,
+        user_posts=user_posts,
+        reviews=reviews,
+        review_stats=review_stats
+    )
 
 
 # 他人のプロフィール画面表示
@@ -291,8 +347,7 @@ def view_other_profile(user_id):
         return redirect('/profile')
 
     db = get_db()
-    
-    # 1. ユーザー基本情報の取得
+
     user = db.execute(
         'SELECT user_id, name, email, grade, department, introduction, icon_path FROM users WHERE user_id = ?',
         (user_id,)
@@ -301,7 +356,6 @@ def view_other_profile(user_id):
     if not user:
         return render_template('404.html'), 404
 
-    # 2. 教えたいスキルの取得
     skills_teach = db.execute(
         '''
         SELECT DISTINCT s.skill_name
@@ -312,7 +366,6 @@ def view_other_profile(user_id):
         (user_id,)
     ).fetchall()
 
-    # 3. 学びたいスキルの取得
     skills_learn = db.execute(
         '''
         SELECT DISTINCT s.skill_name
@@ -323,7 +376,6 @@ def view_other_profile(user_id):
         (user_id,)
     ).fetchall()
 
-    # 4. 投稿一覧の取得
     user_posts = db.execute(
         '''
         SELECT p.*, s.skill_name, c.category_name,
@@ -338,7 +390,6 @@ def view_other_profile(user_id):
         (session['user_id'], user_id)
     ).fetchall()
 
-    # 5. レビュー情報の取得
     reviews = db.execute(
         '''
         SELECT r.*, u.name AS reviewer_name, u.icon_path AS reviewer_icon
@@ -371,11 +422,8 @@ def view_other_profile(user_id):
     )
 
 
-# ==========================================
-# パスワード再設定フロー (4ステップ構造)
-# ==========================================
+# --- パスワード再設定フロー ---
 
-# 1. メールアドレス入力 ＆ 6桁コード生成
 @auth.route('/forgot-password', methods=['GET', 'POST'])
 def forgot_password():
     error_message = ''
@@ -389,9 +437,7 @@ def forgot_password():
         ).fetchone()
 
         if user:
-            # 6桁の数字コード（ワンタイムパス）を生成（例: 482910）
             otp_code = f"{random.randint(0, 999999):06d}"
-            # 有効期限（10分間）
             expiration = datetime.now() + timedelta(minutes=10)
 
             db.execute(
@@ -400,7 +446,6 @@ def forgot_password():
             )
             db.commit()
 
-            # コード表示専用画面 (show_code.html) へ遷移
             return render_template('show_code.html', email=email, otp_code=otp_code)
         else:
             error_message = '指定されたメールアドレスのアカウントは見つかりませんでした。'
@@ -408,14 +453,12 @@ def forgot_password():
     return render_template('forgot_password.html', error_message=error_message)
 
 
-# 2. ワンタイムパスワード入力画面の表示
 @auth.route('/enter-code', methods=['POST'])
 def enter_code():
     email = request.form.get('email', '').strip()
     return render_template('verify_code.html', email=email)
 
 
-# 3. ワンタイムパスワードの検証処理
 @auth.route('/verify-code', methods=['POST'])
 def verify_code():
     email = request.form.get('email', '').strip()
@@ -434,7 +477,6 @@ def verify_code():
             error_message='認証コードが正しくないか、メールアドレスが一致しません。'
         )
 
-    # 有効期限の検証
     expiration = user['token_expiration']
     if isinstance(expiration, str):
         expiration = datetime.strptime(expiration.split('.')[0], '%Y-%m-%d %H:%M:%S')
@@ -446,11 +488,9 @@ def verify_code():
             error_message='認証コードの有効期限（10分）が切れています。最初からやり直してください。'
         )
 
-    # ⭕ 認証成功：パスワード再設定画面 (reset_password.html) へ移動
     return render_template('reset_password.html', user_id=user['user_id'])
 
 
-# 4. 新しいパスワードの更新処理
 @auth.route('/reset-password', methods=['POST'])
 def reset_password():
     user_id = request.form.get('user_id', '')
@@ -466,7 +506,6 @@ def reset_password():
     db = get_db()
     new_pass_hash = ph.hash(new_password)
 
-    # パスワード更新 ＆ トークン初期化
     db.execute(
         'UPDATE users SET password = ?, reset_token = NULL, token_expiration = NULL WHERE user_id = ?',
         (new_pass_hash, user_id)
