@@ -471,10 +471,10 @@ body {
   color: inherit;
   width: fit-content;
 }
-
+/* 
 .rating-summary:hover .rating-value {
   color: var(--color-primary);
-}
+} */
 
 .rating-stars {
   color: #f5a623;
