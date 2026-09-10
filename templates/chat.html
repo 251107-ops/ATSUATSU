@@ -22,7 +22,7 @@
             </div>
             <div class="chat-list">
                 {% for room_item in chat_rooms %}
-                    <div class="chat-item-wrapper {% if room_item.room_token == room %}active{% endif %}">
+                    <div class="chat-item-wrapper {% if room_item.room_token|string == room|string %}active{% endif %}">
                         {% if room_item.is_group %}
                             <a href="{{ url_for('group_chat.group_chat_room', group_room_id=room_item.room_token) }}" class="chat-item">
                                 <img src="{{ url_for('static', filename='img/test.png') }}" class="chat-avatar" alt="グループアイコン">
@@ -57,7 +57,6 @@
         <div class="chat-main">
             {% if room %} 
                 <div class="chat-header">
-                    <div class="chat-header">
                     <div class="chat-header-main">
                         <a href="javascript:void(0);" onclick="window.location.href='/chat';" class="btn-back-to-list" title="一覧に戻る">‹</a>
                         <div>
