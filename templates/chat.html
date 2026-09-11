@@ -146,192 +146,91 @@
     </div>
 
     <script>
-    function deleteMessage(msgId) {
-        if (confirm("このメッセージを削除しますか？")) {
-            if (window.chatSocket) {
-                window.chatSocket.emit('delete_message', { msg_id: msgId });
-            }
-        }
+        // WebSocketの接続初期化
+window.chatSocket = io('/chat');
+
+// ルーム接続成功時のイベント
+window.chatSocket.on('connect', () => {
+    console.log('WebSocketサーバーに接続しました。');
+    // サーバーに入室を通知
+    window.chatSocket.emit('joined', {});
+});
+
+// 1. サーバーから過去ログ（履歴）を受け取った時の処理
+window.chatSocket.on('load_history_response', (data) => {
+    if (!data || !data.messages) return;
+    
+    // チャット表示エリアを取得（IDは既存のHTMLに合わせて調整してください）
+    const chatBox = document.getElementById('chat-box') || document.getElementById('messages');
+    if (chatBox) {
+        // 重複表示を防ぐため、一度エリア内をクリア
+        chatBox.innerHTML = '';
+    }
+    
+    // 取得した過去ログを順番に描画
+    data.messages.forEach(msg => {
+        appendMessageToDOM(msg);
+    });
+});
+
+// 2. リアルタイムで新しいメッセージを受信した時の処理
+window.chatSocket.on('message', (data) => {
+    // データの構造に対応（`content` または `msg` を取得）
+    const messageContent = data.content || data.msg;
+    
+    // 画面に新しいメッセージを追加描画
+    appendMessageToDOM(data);
+});
+
+// 3. 入室・退室などのシステムステータス通知
+window.chatSocket.on('status', (data) => {
+    console.log('[System]: ' + data.msg);
+});
+
+// 4. メッセージ削除通知を受け取った時の処理
+window.chatSocket.on('message_deleted', (data) => {
+    const msgElement = document.getElementById(`msg-${data.msg_id}`);
+    if (msgElement) {
+        msgElement.remove();
+    }
+});
+
+/**
+ * 画面（DOM）にメッセージを描画する共通関数
+ */
+function appendMessageToDOM(data) {
+    const chatBox = document.getElementById('chat-box') || document.getElementById('messages');
+    if (!chatBox) return;
+
+    const msgDiv = document.createElement('div');
+    msgDiv.id = `msg-${data.id}`;
+    msgDiv.className = 'message-item';
+
+    // 自分の送信メッセージか相手のメッセージかで表示を切り替え
+    const currentUserId = window.currentUserId; // HTML側で定義したログインユーザーID
+    if (data.user_id == currentUserId) {
+        msgDiv.classList.add('my-message');
+    } else {
+        msgDiv.classList.add('other-message');
     }
 
-    document.addEventListener("DOMContentLoaded", () => {
-        const currentUserId = {{ user_id | default(0) | tojson }};
-        const chatBox = document.getElementById('chat-box');
-        
-        // グループチャットかどうか判別
-        const isGroupRoom = {{ request.path.startswith('/group/') | tojson }};
-        
-        if (chatBox) {
-            chatBox.scrollTop = chatBox.scrollHeight;
-        }
+    // メッセージ本文と送信者名のテキストを設定
+    const nameSpan = document.createElement('span');
+    nameSpan.className = 'author-name';
+    nameSpan.textContent = data.name + ': ';
 
-        const isSessionCompleted = {% if req_row and (req_row.status == 'completed' or (req_row.requester_id == user_id and req_row.requester_completed) or (req_row.receiver_id == user_id and req_row.receiver_completed)) %}true{% else %}false{% endif %};
+    const contentSpan = document.createElement('span');
+    contentSpan.className = 'message-content';
+    contentSpan.textContent = data.content;
 
-        if (chatBox && !isSessionCompleted) {
-            window.chatSocket = io('/chat');
-            
-            const msgInput = document.getElementById('message-input');
-            const sendBtn = document.getElementById('send-btn');
-            const imageInput = document.getElementById('image-input');
-
-            // ルーム入室イベント（1on1とグループを自動分岐）および履歴要求
-            window.chatSocket.on('connect', () => {
-                if (isGroupRoom) {
-                    window.chatSocket.emit('group_joined', {});
-                } else {
-                    window.chatSocket.emit('joined', {});
-                }
-
-                // 画面にメッセージが初期ロードされていない場合、サーバーへ履歴請求を送信
-                if (chatBox && chatBox.querySelectorAll('.msg-line:not(.msg-status)').length === 0) {
-                    window.chatSocket.emit('load_history', {});
-                }
-            });
-
-            const renderMessageContent = (content) => {
-                if (!content) return '';
-                const strContent = String(content).trim();
-
-                if (strContent.startsWith('[IMG]') && strContent.endsWith('[/IMG]')) {
-                    const imgUrl = strContent.slice(5, -6);
-                    return `<img src="${imgUrl}" class="chat-img" onclick="window.open('${imgUrl}', '_blank')" alt="添付画像">`;
-                }
-
-                const safeText = document.createElement('div');
-                safeText.textContent = strContent;
-                return safeText.innerHTML;
-            };
-
-            // メッセージ受信（通常 ＆ グループ両対応）
-            const handleIncomingMessage = (data) => {
-                try {
-                    const msgDiv = document.createElement('div');
-                    const now = data.time || new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-
-                    let senderName = data.name || "ユーザー";
-                    let messageContent = data.msg || data.content || "";
-
-                    if (typeof messageContent === 'string' && messageContent.includes(': ')) {
-                        const parts = messageContent.split(': ');
-                        if (!data.name || data.name === "ユーザー") {
-                            senderName = parts[0];
-                        }
-                        messageContent = parts.slice(1).join(': ');
-                    }
-
-                    const isMine = (data.user_id === currentUserId);
-                    msgDiv.className = `msg-line ${isMine ? 'msg-mine' : 'msg-theirs'}`;
-                    if (data.id) {
-                        msgDiv.id = `msg-${data.id}`;
-                    }
-
-                    const formattedContent = renderMessageContent(messageContent);
-                    const deleteBtnHtml = (isMine && data.id) 
-                        ? `<button class="btn-delete" onclick="deleteMessage(${data.id})" title="削除">✕</button>` 
-                        : '';
-
-                    msgDiv.innerHTML = `
-                        <span class="msg-user">${senderName}</span>
-                        <div class="msg-bubble">${formattedContent}</div>
-                        <span class="msg-time">${now}${deleteBtnHtml}</span>
-                    `;
-                    
-                    chatBox.appendChild(msgDiv);
-                    chatBox.scrollTop = chatBox.scrollHeight;
-                } catch (err) {
-                    console.error("メッセージ描画エラー:", err);
-                }
-            };
-
-            // WebSocket経由の履歴受信イベント
-            window.chatSocket.on('load_history_response', (data) => {
-                if (!data || !data.messages) return;
-                data.messages.forEach(msg => {
-                    handleIncomingMessage(msg);
-                });
-            });
-
-            window.chatSocket.on('message', handleIncomingMessage);
-            window.chatSocket.on('group_message', handleIncomingMessage);
-
-            window.chatSocket.on('message_deleted', (data) => {
-                const targetMsg = document.getElementById(`msg-${data.msg_id}`);
-                if (targetMsg) targetMsg.remove();
-            });
-
-            const handleStatus = (data) => {
-                const statusDiv = document.createElement('div');
-                statusDiv.className = 'msg-line msg-status';
-                statusDiv.textContent = data.msg;
-                chatBox.appendChild(statusDiv);
-                chatBox.scrollTop = chatBox.scrollHeight;
-            };
-
-            window.chatSocket.on('status', handleStatus);
-            window.chatSocket.on('group_status', handleStatus);
-
-            // 送信処理（1on1とグループを自動分岐）
-            const sendMessage = () => {
-                const text = msgInput ? msgInput.value.trim() : '';
-                if (text !== "") {
-                    if (isGroupRoom) {
-                        window.chatSocket.emit('group_text', { msg: text });
-                    } else {
-                        window.chatSocket.emit('text', { msg: text });
-                    }
-                    if (msgInput) msgInput.value = "";
-                }
-            };
-
-            if (imageInput) {
-                imageInput.addEventListener('change', async (e) => {
-                    const file = e.target.files[0];
-                    if (!file) return;
-
-                    const formData = new FormData();
-                    formData.append('image', file);
-
-                    try {
-                        const response = await fetch('/upload-image', {
-                            method: 'POST',
-                            body: formData
-                        });
-
-                        const result = await response.json();
-
-                        if (response.ok && result.image_url) {
-                            const imgMsg = `[IMG]${result.image_url}[/IMG]`;
-                            if (isGroupRoom) {
-                                window.chatSocket.emit('group_text', { msg: imgMsg });
-                            } else {
-                                window.chatSocket.emit('text', { msg: imgMsg });
-                            }
-                        } else {
-                            alert(result.error || '画像のアップロードに失敗しました。');
-                        }
-                    } catch (err) {
-                        console.error('画像送信エラー:', err);
-                    } finally {
-                        imageInput.value = '';
-                    }
-                });
-            }
-
-            if (sendBtn) sendBtn.addEventListener('click', sendMessage);
-            if (msgInput) {
-                msgInput.addEventListener('keypress', (e) => {
-                    if (e.key === 'Enter') sendMessage();
-                });
-            }
-        }
-    });
-
-    window.addEventListener('beforeunload', function() {
-        if (window.chatSocket) {
-            window.chatSocket.emit('left', {});
-            window.chatSocket.disconnect();
-        }
-    });
+    msgDiv.appendChild(nameSpan);
+    msgDiv.appendChild(contentSpan);
+    
+    chatBox.appendChild(msgDiv);
+    
+    // 自動で一番下までスクロール
+    chatBox.scrollTop = chatBox.scrollHeight;
+}
     </script>
     
     {% include 'footer.html' %}

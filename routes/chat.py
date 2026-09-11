@@ -24,6 +24,7 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 
 def allowed_file(filename):
+    """許可されている拡張子かどうかをチェックする関数"""
     return (
         '.' in filename
         and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -79,6 +80,7 @@ def create_chat_room(user1_id, user2_id, skill_id=None):
 # =====================================================================
 @chat.route('/upload-image', methods=['POST'])
 def upload_image():
+    """チャット内で送信された画像を保存するエンドポイント"""
     user_id = session.get('user_id')
     if not user_id:
         return jsonify({'error': '認証が必要です'}), 401
@@ -108,6 +110,7 @@ def upload_image():
 # =====================================================================
 @chat.route('/chat', methods=['GET', 'POST'])
 def chat_hub():
+    """ルーム未選択時のメインチャット画面"""
     user_id = session.get('user_id')
     if not user_id:
         return redirect('/login')
@@ -177,13 +180,14 @@ def chat_hub():
 # =====================================================================
 @chat.route('/chat/room/<string:room_id>')
 def chat_room(room_id):
+    """特定のルームIDが開かれた際の処理"""
     user_id = session.get('user_id')
     if not user_id:
         return redirect('/login')
 
     db = get_db()
 
-    # ★ 修正1: 1on1(room_members) またはグループ(group_members)のメンバー権限を確認
+    # 1on1(room_members) またはグループ(group_members)のメンバー権限を確認
     is_member = db.execute(
         """
         SELECT 1 FROM room_members WHERE room_id = ? AND user_id = ?
@@ -310,6 +314,7 @@ def chat_room(room_id):
 # =====================================================================
 @chat.route('/create-public-room/<int:skill_id>', methods=['GET', 'POST'])
 def create_public_room(skill_id):
+    """誰でも参加可能な公開ルームを新規作成"""
     user_id = session.get('user_id')
     if not user_id:
         return redirect('/login')
@@ -338,6 +343,7 @@ def create_public_room(skill_id):
 # =====================================================================
 @chat.route('/create-private-room/<int:skill_id>', methods=['GET', 'POST'])
 def create_private_room(skill_id):
+    """招待コードが必要な非公開ルームを新規作成"""
     user_id = session.get('user_id')
     if not user_id:
         return redirect('/login')
@@ -366,6 +372,7 @@ def create_private_room(skill_id):
 # =====================================================================
 @chat.route('/private-room', methods=['POST'])
 def join_private_room():
+    """招待コードを入力して非公開ルームに参加"""
     user_id = session.get('user_id')
     if not user_id:
         return redirect('/login')
@@ -404,6 +411,7 @@ def join_private_room():
 # =====================================================================
 @chat.route('/public-rooms')
 def list_public_rooms():
+    """現在存在する公開ルームを一覧表示"""
     user_id = session.get('user_id')
     if not user_id:
         return redirect('/login')
@@ -425,6 +433,7 @@ def list_public_rooms():
 # =====================================================================
 @chat.route('/access-room/<string:room_id>')
 def access_room(room_id):
+    """ルームに参加権限があるか検証した上でリダイレクト"""
     user_id = session.get('user_id')
     if not user_id:
         return redirect('/login')
@@ -471,6 +480,7 @@ def access_room(room_id):
 # =====================================================================
 @chat.route('/create-room-form')
 def show_create_room_form():
+    """プロジェクト/ルーム作成画面を表示"""
     user_id = session.get('user_id')
     if not user_id:
         return redirect('/login')
@@ -486,6 +496,7 @@ def show_create_room_form():
 # =====================================================================
 @chat.route('/my-created-rooms')
 def list_my_created_rooms():
+    """自分がオーナーとして作成したルーム一覧"""
     user_id = session.get('user_id')
     if not user_id:
         return redirect('/login')
@@ -511,6 +522,7 @@ def list_my_created_rooms():
 # =====================================================================
 @chat.route('/my-room-access')
 def list_my_room_access():
+    """自分が参加中のすべてのルーム一覧"""
     user_id = session.get('user_id')
     if not user_id:
         return redirect('/login')
@@ -539,6 +551,7 @@ def init_chat_events(socketio):
 
     @socketio.on('joined', namespace='/chat')
     def joined(message):
+        """ユーザーがルームに入室した際の検証とSocket.ioのルーム参加処理"""
         room = session.get('room')
         user_id = session.get('user_id')
 
@@ -547,7 +560,7 @@ def init_chat_events(socketio):
             return False
 
         db = get_db()
-        # ★ 修正2: プライベートルームとグループルームの両方でWebSocket接続を検証
+        # プライベートルームとグループルームの両方でWebSocket接続権限を検証
         is_member = db.execute(
             """
             SELECT 1 FROM room_members WHERE room_id = ? AND user_id = ?
@@ -563,24 +576,60 @@ def init_chat_events(socketio):
                 'SELECT name FROM users WHERE user_id = ?', (user_id,)
             ).fetchone()
             real_name = user_row['name'] if user_row else 'User'
-            print(f'[WS VERIFIED] User {real_name} joined room {room}')
+            print(f'[WS VERIFIED] ユーザー {real_name} がルーム {room} に接続しました。')
             emit('status', {'msg': f'{real_name} が入室しました。'}, to=room)
         else:
             print(
-                f'[WS SECURITY BREACH] 不正な接続をブロックしました。ユーザーID {user_id}'
+                f'[WS SECURITY BREACH] 不正接続をブロック。ユーザーID: {user_id}'
                 f' はルーム {room} のメンバーではありません。'
             )
             return False
 
+    # 【追加】JavaScript側からの履歴取得リクエストに対応するイベント
+    @socketio.on('load_history', namespace='/chat')
+    def load_history(data):
+        """フロントエンドからの履歴要請に対し、現在セッションのルームのメッセージだけを返す"""
+        room = session.get('room')
+        user_id = session.get('user_id')
+
+        if not room or not user_id:
+            return
+
+        db = get_db()
+        history_rows = db.execute(
+            """
+            SELECT id, user_id, name, content, datetime(send_at, 'localtime') AS send_time
+            FROM messages
+            WHERE room = ?
+            ORDER BY send_at ASC
+            LIMIT 50
+            """,
+            (room,),
+        ).fetchall()
+
+        messages = []
+        for row in history_rows:
+            messages.append({
+                'id': row['id'],
+                'user_id': row['user_id'],
+                'name': row['name'],
+                'content': row['content'],
+                'time': row['send_time'],
+            })
+
+        # クライアントに履歴メッセージリストを送信
+        emit('load_history_response', {'messages': messages})
+
     @socketio.on('text', namespace='/chat')
     def text(message):
+        """新規メッセージ受信時のデータベース保存およびルーム内全員への配信処理"""
         room = session.get('room')
         user_id = session.get('user_id')
         msg_content = message.get('msg', '').strip()
 
         if room and user_id and msg_content:
             db = get_db()
-            # ★ 修正2: 両方のタイプのルームでメッセージ送信権限を検証
+            # メッセージ送信権限をチェック
             is_member = db.execute(
                 """
                 SELECT 1 FROM room_members WHERE room_id = ? AND user_id = ?
@@ -601,7 +650,7 @@ def init_chat_events(socketio):
             ).fetchone()
 
             if req_status and req_status['status'] != 'accepted':
-                print(f'[WS TEXT REJECTED] room {room} はセッション終了/評価済みのため送信できません。')
+                print(f'[WS TEXT REJECTED] ルーム {room} はセッション終了/評価済みのため送信できません。')
                 return False
 
             user_row = db.execute(
@@ -619,18 +668,21 @@ def init_chat_events(socketio):
             msg_id = cursor.lastrowid
             db.commit()
 
+            # 【修正】メッセージ情報をオブジェクト形式で統一配信
             emit(
                 'message',
                 {
                     'id': msg_id,
                     'user_id': user_id,
-                    'msg': f'{real_name}: {msg_content}',
+                    'name': real_name,
+                    'content': msg_content,
                 },
                 to=room,
             )
 
     @socketio.on('delete_message', namespace='/chat')
     def delete_message(data):
+        """メッセージの削除処理"""
         room = session.get('room')
         user_id = session.get('user_id')
         msg_id = data.get('msg_id')
@@ -645,13 +697,13 @@ def init_chat_events(socketio):
 
             if cursor.rowcount > 0:
                 print(
-                    '[WS DELETE Success] Msg ID:'
-                    f' {msg_id} deleted by User: {user_id}'
+                    f'[WS DELETE Success] メッセージID: {msg_id} 削除実行者: {user_id}'
                 )
                 emit('message_deleted', {'msg_id': msg_id}, to=room)
 
     @socketio.on('left', namespace='/chat')
     def left(message):
+        """ユーザーがルームを離脱した際の処理"""
         room = session.get('room')
         user_id = session.get('user_id')
         if room and user_id:
@@ -669,13 +721,14 @@ def init_chat_events(socketio):
 # =====================================================================
 @chat.route('/chat_index')
 def chat_index():
+    """最新のチャットルームに自動リダイレクトするヘッダーリンク用"""
     user_id = session.get('user_id')
     if not user_id:
         return redirect('/login')
 
     db = get_db()
 
-    # ★ 修正3: 1on1とグループを結合して最新のルームを取得
+    # 1on1とグループを結合して最新のルームを取得
     latest_room = db.execute(
         '''
         SELECT room_id FROM (
@@ -699,6 +752,7 @@ def chat_index():
 
 @chat.route('/chat/room/<string:room_id>/close', methods=['POST'])
 def close_room(room_id):
+    """チャットを非表示（非アクティブ化）にする処理"""
     user_id = session.get('user_id')
     if not user_id:
         return redirect('/login')
@@ -723,6 +777,7 @@ def close_room(room_id):
 # =====================================================================
 @chat.route('/chat/room/<string:room_id>/leave', methods=['POST'])
 def leave_room_action(room_id):
+    """ユーザーをルームメンバーから削除（誰もいなくなった場合はルーム自体を削除）"""
     user_id = session.get('user_id')
     if not user_id:
         return redirect('/login')
@@ -757,6 +812,7 @@ def leave_room_action(room_id):
 # =====================================================================
 @chat.route('/chat/send', methods=['POST'])
 def send_message():
+    """HTTP POSTによるフォールバック送信チェック"""
     db = get_db()
     room_id = request.form.get('room_id')
 
