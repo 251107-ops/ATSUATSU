@@ -222,7 +222,7 @@ def chat_room(room_id):
         ORDER BY send_at ASC
         LIMIT 50
     """,
-        (room_id,),
+        (str(room_id),),
     ).fetchall()
 
     history = []

@@ -183,9 +183,9 @@
                 }
 
                 // 画面にメッセージが初期ロードされていない場合、サーバーへ履歴請求を送信
-                if (chatBox && chatBox.querySelectorAll('.msg-line:not(.msg-status)').length === 0) {
-                    window.chatSocket.emit('load_history', {});
-                }
+                // if (chatBox && chatBox.querySelectorAll('.msg-line:not(.msg-status)').length === 0) {
+                //     window.chatSocket.emit('load_history', {});
+                // }
             });
 
             const renderMessageContent = (content) => {
