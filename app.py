@@ -15,7 +15,8 @@ from routes.projects import projects_bp
 app = Flask(__name__)
 
 # 💡 開発中は固定の文字列にするか、Blueprintを登録する「前」に必ず設定します
-app.secret_key = '.secret_key'
+with open(os.path.join(os.path.dirname(__file__), '.secret_key')) as f:
+    app.secret_key = f.read().strip()
 socketio = SocketIO(app, cors_allowed_origins='*')
 
 # Blueprint の登録
