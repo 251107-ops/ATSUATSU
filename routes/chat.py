@@ -149,7 +149,7 @@ def chat_hub():
         LEFT JOIN skills s ON gr.skill_id = s.skill_id
         WHERE gm.user_id = ?
     ''', (user_id, user_id)).fetchall()
-
+    
     chat_rooms = []
     for row in chat_rooms_rows:
         chat_rooms.append({
@@ -183,11 +183,12 @@ def chat_room(room_id):
 
     db = get_db()
 
+    # ★ 修正1: 1on1(room_members) またはグループ(group_members)のメンバー権限を確認
     is_member = db.execute(
         """
-        SELECT 1 FROM room_members WHERE CAST(room_id AS TEXT) = CAST(? AS TEXT) AND user_id = ?
+        SELECT 1 FROM room_members WHERE room_id = ? AND user_id = ?
         UNION ALL
-        SELECT 1 FROM group_members WHERE CAST(group_room_id AS TEXT) = CAST(? AS TEXT) AND user_id = ?
+        SELECT 1 FROM group_members WHERE group_room_id = ? AND user_id = ?
         """,
         (room_id, user_id, room_id, user_id),
     ).fetchone()
@@ -197,13 +198,14 @@ def chat_room(room_id):
         session.modified = True
         return redirect(url_for('.chat_hub'))
 
+    # 1on1チャットが非表示の場合、再度表示状態に戻す
     db.execute(
-        'UPDATE room_members SET hidden = 0 WHERE CAST(room_id AS TEXT) = CAST(? AS TEXT) AND user_id = ?',
+        'UPDATE room_members SET hidden = 0 WHERE room_id = ? AND user_id = ?',
         (room_id, user_id),
     )
     db.commit()
 
-    session['room'] = str(room_id)
+    session['room'] = room_id
     session.modified = True
 
     user_row = db.execute(
@@ -211,11 +213,12 @@ def chat_room(room_id):
     ).fetchone()
     name = user_row['name'] if user_row else session.get('name', 'User')
 
+    # 📥 過去ログの取得
     history_rows = db.execute(
         """
         SELECT id, user_id, name, content, datetime(send_at, 'localtime') AS send_time
         FROM messages
-        WHERE CAST(room AS TEXT) = CAST(? AS TEXT)
+        WHERE room = ?
         ORDER BY send_at ASC
         LIMIT 50
     """,
@@ -232,6 +235,7 @@ def chat_room(room_id):
             'time': row['send_time'],
         })
 
+    # 👥 サイドバー用の一覧取得
     chat_rooms_rows = db.execute('''
         SELECT 
             rm1.room_id AS room_token,
@@ -373,14 +377,14 @@ def join_private_room():
     db = get_db()
 
     room_exists = db.execute(
-        'SELECT room_id FROM rooms WHERE CAST(room_id AS TEXT) = CAST(? AS TEXT)', (code,)
+        'SELECT room_id FROM rooms WHERE room_id = ?', (code,)
     ).fetchone()
     if not room_exists:
         return 'This room code does not exist or has expired.', 404
 
     already_member = db.execute(
         """
-        SELECT 1 FROM room_members WHERE CAST(room_id AS TEXT) = CAST(? AS TEXT) AND user_id = ?
+        SELECT 1 FROM room_members WHERE room_id = ? AND user_id = ?
     """,
         (code, user_id),
     ).fetchone()
@@ -427,7 +431,7 @@ def access_room(room_id):
 
     db = get_db()
     room_data = db.execute(
-        'SELECT is_public FROM rooms WHERE CAST(room_id AS TEXT) = CAST(? AS TEXT)', (room_id,)
+        'SELECT is_public FROM rooms WHERE room_id = ?', (room_id,)
     ).fetchone()
     if not room_data:
         return 'The requested room does not exist.', 404
@@ -435,7 +439,7 @@ def access_room(room_id):
     if room_data['is_public'] == 1:
         already_member = db.execute(
             """
-            SELECT 1 FROM room_members WHERE CAST(room_id AS TEXT) = CAST(? AS TEXT) AND user_id = ?
+            SELECT 1 FROM room_members WHERE room_id = ? AND user_id = ?
         """,
             (room_id, user_id),
         ).fetchone()
@@ -449,7 +453,7 @@ def access_room(room_id):
     else:
         is_invited = db.execute(
             """
-            SELECT 1 FROM room_members WHERE CAST(room_id AS TEXT) = CAST(? AS TEXT) AND user_id = ?
+            SELECT 1 FROM room_members WHERE room_id = ? AND user_id = ?
         """,
             (room_id, user_id),
         ).fetchone()
@@ -543,23 +547,24 @@ def init_chat_events(socketio):
             return False
 
         db = get_db()
+        # ★ 修正2: プライベートルームとグループルームの両方でWebSocket接続を検証
         is_member = db.execute(
             """
-            SELECT 1 FROM room_members WHERE CAST(room_id AS TEXT) = CAST(? AS TEXT) AND user_id = ?
+            SELECT 1 FROM room_members WHERE room_id = ? AND user_id = ?
             UNION ALL
-            SELECT 1 FROM group_members WHERE CAST(group_room_id AS TEXT) = CAST(? AS TEXT) AND user_id = ?
+            SELECT 1 FROM group_members WHERE group_room_id = ? AND user_id = ?
             """,
             (room, user_id, room, user_id),
         ).fetchone()
 
         if is_member:
-            join_room(str(room))
+            join_room(room)
             user_row = db.execute(
                 'SELECT name FROM users WHERE user_id = ?', (user_id,)
             ).fetchone()
             real_name = user_row['name'] if user_row else 'User'
             print(f'[WS VERIFIED] User {real_name} joined room {room}')
-            emit('status', {'msg': f'{real_name} が入室しました。'}, to=str(room))
+            emit('status', {'msg': f'{real_name} が入室しました。'}, to=room)
         else:
             print(
                 f'[WS SECURITY BREACH] 不正な接続をブロックしました。ユーザーID {user_id}'
@@ -575,15 +580,15 @@ def init_chat_events(socketio):
 
         if room and user_id and msg_content:
             db = get_db()
+            # ★ 修正2: 両方のタイプのルームでメッセージ送信権限を検証
             is_member = db.execute(
                 """
-                SELECT 1 FROM room_members WHERE CAST(room_id AS TEXT) = CAST(? AS TEXT) AND user_id = ?
+                SELECT 1 FROM room_members WHERE room_id = ? AND user_id = ?
                 UNION ALL
-                SELECT 1 FROM group_members WHERE CAST(group_room_id AS TEXT) = CAST(? AS TEXT) AND user_id = ?
+                SELECT 1 FROM group_members WHERE group_room_id = ? AND user_id = ?
                 """,
                 (room, user_id, room, user_id),
             ).fetchone()
-
             if not is_member:
                 print(
                     f'[WS TEXT REJECTED] ユーザーID {user_id} はルーム {room}'
@@ -591,12 +596,11 @@ def init_chat_events(socketio):
                 )
                 return False
 
-            # Solo bloquea si la solicitud existe explícitamente y su estado NO es aceptado
             req_status = db.execute(
-                'SELECT status FROM requests WHERE CAST(room_id AS TEXT) = CAST(? AS TEXT)', (room,)
+                'SELECT status FROM requests WHERE room_id = ?', (room,)
             ).fetchone()
 
-            if req_status and req_status['status'] in ['completed', 'rejected', 'cancelled']:
+            if req_status and req_status['status'] != 'accepted':
                 print(f'[WS TEXT REJECTED] room {room} はセッション終了/評価済みのため送信できません。')
                 return False
 
@@ -610,7 +614,7 @@ def init_chat_events(socketio):
                 INSERT INTO messages (room, user_id, name, content) 
                 VALUES (?, ?, ?, ?)
             """,
-                (str(room), user_id, real_name, msg_content),
+                (room, user_id, real_name, msg_content),
             )
             msg_id = cursor.lastrowid
             db.commit()
@@ -622,7 +626,7 @@ def init_chat_events(socketio):
                     'user_id': user_id,
                     'msg': f'{real_name}: {msg_content}',
                 },
-                to=str(room),
+                to=room,
             )
 
     @socketio.on('delete_message', namespace='/chat')
@@ -634,7 +638,7 @@ def init_chat_events(socketio):
         if room and user_id and msg_id:
             db = get_db()
             cursor = db.execute(
-                'DELETE FROM messages WHERE id = ? AND user_id = ? AND CAST(room AS TEXT) = CAST(? AS TEXT)',
+                'DELETE FROM messages WHERE id = ? AND user_id = ? AND room = ?',
                 (msg_id, user_id, room),
             )
             db.commit()
@@ -644,7 +648,7 @@ def init_chat_events(socketio):
                     '[WS DELETE Success] Msg ID:'
                     f' {msg_id} deleted by User: {user_id}'
                 )
-                emit('message_deleted', {'msg_id': msg_id}, to=str(room))
+                emit('message_deleted', {'msg_id': msg_id}, to=room)
 
     @socketio.on('left', namespace='/chat')
     def left(message):
@@ -656,8 +660,8 @@ def init_chat_events(socketio):
                 'SELECT name FROM users WHERE user_id = ?', (user_id,)
             ).fetchone()
             real_name = user_row['name'] if user_row else 'Someone'
-            leave_room(str(room))
-            emit('status', {'msg': f'{real_name} が退室しました。'}, to=str(room))
+            leave_room(room)
+            emit('status', {'msg': f'{real_name} が退室しました。'}, to=room)
 
 
 # =====================================================================
@@ -671,6 +675,7 @@ def chat_index():
 
     db = get_db()
 
+    # ★ 修正3: 1on1とグループを結合して最新のルームを取得
     latest_room = db.execute(
         '''
         SELECT room_id FROM (
@@ -700,7 +705,7 @@ def close_room(room_id):
 
     db = get_db()
     db.execute(
-        'UPDATE room_members SET hidden = 1 WHERE CAST(room_id AS TEXT) = CAST(? AS TEXT) AND user_id = ?',
+        'UPDATE room_members SET hidden = 1 WHERE room_id = ? AND user_id = ?',
         (room_id, user_id),
     )
     db.commit()
@@ -725,62 +730,39 @@ def leave_room_action(room_id):
     db = get_db()
 
     db.execute(
-        'DELETE FROM room_members WHERE CAST(room_id AS TEXT) = CAST(? AS TEXT) AND user_id = ?',
+        'DELETE FROM room_members WHERE room_id = ? AND user_id = ?',
         (room_id, user_id),
     )
     db.execute(
-        'DELETE FROM group_members WHERE CAST(group_room_id AS TEXT) = CAST(? AS TEXT) AND user_id = ?',
+        'DELETE FROM group_members WHERE group_room_id = ? AND user_id = ?',
         (room_id, user_id),
     )
     db.commit()
 
     member_count = db.execute(
-        'SELECT COUNT(*) AS count FROM room_members WHERE CAST(room_id AS TEXT) = CAST(? AS TEXT)',
+        'SELECT COUNT(*) AS count FROM room_members WHERE room_id = ?',
         (room_id,),
     ).fetchone()
 
     if member_count and member_count['count'] == 0:
-        db.execute('DELETE FROM rooms WHERE CAST(room_id AS TEXT) = CAST(? AS TEXT)', (room_id,))
-        db.execute('DELETE FROM messages WHERE CAST(room AS TEXT) = CAST(? AS TEXT)', (room_id,))
+        db.execute('DELETE FROM rooms WHERE room_id = ?', (room_id,))
+        db.execute('DELETE FROM messages WHERE room = ?', (room_id,))
         db.commit()
 
     return redirect(url_for('chat.chat_index'))
 
 
 # =====================================================================
-# HTTP送信時のフォールバック処理 (REPARADO Y FUNCIONAL)
+# HTTP送信時のフォールバック処理
 # =====================================================================
 @chat.route('/chat/send', methods=['POST'])
 def send_message():
-    user_id = session.get('user_id')
-    room_id = request.form.get('room_id')
-    msg_content = request.form.get('msg', '').strip()
-
-    if not user_id or not room_id or not msg_content:
-        return jsonify({'error': 'Parámetros inválidos'}), 400
-
     db = get_db()
+    room_id = request.form.get('room_id')
 
-    is_member = db.execute(
-        """
-        SELECT 1 FROM room_members WHERE CAST(room_id AS TEXT) = CAST(? AS TEXT) AND user_id = ?
-        UNION ALL
-        SELECT 1 FROM group_members WHERE CAST(group_room_id AS TEXT) = CAST(? AS TEXT) AND user_id = ?
-        """,
-        (room_id, user_id, room_id, user_id),
-    ).fetchone()
+    room = db.execute("SELECT status FROM requests WHERE room_id = ?", (room_id,)).fetchone()
 
-    if not is_member:
-        return jsonify({'error': 'No tienes permisos en este chat'}), 403
+    if room and room['status'] == 'completed':
+        return jsonify({'error': 'このチャットは既に終了しています'}), 400
 
-    user_row = db.execute('SELECT name FROM users WHERE user_id = ?', (user_id,)).fetchone()
-    real_name = user_row['name'] if user_row else 'User'
-
-    cursor = db.execute(
-        "INSERT INTO messages (room, user_id, name, content) VALUES (?, ?, ?, ?)",
-        (str(room_id), user_id, real_name, msg_content)
-    )
-    msg_id = cursor.lastrowid
-    db.commit()
-
-    return jsonify({'status': 'ok', 'id': msg_id})
+    return jsonify({'status': 'ok'})
