@@ -274,23 +274,65 @@ def init_group_chat_events(socketio):
 
     @socketio.on('group_joined', namespace='/chat')
     def group_joined(data):
-        group_room_id = session.get('group_room_id')
+        
+        group_room_id = data.get('room_id') or session.get('group_room_id') or session.get('room')
         user_id = session.get('user_id')
 
         if not user_id or not group_room_id:
             return False
 
         db = get_db()
-        is_member = db.execute("SELECT 1 FROM group_members WHERE group_room_id = ? AND user_id = ?", (group_room_id, user_id)).fetchone()
+        is_member = db.execute(
+            "SELECT 1 FROM group_members WHERE group_room_id = ? AND user_id = ?", 
+            (group_room_id, user_id)
+        ).fetchone()
 
         if is_member:
-            room_key = f"group_{group_room_id}"
-            join_room(room_key)
+            
+            session['group_room_id'] = group_room_id
+            
+            
+            join_room(str(group_room_id))
+            
             user_row = db.execute("SELECT name FROM users WHERE user_id = ?", (user_id,)).fetchone()
-            real_name = user_row[0] if user_row else "User"
-            emit('group_status', {'msg': f"{real_name} がグループに参加しました。"}, to=room_key)
-        else:
-            return False
+            real_name = user_row['name'] if user_row else "User"
+            
+            emit('group_status', {'msg': f"{real_name} が入室しました。"}, to=str(group_room_id))
+
+    @socketio.on('group_text', namespace='/chat')
+    def group_text(data):
+        group_room_id = session.get('group_room_id') or session.get('room')
+        user_id = session.get('user_id')
+        msg_content = data.get('msg', '').strip()
+
+        if group_room_id and user_id and msg_content:
+            db = get_db()
+            is_member = db.execute(
+                "SELECT 1 FROM group_members WHERE group_room_id = ? AND user_id = ?", 
+                (group_room_id, user_id)
+            ).fetchone()
+            
+            if not is_member:
+                return False
+
+            user_row = db.execute("SELECT name FROM users WHERE user_id = ?", (user_id,)).fetchone()
+            real_name = user_row['name'] if user_row else "User"
+
+            cursor = db.execute("""
+                INSERT INTO group_messages (group_room_id, sender_id, content)
+                VALUES (?, ?, ?)
+            """, (group_room_id, user_id, msg_content))
+            db.commit()
+
+            msg_data = {
+                'id': cursor.lastrowid,
+                'user_id': user_id,
+                'name': real_name,
+                'msg': msg_content
+            }
+
+            
+            emit('group_message', msg_data, to=str(group_room_id))
 
     @socketio.on('load_history', namespace='/chat')
     def load_history(data=None):
@@ -327,27 +369,3 @@ def init_group_chat_events(socketio):
         } for row in history_rows]
 
         emit('load_history_response', {'messages': formatted_messages}, room=request.sid)
-
-    @socketio.on('group_text', namespace='/chat')
-    def group_text(data):
-        group_room_id = session.get('group_room_id')
-        user_id = session.get('user_id')
-        msg_content = data.get('msg', '').strip()
-
-        if group_room_id and user_id and msg_content:
-            db = get_db()
-            is_member = db.execute("SELECT 1 FROM group_members WHERE group_room_id = ? AND user_id = ?", (group_room_id, user_id)).fetchone()
-            if not is_member:
-                return False
-
-            user_row = db.execute("SELECT name FROM users WHERE user_id = ?", (user_id,)).fetchone()
-            real_name = user_row[0] if user_row else "User"
-
-            db.execute("""
-                INSERT INTO group_messages (group_room_id, sender_id, content)
-                VALUES (?, ?, ?)
-            """, (group_room_id, user_id, msg_content))
-            db.commit()
-
-            room_key = f"group_{group_room_id}"
-            emit('group_message', {'user_id': user_id, 'name': real_name, 'msg': msg_content}, to=room_key)

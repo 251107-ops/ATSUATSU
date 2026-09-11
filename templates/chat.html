@@ -177,7 +177,9 @@
             // ルーム入室イベント（1on1とグループを自動分岐）および履歴要求
             window.chatSocket.on('connect', () => {
                 if (isGroupRoom) {
-                    window.chatSocket.emit('group_joined', {});
+                    const currentRoomId = window.location.pathname.split('/').pop();
+                    window.chatSocket.emit('group_joined', { room_id: currentRoomId });
+
                 } else {
                     window.chatSocket.emit('joined', {});
                 }
